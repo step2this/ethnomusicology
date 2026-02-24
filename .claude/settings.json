@@ -7,11 +7,13 @@
           {
             "type": "command",
             "command": "cd /home/ubuntu/ethnomusicology/backend && cargo fmt --check 2>&1 && cargo clippy -- -D warnings 2>&1 && cargo test 2>&1",
-            "description": "Quality gate: format + lint + test before commit",
             "timeout": 180000
           }
         ]
       }
     ]
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true
   }
 }

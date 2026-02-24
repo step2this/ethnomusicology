@@ -8,7 +8,7 @@ axum = "0.8"
 tokio = { version = "1", features = ["full"] }
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace", "compression-gzip"] }
-sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite"] }
+sqlx = { version = "0.8", features = ["runtime-tokio", "sqlite", "chrono"] }
 rspotify = { version = "0.15", features = ["client-reqwest", "reqwest-rustls-tls"] }
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 serde = { version = "1", features = ["derive"] }
@@ -20,3 +20,16 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 dotenvy = "0.15"
 uuid = { version = "1", features = ["v4"] }
 jsonwebtoken = "9"
+aes-gcm = "0.10"
+base64 = "0.22"
+rand = "0.8"
+chrono = { version = "0.4", features = ["serde"] }
+url = "2"
+regex = "1"
+async-trait = "0.1"
+
+[dev-dependencies]
+wiremock = "0.6"
+axum-test = "16"
+tokio-test = "0.4"
+tempfile = "3"

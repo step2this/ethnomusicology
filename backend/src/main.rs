@@ -4,8 +4,12 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
+pub mod api;
 pub mod config;
+pub mod db;
 pub mod error;
+pub mod routes;
+pub mod services;
 
 #[derive(Serialize)]
 struct HealthResponse {
