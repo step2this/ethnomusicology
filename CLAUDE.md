@@ -1,5 +1,9 @@
 # Ethnomusicology Project - Claude Code Directives
 
+## Vision: DJ-First Music Platform
+
+LLM-powered substitute DJ that generates setlists from natural language prompts, sources music from Spotify + Beatport + SoundCloud, supports harmonic mixing (Camelot wheel), and provides crossfade preview playback with purchase links. Occasion-based features (Nikah, Eid, Mawlid) remain but are secondary to the DJ experience.
+
 ## Workflow: The Forge
 
 Use the Forge (`.claude/` directory) for all development:
@@ -13,11 +17,12 @@ Use the Forge (`.claude/` directory) for all development:
 
 ## Agent Teams
 
-Use multi-agent teams for non-trivial work (anything spanning >3 files):
+**Always prefer multi-agent teams** for any non-trivial work:
 - Create a team via `TeamCreate`, spawn builders in parallel
 - **Backend agents work in the same repo** — assign non-overlapping module directories
-- Use traits/interfaces at boundaries so parallel agents don't block each other (e.g., `ImportRepository` trait lets the service layer be tested without the real DB)
+- Use traits/interfaces at boundaries so parallel agents don't block each other (e.g., `ImportRepository` trait, `MusicSourceClient` trait)
 - The lead coordinates, reviews, and wires modules together — does not implement directly
+- Use Haiku agents for research tasks (API evaluation, tool research)
 
 ### Lessons Learned (UC-001)
 - Two backend agents can work in parallel if they own separate directories (`src/api/` vs `src/db/`)
@@ -25,7 +30,7 @@ Use multi-agent teams for non-trivial work (anything spanning >3 files):
 - Define shared traits up front in prompts so agents produce compatible interfaces
 - Run `cargo check` before spawning agents to warm the dependency cache — saves 30s+ per agent
 - Frontend can be done sequentially after backend since it depends on API shapes
-- Haiku agents work well for research tasks (EC2 setup, tool evaluation)
+- `package:web` fails in Flutter test VM — use `url_launcher` for cross-platform URL handling
 
 ## Architecture
 
@@ -35,20 +40,41 @@ Use multi-agent teams for non-trivial work (anything spanning >3 files):
 | Frontend | `frontend/` | Flutter/Dart, Riverpod, GoRouter |
 | Landing | `landing/` | Static HTML + Tailwind |
 | Database | SQLite (dev) | PostgreSQL (prod) via SQLx |
+| LLM | Claude Sonnet API | Setlist generation, music knowledge |
+| Audio Analysis | essentia (Python sidecar) | BPM, key, energy detection |
 
+### Key Patterns
 - Backend serves JSON; Flutter consumes it
-- Backend owns ALL external API keys (Spotify, YouTube, Last.fm, MusicBrainz)
+- Backend owns ALL external API keys (Spotify, Beatport, SoundCloud, Anthropic)
 - Auth: `X-User-Id` header (temporary, replaced by JWT in UC-008)
-- Spotify client: custom `reqwest` wrapper (not `rspotify` crate) for full error control
+- API clients: custom `reqwest` wrappers with shared retry middleware
+- Source-agnostic import via `MusicSourceClient` trait
+- Repository pattern via `ImportRepository` trait for testability
+
+## External Integrations
+
+| Service | Purpose | API Status |
+|---------|---------|-----------|
+| Spotify | Music import (UC-001, done) | Integrated, OAuth |
+| Beatport | DJ track source (BPM/key native) | v4 API, needs integration |
+| SoundCloud | Discovery + streaming | Public API, OAuth 2.1 |
+| Anthropic/Claude | Setlist generation | Claude Sonnet default |
+| essentia | Audio analysis (BPM, key) | Python sidecar, server-side |
+
+## UX/Design Tooling
+
+- **`design-crit` plugin** (`metedata/design-crit`) — Primary design tool. Run before building each screen. 4-stage process: Brief → Facet Plan → Crit Loops → Design Direction.
+- `/wireframe` — Quick ASCII wireframes during use case creation
+- `/ux-review` — Post-implementation UX review
+- `frontend-design` plugin — Production code generation
 
 ## Project Context
 
-- Music playlist app for Muslim families planning occasions (Nikah, Eid, Mawlid, etc.)
-- Seed data: "Salamic Vibes" Spotify playlist (54 tracks)
-- Target: African/Middle Eastern Muslim musical traditions
 - Full plan: `docs/project-plan.md`
+- DJ platform research: `docs/research/dj-platform-research.md`
 - Use cases: `docs/use-cases/uc-*.md`
 - Task decompositions: `docs/tasks/uc-*-tasks.md`
+- Evolution plan: `.claude/plans/golden-questing-lollipop.md`
 
 ## Quality Gates
 
@@ -63,7 +89,7 @@ Frontend: flutter analyze && flutter test
 ```bash
 # Backend
 cd backend && cargo run                    # Start API server (port 3001)
-cd backend && cargo test                   # Run 49 tests
+cd backend && cargo test                   # Run tests
 cd backend && cargo clippy -- -D warnings  # Lint
 
 # Frontend
@@ -74,7 +100,8 @@ cd frontend && flutter test                # Run tests
 
 ## Current State
 
-- **Branch**: `feature/uc-001-spotify-import` (ready to merge to main)
-- **UC-001**: Implemented — Spotify OAuth, playlist import, retry/resilience, DB upserts, Flutter import screen
-- **Next**: UC-002 (Enrich Track Metadata), UC-006 (Preview/Play Track), DNS setup for EC2 access
-- **Test count**: 49 backend tests passing
+- **Branch**: `main` (UC-001 merged, pushed to GitHub)
+- **UC-001**: Complete — Spotify OAuth, playlist import, retry/resilience, DB upserts, Flutter import screen
+- **Next**: DJ pivot — create UC-013 through UC-025 (Beatport import, SoundCloud import, BPM/key detection, LLM setlist generation, Camelot arrangement, crossfade preview)
+- **Test count**: 49 backend tests, 1 frontend test — all passing
+- **GitHub**: `git@github.com:step2this/ethnomusicology.git`
