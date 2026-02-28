@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean & Direct — Edge States</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border-subtle: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --status-error: #F87171;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 24px;
+  }
+  .title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 32px; max-width: 600px; }
+  .section-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--accent); margin-top: 32px; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+  }
+  .pattern-note {
+    color: var(--text-muted); font-size: 12px; margin-bottom: 16px; font-style: italic;
+  }
+
+  /* Wireframe containers */
+  .wireframe {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .wireframe-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--text-muted); margin-bottom: 12px;
+  }
+  /* Simple wireframe elements */
+  .wf-screen {
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 16px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .wf-heading {
+    font-size: 15px; font-weight: 500; color: var(--text-primary);
+  }
+  .wf-body {
+    font-size: 13px; color: var(--text-secondary); max-width: 400px;
+  }
+  .wf-button {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    background: var(--accent); color: white; border: none;
+  }
+  .wf-button.ghost {
+    background: transparent; border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .wf-error-inline {
+    font-size: 12px; color: var(--status-error); text-align: left;
+    padding: 4px 0;
+  }
+  .wf-banner {
+    padding: 10px 16px; border-radius: 6px; font-size: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 12px;
+  }
+  .wf-banner.error {
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    color: var(--status-error);
+  }
+  .wf-banner.warning {
+    background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3);
+    color: var(--status-warning);
+  }
+  .wf-banner.success {
+    background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.3);
+    color: var(--status-success);
+  }
+  .wf-input {
+    background: var(--surface-base); border: 1px solid var(--border-subtle);
+    border-radius: 4px; padding: 8px 12px; color: var(--text-secondary);
+    font-size: 12px; width: 100%; text-align: left;
+  }
+  .wf-input.error { border-color: var(--status-error); }
+  .wf-skeleton {
+    background: var(--surface-overlay); border-radius: 4px; height: 56px;
+    margin-bottom: 8px;
+    background: linear-gradient(90deg, var(--surface-overlay) 25%, #222228 50%, var(--surface-overlay) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .wf-row {
+    display: flex; gap: 12px; align-items: center;
+  }
+  .wf-import-summary {
+    text-align: left; width: 100%;
+  }
+  .wf-summary-line {
+    display: flex; justify-content: space-between; padding: 4px 0;
+    border-bottom: 1px solid var(--border-subtle); font-size: 12px;
+  }
+  .wf-summary-line .label { color: var(--text-secondary); }
+  .wf-summary-line .value { font-weight: 500; }
+  .wf-summary-line .value.success { color: var(--status-success); }
+  .wf-summary-line .value.error { color: var(--status-error); }
+
+  /* Coverage matrix */
+  .matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-bottom: 24px;
+  }
+  .matrix th {
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--text-muted); text-align: center;
+    padding: 6px 8px; border-bottom: 1px solid var(--border-subtle);
+  }
+  .matrix th:first-child { text-align: left; }
+  .matrix td {
+    padding: 6px 8px; text-align: center;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-muted);
+  }
+  .matrix td:first-child {
+    text-align: left; color: var(--text-primary); font-weight: 500;
+  }
+  .matrix .yes { color: var(--status-success); }
+  .matrix .no { color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="title">Lean & Direct</div>
+  <div class="subtitle">Short messages, prominent actions, uniform patterns. Trusts the DJ to figure it out. Power-user aesthetic — get out of the way fast.</div>
+
+  <div class="section-label">Coverage Matrix</div>
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th>Screen</th>
+        <th>Empty (1st use)</th>
+        <th>Loading</th>
+        <th>Error</th>
+        <th>Partial</th>
+        <th>Validation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Track Catalog</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+      </tr>
+      <tr>
+        <td>Import Sheet</td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">Track Catalog — Empty (First Use)</div>
+  <div class="pattern-note">Pattern: one line + one button. No illustration, no explanation.</div>
+  <div class="wireframe">
+    <div class="wf-screen">
+      <div class="wf-heading">No tracks yet</div>
+      <div class="wf-button">Import Tracks</div>
+    </div>
+  </div>
+
+  <div class="section-label">Track Catalog — Loading</div>
+  <div class="pattern-note">Pattern: skeleton tiles with shimmer. No text, no spinner.</div>
+  <div class="wireframe">
+    <div style="padding: 8px;">
+      <div class="wf-skeleton"></div>
+      <div class="wf-skeleton"></div>
+      <div class="wf-skeleton"></div>
+      <div class="wf-skeleton" style="opacity: 0.5;"></div>
+    </div>
+  </div>
+
+  <div class="section-label">Track Catalog — Error</div>
+  <div class="pattern-note">Pattern: centered message + retry button. No technical details.</div>
+  <div class="wireframe">
+    <div class="wf-screen">
+      <div class="wf-heading">Couldn't load your tracks</div>
+      <div class="wf-button">Try Again</div>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — URL Validation Error</div>
+  <div class="pattern-note">Pattern: inline red text below input. Field keeps focus.</div>
+  <div class="wireframe">
+    <div style="text-align: left; max-width: 500px;">
+      <div class="wireframe-label">URL</div>
+      <div class="wf-input error">https://www.beatport.com/artist/lane-8</div>
+      <div class="wf-error-inline">Not a valid Beatport chart, playlist, or track URL</div>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — Network / Service Error</div>
+  <div class="pattern-note">Pattern: error banner inside sheet + retry. One line.</div>
+  <div class="wireframe">
+    <div class="wf-banner error">
+      <span>Can't reach Beatport right now</span>
+      <span class="wf-button ghost" style="padding: 4px 12px; font-size: 11px;">Retry</span>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — Auth Expired</div>
+  <div class="pattern-note">Pattern: warning banner + reconnect action. Same template as network error.</div>
+  <div class="wireframe">
+    <div class="wf-banner warning">
+      <span>Spotify connection expired</span>
+      <span class="wf-button ghost" style="padding: 4px 12px; font-size: 11px;">Reconnect</span>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — Partial Import</div>
+  <div class="pattern-note">Pattern: summary counts only. No per-track breakdown. "Done" closes sheet.</div>
+  <div class="wireframe">
+    <div class="wf-import-summary">
+      <div class="wf-summary-line">
+        <span class="label">Imported</span>
+        <span class="value success">12 tracks</span>
+      </div>
+      <div class="wf-summary-line">
+        <span class="label">Failed</span>
+        <span class="value error">3 tracks</span>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <span class="wf-button" style="font-size: 12px; padding: 6px 16px;">Done</span>
+        <span class="wf-button ghost" style="font-size: 12px; padding: 6px 16px;">Retry Failed</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,129 @@
+{
+  "project": {
+    "name": "Ethnomusicology — Import & Catalog",
+    "description": "Multi-source import screen and DJ metadata catalog for an LLM-powered DJ setlist platform",
+    "platform": "web",
+    "tech_stack": ["Flutter", "Dart", "Riverpod", "GoRouter", "Material 3"]
+  },
+  "brief_status": "confirmed",
+  "facet_plan_status": "confirmed",
+  "facets": [
+    {
+      "id": "screen-inventory",
+      "skill": "crit-screen-inventory",
+      "name": "Screen Inventory",
+      "lens": "structural",
+      "rationale": "Maps the import screen, catalog view, and their states — everything downstream depends on knowing what surfaces exist",
+      "depends_on": [],
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-c",
+      "locked_summary": "Catalog-First: 1 primary screen (Track Catalog) + 1 secondary (Import Sheet overlay). Catalog is home base, import is a drawer/sheet action. Extensible for multiple sources and AI generation.",
+      "decided_by": "user",
+      "decision_rationale": "DJs browse far more than they import. The catalog is the product — import is one of many future actions (Beatport, SoundCloud, local MP3, AI setlist generation) that feed into it. Catalog-first architecture provides the right foundation for extensibility.",
+      "rounds_completed": 1
+    },
+    {
+      "id": "edge-states",
+      "skill": "crit-edge-states",
+      "name": "Edge States",
+      "lens": "structural",
+      "rationale": "Import failures, invalid URLs, empty catalogs, Beatport downtime — DJs need clear recovery paths during set prep",
+      "depends_on": ["screen-inventory"],
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-b",
+      "locked_summary": "Context-Rich: tailored edge states per situation. Empty catalog shows source cards. URL errors show valid examples. Errors reassure 'your tracks are safe.' Partial imports show per-track results with failure reasons. Shaped skeletons for loading.",
+      "decided_by": "user",
+      "decision_rationale": "Context-rich approach matches the catalog-first architecture. First impressions matter for the empty catalog, and per-track import details help DJs make informed decisions during set prep.",
+      "rounds_completed": 1
+    },
+    {
+      "id": "content-layout",
+      "skill": "crit-layout",
+      "name": "Layout",
+      "lens": "compositional",
+      "rationale": "Import screen has tabs + URL input + progress; catalog has enriched tiles — spatial arrangement drives everything compositional",
+      "depends_on": ["screen-inventory"],
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-b",
+      "locked_summary": "Full-Width Crate: edge-to-edge track table with sortable columns (Title, Artist, BPM, Key, Genre, Source). 48px collapsed icon rail on left reserves space for future browser pane (Option C). No max-width — uses every pixel. DJ software density.",
+      "decided_by": "user",
+      "decision_rationale": "Right v1 discipline — ship the dense track table now, expand to browser pane (Option C) when content justifies the space. Rail is a subtle bridge, not a promise.",
+      "rounds_completed": 1
+    },
+    {
+      "id": "content-hierarchy",
+      "skill": "crit-content-hierarchy",
+      "name": "Content Hierarchy",
+      "lens": "compositional",
+      "rationale": "DJs think in BPM and key, not artist and title — what gets emphasis on the track tile is the core design question",
+      "depends_on": ["content-layout"],
+      "status": "pending",
+      "enabled": true
+    },
+    {
+      "id": "component-design",
+      "skill": "crit-component-design",
+      "name": "Component Design",
+      "lens": "compositional",
+      "rationale": "Enriched track tile, source tabs, Camelot key chips, source badges, import controls — the building blocks of the feature",
+      "depends_on": ["content-hierarchy", "content-layout"],
+      "status": "pending",
+      "enabled": true
+    },
+    {
+      "id": "elevation-shape",
+      "skill": "crit-elevation-shape",
+      "name": "Elevation & Shape",
+      "lens": "compositional",
+      "rationale": "Surface treatments for track tiles and metadata chips — Material 3 elevation applied to DJ-specific components",
+      "depends_on": ["component-design"],
+      "status": "pending",
+      "enabled": true
+    },
+    {
+      "id": "typography",
+      "skill": "crit-typography",
+      "name": "Typography",
+      "lens": "sensory",
+      "rationale": "Track tile scannability across dozens of tracks — font sizes and weights for BPM, key, genre at a glance",
+      "depends_on": ["content-layout", "content-hierarchy"],
+      "status": "pending",
+      "enabled": true
+    },
+    {
+      "id": "color-system",
+      "skill": "crit-color-system",
+      "name": "Color System",
+      "lens": "sensory",
+      "rationale": "Camelot key color-coding is the core differentiator — 24 keys mapped to tinted chips, plus source badge colors",
+      "depends_on": ["component-design"],
+      "status": "pending",
+      "enabled": true
+    },
+    {
+      "id": "density-spacing",
+      "skill": "crit-density-spacing",
+      "name": "Density & Spacing",
+      "lens": "sensory",
+      "rationale": "DJs need to scan fast — catalog density is a feature. How many tracks visible at once, tile padding, chip spacing",
+      "depends_on": ["content-layout", "component-design"],
+      "status": "pending",
+      "enabled": true
+    },
+    {
+      "id": "accessibility",
+      "skill": "crit-accessibility",
+      "name": "Accessibility",
+      "lens": "cross-cutting",
+      "rationale": "Camelot colors need contrast checking, keyboard nav through catalog, screen reader labels for metadata chips",
+      "depends_on": ["typography", "color-system", "density-spacing"],
+      "status": "pending",
+      "enabled": true
+    }
+  ],
+  "current_facet": "content-hierarchy",
+  "current_round": null
+}

@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catalog-First — Screen Inventory</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border-subtle: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --primary-screen: #6366F1;
+    --secondary-screen: #8B8B92;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 24px;
+  }
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+  }
+  .layout-diagram {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .screen-box {
+    border: 2px solid var(--primary-screen);
+    border-radius: 8px;
+    padding: 16px 20px;
+    min-width: 200px;
+    text-align: center;
+    background: var(--surface-raised);
+    flex: 1;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .screen-box.secondary {
+    border-style: dashed;
+    border-color: var(--secondary-screen);
+    flex: 0 0 180px;
+    min-height: 200px;
+  }
+  .screen-box .name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .screen-box .type {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .screen-box .detail {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 8px;
+  }
+  .overlay-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+  }
+  .happy-path-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--status-success);
+    margin-bottom: 12px;
+  }
+  .flow-steps {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 12px;
+  }
+  .flow-step .step-label {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .flow-step .step-detail {
+    color: var(--text-muted);
+    font-size: 10px;
+  }
+  .flow-arrow {
+    color: var(--text-muted);
+    padding: 0 8px;
+    font-size: 14px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    margin-top: 24px;
+  }
+  .screen-detail {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .screen-detail .name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .screen-detail .purpose {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .screen-type-badge {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .screen-type-badge.primary {
+    border: 1px solid var(--primary-screen);
+    color: var(--primary-screen);
+  }
+  .screen-type-badge.secondary {
+    border: 1px solid var(--secondary-screen);
+    color: var(--secondary-screen);
+  }
+  .state-list {
+    list-style: none;
+  }
+  .state-list li {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .state-list li:last-child { border-bottom: none; }
+  .state-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 140px;
+  }
+  .state-desc {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .codebase-note {
+    background: var(--surface-overlay);
+    border-left: 3px solid var(--status-warning);
+    border-radius: 4px;
+    padding: 12px 16px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 24px;
+  }
+  .codebase-note strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+  <div class="title">Catalog-First</div>
+  <div class="subtitle">Catalog is the home screen. Import opens as an overlay. Tracks appear in context.</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">1</div>
+      <div class="stat-label">Primary screen</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">1</div>
+      <div class="stat-label">Secondary (overlay)</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">9</div>
+      <div class="stat-label">Total states</div>
+    </div>
+  </div>
+
+  <div class="happy-path-label">Screen Relationship</div>
+
+  <div class="layout-diagram">
+    <div class="screen-box">
+      <div class="name">Track Catalog</div>
+      <div class="type">Primary &mdash; always visible</div>
+      <div class="detail">Enriched tiles, BPM, key, genre, source. The home base.</div>
+    </div>
+    <div class="overlay-indicator">&larr; overlays &rarr;</div>
+    <div class="screen-box secondary">
+      <div class="name">Import Sheet</div>
+      <div class="type">Secondary &mdash; bottom sheet / drawer</div>
+      <div class="detail">Source tabs, URL input, progress. Slides up over catalog.</div>
+    </div>
+  </div>
+
+  <div class="happy-path-label">Happy Path</div>
+  <div class="flow-steps">
+    <div class="flow-step">
+      <div class="step-label">Catalog</div>
+      <div class="step-detail">home screen</div>
+    </div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">
+      <div class="step-label">Tap "Import"</div>
+      <div class="step-detail">button / FAB</div>
+    </div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">
+      <div class="step-label">Import Sheet</div>
+      <div class="step-detail">select tab + URL</div>
+    </div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">
+      <div class="step-label">Importing</div>
+      <div class="step-detail">progress in sheet</div>
+    </div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">
+      <div class="step-label">Done</div>
+      <div class="step-detail">sheet closes</div>
+    </div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">
+      <div class="step-label">Catalog</div>
+      <div class="step-detail">new tracks visible</div>
+    </div>
+  </div>
+
+  <div class="section-label">Screen Details &amp; States</div>
+
+  <div class="screen-detail">
+    <div class="name">Track Catalog <span class="screen-type-badge primary">Primary</span></div>
+    <div class="purpose">Enriched track list. The DJ's library view. Always the landing screen.</div>
+    <ul class="state-list">
+      <li><span class="state-name">Default</span><span class="state-desc">Tracks loaded, enriched tiles with BPM/key/genre</span></li>
+      <li><span class="state-name">Empty (first use)</span><span class="state-desc">Prominent "Import your first tracks" CTA, import sheet auto-opens</span></li>
+      <li><span class="state-name">Loading</span><span class="state-desc">Skeleton tiles</span></li>
+      <li><span class="state-name">Error</span><span class="state-desc">Failed to load catalog, retry option</span></li>
+      <li><span class="state-name">Import active</span><span class="state-desc">Sheet overlay visible, catalog dimmed behind it</span></li>
+    </ul>
+  </div>
+
+  <div class="screen-detail">
+    <div class="name">Import Sheet <span class="screen-type-badge secondary">Secondary</span></div>
+    <div class="purpose">Overlay with source tabs, URL input, and import progress. Focused task, dismissible.</div>
+    <ul class="state-list">
+      <li><span class="state-name">Default</span><span class="state-desc">Source tabs + URL input, Beatport selected</span></li>
+      <li><span class="state-name">URL Entered</span><span class="state-desc">Validation feedback, Import button enabled</span></li>
+      <li><span class="state-name">Importing</span><span class="state-desc">Progress bar, track count, can't dismiss</span></li>
+      <li><span class="state-name">Complete</span><span class="state-desc">Summary, "Done" button to close sheet</span></li>
+    </ul>
+  </div>
+
+  <div class="codebase-note">
+    <strong>Codebase note:</strong> New catalog screen becomes the main route. <code>spotify_import_screen.dart</code> refactored into a bottom sheet widget. Catalog uses enriched <code>track_tile.dart</code>. GoRouter shows catalog as base, sheet as overlay.
+  </div>
+</body>
+</html>

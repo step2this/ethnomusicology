@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Screen Inventory — Round 1 Compare</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --surface-input: #111113;
+    --border-subtle: #1E1E22;
+    --border-focus: #6366F1;
+    --accent: #6366F1;
+    --accent-hover: #818CF8;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --status-error: #F87171;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Context Banner */
+  .banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 48px;
+    background: var(--surface-base);
+    border-bottom: 1px solid var(--border-subtle);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+  .banner-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+  }
+  .banner-project {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .banner-sep {
+    color: var(--text-muted);
+  }
+  .banner-facet, .banner-round {
+    color: var(--text-muted);
+  }
+  .banner-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-link {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    transition: color 150ms ease-out;
+  }
+  .nav-link:hover { color: var(--text-primary); }
+  .nav-link.active { color: var(--accent); }
+
+  /* Content */
+  .content {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 72px 24px 48px;
+  }
+
+  /* Option Cards — stacked full-width for structural facet */
+  .options-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+  }
+
+  .option-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  .option-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 0;
+  }
+
+  .option-label {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+
+  .open-tab-link {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+  .open-tab-link:hover { color: var(--text-secondary); }
+
+  .option-iframe-wrap {
+    padding: 12px 20px;
+  }
+
+  .option-iframe-wrap iframe {
+    width: 100%;
+    min-height: 420px;
+    border: none;
+    border-radius: 8px 8px 0 0;
+    background: var(--surface-base);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+
+  .option-body {
+    padding: 16px 20px 20px;
+  }
+
+  .option-name {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 16px;
+  }
+
+  .rationale-section {
+    margin-bottom: 16px;
+  }
+  .rationale-section:last-of-type { margin-bottom: 0; }
+
+  .rationale-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .rationale-text {
+    color: var(--text-secondary);
+    max-width: 680px;
+  }
+
+  /* Keep/Cut Controls */
+  .option-controls {
+    display: flex;
+    gap: 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .action-btn {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    border: 1px solid var(--border-subtle);
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .action-btn:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-secondary);
+  }
+  .action-btn:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+  .action-btn.active[data-action="keep"] {
+    background: var(--status-success);
+    border-color: var(--status-success);
+    color: #0D0D0F;
+  }
+  .action-btn.active[data-action="cut"] {
+    background: var(--status-error);
+    border-color: var(--status-error);
+    color: #0D0D0F;
+  }
+
+  .option-comment {
+    width: 100%;
+    min-height: 60px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--surface-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  .option-comment::placeholder { color: var(--text-muted); }
+  .option-comment:focus {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+
+  /* My Take Section */
+  .my-take {
+    background: var(--surface-overlay);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+    padding: 24px 32px;
+    margin-top: 48px;
+  }
+  .my-take-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .my-take-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+  }
+  .my-take-body {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    max-width: 720px;
+  }
+  .my-take-body p { margin-bottom: 12px; }
+  .my-take-body p:last-child { margin-bottom: 0; }
+  .my-take-body strong { color: var(--text-primary); font-weight: 500; }
+
+  /* Feedback Area */
+  .feedback-area {
+    margin-top: 48px;
+    max-width: 680px;
+  }
+  .instruction-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+  #direction-notes {
+    width: 100%;
+    min-height: 100px;
+    padding: 12px 16px;
+    background: var(--surface-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  #direction-notes::placeholder { color: var(--text-muted); }
+  #direction-notes:focus {
+    outline: none;
+    border-color: var(--border-focus);
+  }
+  .button-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 16px;
+  }
+  .btn-primary {
+    padding: 10px 20px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 150ms ease-out;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-ghost {
+    padding: 10px 20px;
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    font-family: var(--font-ui);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .btn-ghost:hover {
+    border-color: var(--text-secondary);
+    color: var(--text-primary);
+  }
+  .btn-ghost:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #delegate-context {
+    display: none;
+    width: 100%;
+    min-height: 60px;
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: var(--surface-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    resize: vertical;
+  }
+  #delegate-context::placeholder { color: var(--text-muted); }
+
+  @media (max-width: 768px) {
+    .options-grid { gap: 24px; }
+    .banner { padding: 0 12px; }
+    .content { padding: 60px 12px 24px; }
+    .my-take { padding: 16px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="banner-left">
+    <span class="banner-project">Ethnomusicology</span>
+    <span class="banner-sep">|</span>
+    <span class="banner-facet">Screen Inventory</span>
+    <span class="banner-sep">|</span>
+    <span class="banner-round">Round 1</span>
+  </div>
+  <div class="banner-right">
+    <a href="#option-a" class="nav-link">A</a>
+    <a href="#option-b" class="nav-link">B</a>
+    <a href="#option-c" class="nav-link">C</a>
+  </div>
+</div>
+
+<div class="content">
+  <div class="options-grid">
+
+    <!-- Option A -->
+    <div class="option-card" data-option-id="option-a" id="option-a">
+      <div class="option-header">
+        <span class="option-label">A</span>
+        <a href="option-a.html" target="_blank" class="open-tab-link">Open in new tab</a>
+      </div>
+      <div class="option-iframe-wrap">
+        <iframe src="option-a.html"></iframe>
+      </div>
+      <div class="option-body">
+        <div class="option-name">Two-Screen Flow</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-text">Follows the proven pattern from the existing Spotify import. Separate Import and Catalog screens, each with a single responsibility. Familiar from Rekordbox (import view vs collection view).</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-text">Incremental refactoring of the existing codebase. Clear mental model ("I'm importing" vs "I'm browsing"). Easier to build and test independently. Scales well if more import sources are added later.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-text">Navigation step between import and catalog adds friction that compounds across multiple imports per session. User can't see their catalog while deciding what to import. Two separate routes and state trees to maintain.</div>
+        </div>
+        <div class="option-controls">
+          <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+    <!-- Option B -->
+    <div class="option-card" data-option-id="option-b" id="option-b">
+      <div class="option-header">
+        <span class="option-label">B</span>
+        <a href="option-b.html" target="_blank" class="open-tab-link">Open in new tab</a>
+      </div>
+      <div class="option-iframe-wrap">
+        <iframe src="option-b.html"></iframe>
+      </div>
+      <div class="option-body">
+        <div class="option-name">Unified Workspace</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-text">The core loop delivered as a continuous, zero-navigation flow. Import controls collapse after use, giving maximum space to the catalog. Mirrors the DJ workflow: import is quick, browsing is sustained.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-text">Repeat importers doing URL-paste-import many times in one session. Desktop-first layout with enough vertical space. "Power user" feel with everything accessible without navigation. Future features (search, filter) naturally live in the same screen.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-text">Single screen carries more complexity — collapsible zones, conditional visibility, compound state. Import controls take space even when just browsing. First-use experience needs careful design (empty catalog + expanded import).</div>
+        </div>
+        <div class="option-controls">
+          <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+    <!-- Option C -->
+    <div class="option-card" data-option-id="option-c" id="option-c">
+      <div class="option-header">
+        <span class="option-label">C</span>
+        <a href="option-c.html" target="_blank" class="open-tab-link">Open in new tab</a>
+      </div>
+      <div class="option-iframe-wrap">
+        <iframe src="option-c.html"></iframe>
+      </div>
+      <div class="option-body">
+        <div class="option-name">Catalog-First</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-text">Makes the strongest bet that the catalog IS the product. Import is a task you do to feed it — secondary, triggered as needed. Bottom sheet keeps import focused while the catalog remains contextually visible.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-text">Users who import occasionally but browse frequently. Clean information architecture: one primary surface with import as an action on it. Natural fit for future setlist builder, filters, and sort features.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-text">Bottom sheet on desktop can feel like a mobile pattern. Sheet hides/dims the catalog during import. Extra gesture to start importing vs dedicated import screen. Sheet needs enough space for tabs + URL + progress.</div>
+        </div>
+        <div class="option-controls">
+          <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- My Take -->
+  <div class="my-take">
+    <div class="my-take-label">My Take</div>
+    <div class="my-take-title">Lean toward Unified Workspace (B)</div>
+    <div class="my-take-body">
+      <p>The brief's core loop is "source tab &rarr; URL &rarr; import &rarr; enriched track list." <strong>Option B delivers this as a continuous flow with zero navigation.</strong> For DJs doing set prep &mdash; importing from multiple sources in one session, then browsing their enriched catalog &mdash; the unified screen minimizes friction.</p>
+      <p>Option A is the safest and most conventional, but the navigation step between import and catalog adds friction that compounds across multiple imports per session. Option C has the right instinct (catalog is the star) but the bottom sheet pattern is awkward on desktop and adds a gesture to start importing.</p>
+      <p>The real question: <strong>how often do your DJs import vs browse?</strong> If they import once and browse for an hour, C makes sense. If they import from 3-4 sources in quick succession, B wins. Given that the brief describes multi-source import as the feature, I'm betting on frequent importing.</p>
+    </div>
+  </div>
+
+  <!-- Feedback Area -->
+  <div class="feedback-area">
+    <p class="instruction-text">Click Save Feedback and Claude will pick it up automatically. Or just tell Claude your thoughts in the chat.</p>
+
+    <textarea id="direction-notes" placeholder="Overall thoughts or direction preferences..."></textarea>
+
+    <div class="button-row">
+      <button class="btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      <button class="btn-ghost" onclick="saveFeedbackWithDecision('skip')">Skip This Area</button>
+      <button class="btn-ghost" onclick="showDelegateContext()">Decide For Me</button>
+    </div>
+
+    <textarea id="delegate-context" placeholder="Any guidance? e.g., 'prioritize simplicity' or 'match Rekordbox'"></textarea>
+  </div>
+
+</div>
+
+<script>
+// --- REQUIRED: Save Feedback to Disk ---
+const FACET_ID = 'screen-inventory';
+const ROUND_N = 1;
+const FEEDBACK_FILENAME = 'feedback-round-1.json';
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+function toggleAction(btn, action) {
+  const card = btn.closest('[data-option-id]');
+  const keepBtn = card.querySelector('[data-action="keep"]');
+  const cutBtn = card.querySelector('[data-action="cut"]');
+
+  if (btn.classList.contains('active')) {
+    btn.classList.remove('active');
+    return;
+  }
+
+  keepBtn.classList.remove('active');
+  cutBtn.classList.remove('active');
+  btn.classList.add('active');
+}
+
+function showDelegateContext() {
+  const el = document.querySelector('#delegate-context');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function collectFeedback() {
+  const options = {};
+  document.querySelectorAll('[data-option-id]').forEach(card => {
+    const id = card.dataset.optionId;
+    const keepBtn = card.querySelector('[data-action="keep"]');
+    const cutBtn = card.querySelector('[data-action="cut"]');
+    const comment = card.querySelector('textarea')?.value || '';
+    let action = null;
+    if (keepBtn?.classList.contains('active')) action = 'keep';
+    if (cutBtn?.classList.contains('active')) action = 'cut';
+    options[id] = { action, comment };
+  });
+
+  const overall = document.querySelector('#direction-notes')?.value || '';
+
+  let decision = 'refine';
+  const keptCount = Object.values(options).filter(o => o.action === 'keep').length;
+  const totalOptions = Object.keys(options).length;
+  if (keptCount === 1 && Object.values(options).filter(o => o.action === 'cut').length === totalOptions - 1) {
+    decision = 'lock';
+  }
+
+  return {
+    facet: FACET_ID,
+    round: ROUND_N,
+    timestamp: new Date().toISOString(),
+    options,
+    overall,
+    decision
+  };
+}
+
+async function saveFeedback() {
+  const feedback = collectFeedback();
+  const json = JSON.stringify(feedback, null, 2);
+
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: FEEDBACK_FILENAME,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved! Claude is processing it.' });
+      }
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('File System Access API failed:', err);
+    }
+  }
+
+  showFallbackModal(json);
+}
+
+function saveFeedbackWithDecision(decision) {
+  const feedback = collectFeedback();
+  feedback.decision = decision;
+  if (decision === 'delegate') {
+    feedback.delegate_context = document.querySelector('#delegate-context')?.value || '';
+  }
+  const json = JSON.stringify(feedback, null, 2);
+
+  if ('showSaveFilePicker' in window) {
+    window.showSaveFilePicker({
+      suggestedName: FEEDBACK_FILENAME,
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    }).then(async handle => {
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved! Claude is processing it.' });
+      }
+    }).catch(err => {
+      if (err.name !== 'AbortError') showFallbackModal(json);
+    });
+  } else {
+    showFallbackModal(json);
+  }
+}
+
+function showBanner(message) {
+  const banner = document.createElement('div');
+  banner.textContent = message;
+  banner.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);' +
+    'background:#4ADE80;color:#0D0D0F;padding:12px 24px;border-radius:8px;font-size:14px;' +
+    'font-weight:600;z-index:200;animation:fadeIn 0.2s ease-out';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+function showFallbackModal(json) {
+  const modal = document.createElement('div');
+  modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center">
+      <div style="background:#1A1A1E;border:1px solid #1E1E22;border-radius:8px;padding:24px;max-width:600px;width:90%">
+        <h3 style="color:#F0F0F2;margin:0 0 8px">Save not available in this browser</h3>
+        <p style="color:#8B8B92;font-size:13px;margin:0 0 16px">Copy this JSON and paste it into the terminal:</p>
+        <textarea style="width:100%;min-height:200px;background:#111113;color:#F0F0F2;border:1px solid #1E1E22;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;resize:vertical"
+          readonly onclick="this.select()">${json}</textarea>
+        <button onclick="this.closest('div[style]').parentElement.remove()"
+          style="margin-top:12px;padding:10px 20px;background:#6366F1;color:white;border:none;border-radius:6px;cursor:pointer">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+</script>
+
+</body>
+</html>

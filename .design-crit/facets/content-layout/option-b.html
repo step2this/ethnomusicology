@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Full-Width Crate — Layout</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border-subtle: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --grid-line: rgba(99,102,241,0.12);
+    --grid-col: rgba(99,102,241,0.06);
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 24px;
+  }
+  .title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; max-width: 600px; }
+  .section-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--accent); margin-top: 32px; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+  }
+  .tokens {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;
+  }
+  .token {
+    background: var(--surface-raised); border: 1px solid var(--border-subtle);
+    border-radius: 6px; padding: 10px 12px;
+  }
+  .token-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted); margin-bottom: 2px;
+  }
+  .token-value { font-size: 14px; font-weight: 600; color: var(--accent); }
+
+  .wireframe-container {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .wf-viewport {
+    position: relative; width: 100%; min-height: 420px;
+    background: var(--surface-overlay); display: flex;
+  }
+  /* Collapsed rail */
+  .wf-rail {
+    width: 48px; background: var(--surface-raised);
+    border-right: 1px solid var(--border-subtle);
+    display: flex; flex-direction: column; align-items: center;
+    padding-top: 12px; gap: 16px; flex-shrink: 0;
+  }
+  .wf-rail-icon {
+    width: 32px; height: 32px; border-radius: 6px;
+    background: var(--surface-overlay); border: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--text-muted);
+  }
+  .wf-rail-icon.active {
+    border-color: var(--accent); color: var(--accent);
+    background: rgba(99,102,241,0.1);
+  }
+  /* Main content */
+  .wf-main { flex: 1; display: flex; flex-direction: column; }
+  .wf-toolbar {
+    height: 48px; background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+  }
+  .wf-toolbar-left { display: flex; align-items: center; gap: 12px; }
+  .wf-toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .wf-toolbar-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); }
+  .wf-toolbar-count { font-size: 11px; color: var(--text-muted); }
+  .wf-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    background: var(--accent); color: white;
+  }
+  .wf-btn.ghost {
+    background: transparent; border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+
+  /* Table-style track list */
+  .wf-table-header {
+    display: flex; align-items: center; padding: 6px 16px; gap: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-raised);
+  }
+  .wf-th {
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted);
+  }
+  .wf-th-art { width: 40px; flex-shrink: 0; }
+  .wf-th-title { flex: 2; }
+  .wf-th-artist { flex: 1.5; }
+  .wf-th-bpm { width: 60px; text-align: center; }
+  .wf-th-key { width: 50px; text-align: center; }
+  .wf-th-genre { flex: 1; }
+  .wf-th-source { width: 70px; text-align: center; }
+
+  .wf-track-row {
+    display: flex; align-items: center; padding: 8px 16px; gap: 12px;
+    border-bottom: 1px solid var(--border-subtle);
+    min-height: 48px;
+  }
+  .wf-track-row:hover { background: rgba(255,255,255,0.02); }
+  .wf-art {
+    width: 36px; height: 36px; border-radius: 3px;
+    background: var(--surface-base); border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+  .wf-td { font-size: 12px; }
+  .wf-td-title { flex: 2; font-weight: 500; color: var(--text-primary); }
+  .wf-td-artist { flex: 1.5; color: var(--text-secondary); }
+  .wf-td-bpm { width: 60px; text-align: center; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .wf-td-key {
+    width: 50px; text-align: center;
+    padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: 500;
+    background: rgba(99,102,241,0.1); color: var(--accent);
+  }
+  .wf-td-genre { flex: 1; color: var(--text-muted); font-size: 11px; }
+  .wf-td-source {
+    width: 70px; text-align: center; font-size: 10px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em; color: var(--text-muted);
+  }
+
+  .wf-rail-label {
+    font-size: 9px; color: var(--text-muted); text-align: center;
+    writing-mode: vertical-lr; transform: rotate(180deg); margin-top: 8px;
+  }
+  .wf-dimension {
+    font-size: 10px; color: var(--accent);
+    background: rgba(99,102,241,0.15); padding: 2px 6px; border-radius: 3px;
+    display: inline-block; margin-bottom: 8px;
+  }
+</style>
+</head>
+<body>
+  <div class="title">Full-Width Crate</div>
+  <div class="subtitle">Edge-to-edge track table. Collapsed icon rail reserves space for future browser pane. Maximizes tracks visible. DJ software density.</div>
+
+  <div class="section-label">Layout Tokens</div>
+  <div class="tokens">
+    <div class="token"><div class="token-label">Grid</div><div class="token-value">Fluid</div></div>
+    <div class="token"><div class="token-label">Gutter</div><div class="token-value">12px</div></div>
+    <div class="token"><div class="token-label">Max Width</div><div class="token-value">None</div></div>
+    <div class="token"><div class="token-label">Margin</div><div class="token-value">16px</div></div>
+    <div class="token"><div class="token-label">Rail</div><div class="token-value">48px</div></div>
+    <div class="token"><div class="token-label">Pattern</div><div class="token-value">Rail + full</div></div>
+  </div>
+
+  <div class="section-label">Desktop Layout (1440px viewport)</div>
+  <div class="wireframe-container">
+    <div class="wf-viewport">
+      <div class="wf-rail">
+        <div class="wf-rail-icon active">&#9835;</div>
+        <div class="wf-rail-icon">&#9776;</div>
+        <div class="wf-rail-icon">&#9881;</div>
+        <div class="wf-rail-label">Future: expands to 240px browser</div>
+      </div>
+      <div class="wf-main">
+        <div class="wf-toolbar">
+          <div class="wf-toolbar-left">
+            <span class="wf-toolbar-title">All Tracks</span>
+            <span class="wf-toolbar-count">47 tracks</span>
+          </div>
+          <div class="wf-toolbar-right">
+            <span class="wf-btn">+ Import</span>
+          </div>
+        </div>
+        <div class="wf-table-header">
+          <div class="wf-th wf-th-art"></div>
+          <div class="wf-th wf-th-title">Title</div>
+          <div class="wf-th wf-th-artist">Artist</div>
+          <div class="wf-th wf-th-bpm">BPM</div>
+          <div class="wf-th wf-th-key">Key</div>
+          <div class="wf-th wf-th-genre">Genre</div>
+          <div class="wf-th wf-th-source">Source</div>
+        </div>
+        <div class="wf-track-row">
+          <div class="wf-art"></div>
+          <div class="wf-td wf-td-title">Brightest Lights</div>
+          <div class="wf-td wf-td-artist">Lane 8</div>
+          <div class="wf-td wf-td-bpm">128</div>
+          <div class="wf-td wf-td-key">2B</div>
+          <div class="wf-td wf-td-genre">Progressive House</div>
+          <div class="wf-td wf-td-source">Beatport</div>
+        </div>
+        <div class="wf-track-row">
+          <div class="wf-art"></div>
+          <div class="wf-td wf-td-title">Wondering</div>
+          <div class="wf-td wf-td-artist">Yotto</div>
+          <div class="wf-td wf-td-bpm">124</div>
+          <div class="wf-td wf-td-key">8A</div>
+          <div class="wf-td wf-td-genre">Melodic House</div>
+          <div class="wf-td wf-td-source">Spotify</div>
+        </div>
+        <div class="wf-track-row">
+          <div class="wf-art"></div>
+          <div class="wf-td wf-td-title">Beyond Beliefs</div>
+          <div class="wf-td wf-td-artist">Ben Bohmer</div>
+          <div class="wf-td wf-td-bpm">122</div>
+          <div class="wf-td wf-td-key">11B</div>
+          <div class="wf-td wf-td-genre">Organic House</div>
+          <div class="wf-td wf-td-source">Beatport</div>
+        </div>
+        <div class="wf-track-row">
+          <div class="wf-art"></div>
+          <div class="wf-td wf-td-title">All Night Long</div>
+          <div class="wf-td wf-td-artist">Marsh</div>
+          <div class="wf-td wf-td-bpm">126</div>
+          <div class="wf-td wf-td-key">5A</div>
+          <div class="wf-td wf-td-genre">Deep House</div>
+          <div class="wf-td wf-td-source">Spotify</div>
+        </div>
+        <div class="wf-track-row" style="opacity: 0.5;">
+          <div class="wf-art"></div>
+          <div class="wf-td wf-td-title">Come Back Around</div>
+          <div class="wf-td wf-td-artist">Eli &amp; Fur</div>
+          <div class="wf-td wf-td-bpm">123</div>
+          <div class="wf-td wf-td-key">7A</div>
+          <div class="wf-td wf-td-genre">Melodic Techno</div>
+          <div class="wf-td wf-td-source">Beatport</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Future: Rail Expands to Browser Pane</div>
+  <div style="color: var(--text-secondary); font-size: 12px;">
+    <p style="margin-bottom: 8px;"><span class="wf-dimension">48px rail</span> &rarr; <span class="wf-dimension">240px browser pane</span> on click. Shows genres, artists, labels, sources. Track table reflows to fill remaining space.</p>
+    <p style="margin-bottom: 8px;">Waveform/deck area: collapsible top section above the table, like Rekordbox.</p>
+    <p>Sort: column headers become clickable sort controls. Filter: inline in browser pane.</p>
+  </div>
+</body>
+</html>

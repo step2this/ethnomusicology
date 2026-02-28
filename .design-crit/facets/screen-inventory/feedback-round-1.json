@@ -1,0 +1,12 @@
+{
+  "facet": "screen-inventory",
+  "round": 1,
+  "timestamp": "2026-02-28T20:45:00Z",
+  "options": {
+    "option-a": { "action": "cut", "comment": "Too import-centric. Doesn't reflect that browsing is the primary activity." },
+    "option-b": { "action": "cut", "comment": "Import controls taking permanent space on the primary surface doesn't match usage — import is monthly, browsing is daily." },
+    "option-c": { "action": "keep", "comment": "Catalog as home base is right. Import is one of many future actions (Beatport, SoundCloud, local MP3, AI generation) that feed into the catalog. Sheet/drawer pattern extensible for multiple source types." }
+  },
+  "overall": "DJs browse far more than they import. Catalog IS the product. Import is tactical and infrequent. AI setlist generation is a different mode (exploratory, not import). Need extensible pattern for multiple sources. C is the right foundation.",
+  "decision": "lock"
+}

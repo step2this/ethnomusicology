@@ -10,10 +10,11 @@ Use the Forge (`.claude/` directory) for all development:
 1. `/uc-create` — Create Cockburn-style use case
 2. `/uc-review` — Devil's Advocate review (apply all fixes before coding)
 3. `/task-decompose` — Break into implementable tasks with dependency graph
-4. Implement with agent teams (see below)
-5. `/verify-uc` — Validate implementation against postconditions
-6. `/grade-work` — Score completed work
-7. `/session-handoff` — Save state before ending sessions
+4. `design-crit` — Run for any UC with a frontend screen (Brief → Facet Plan → Crit Loops → Design Direction)
+5. Implement with agent teams (see below)
+6. `/verify-uc` — Validate implementation against postconditions
+7. `/grade-work` — Score completed work
+8. `/session-handoff` — Save state before ending sessions
 
 ## Agent Teams
 
@@ -102,6 +103,8 @@ cd frontend && flutter test                # Run tests
 
 - **Branch**: `main` (UC-001 merged, pushed to GitHub)
 - **UC-001**: Complete — Spotify OAuth, playlist import, retry/resilience, DB upserts, Flutter import screen
-- **Next**: DJ pivot — create UC-013 through UC-025 (Beatport import, SoundCloud import, BPM/key detection, LLM setlist generation, Camelot arrangement, crossfade preview)
+- **UC-013 through UC-025**: Created, reviewed (devil's advocate), fixes applied. Ready for `/task-decompose`.
+- **PRD**: `docs/prd.md` — synthesized from all 13 UCs, reviewed and fixed
+- **Next**: `/task-decompose UC-013` → implement Sprint 0 infra + Sprint 1 imports
 - **Test count**: 49 backend tests, 1 frontend test — all passing
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`

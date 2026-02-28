@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Two-Screen Flow — Screen Inventory</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border-subtle: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --primary-screen: #6366F1;
+    --secondary-screen: #8B8B92;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 24px;
+  }
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+  }
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  .screen-box {
+    border: 2px solid var(--primary-screen);
+    border-radius: 8px;
+    padding: 16px 20px;
+    min-width: 180px;
+    text-align: center;
+    background: var(--surface-raised);
+  }
+  .screen-box.secondary {
+    border-style: dashed;
+    border-color: var(--secondary-screen);
+  }
+  .screen-box .name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .screen-box .type {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .arrow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 12px;
+  }
+  .arrow-line {
+    color: var(--text-muted);
+    font-size: 18px;
+  }
+  .arrow-label {
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+  .happy-path-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--status-success);
+    margin-bottom: 12px;
+  }
+  .screen-detail {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .screen-detail .name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .screen-detail .purpose {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .state-list {
+    list-style: none;
+  }
+  .state-list li {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .state-list li:last-child { border-bottom: none; }
+  .state-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 120px;
+  }
+  .state-desc {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    margin-top: 24px;
+  }
+  .codebase-note {
+    background: var(--surface-overlay);
+    border-left: 3px solid var(--status-warning);
+    border-radius: 4px;
+    padding: 12px 16px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 24px;
+  }
+  .codebase-note strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+  <div class="title">Two-Screen Flow</div>
+  <div class="subtitle">Dedicated screens for import and catalog. Each screen has one job.</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">2</div>
+      <div class="stat-label">Primary screens</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Secondary screens</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">10</div>
+      <div class="stat-label">Total states</div>
+    </div>
+  </div>
+
+  <div class="happy-path-label">Happy Path</div>
+  <div class="flow-diagram">
+    <div class="screen-box">
+      <div class="name">Import Screen</div>
+      <div class="type">Primary</div>
+    </div>
+    <div class="arrow">
+      <div class="arrow-label">select tab</div>
+      <div class="arrow-line">&rarr;</div>
+    </div>
+    <div class="screen-box">
+      <div class="name">Import Screen</div>
+      <div class="type">URL + progress</div>
+    </div>
+    <div class="arrow">
+      <div class="arrow-label">import done</div>
+      <div class="arrow-line">&rarr;</div>
+    </div>
+    <div class="screen-box">
+      <div class="name">Catalog</div>
+      <div class="type">Primary</div>
+    </div>
+  </div>
+
+  <div class="section-label">Screen Details &amp; States</div>
+
+  <div class="screen-detail">
+    <div class="name">Import Screen</div>
+    <div class="purpose">Source tab selection, URL input, import execution, progress and summary display.</div>
+    <ul class="state-list">
+      <li><span class="state-name">Default</span><span class="state-desc">Source tabs visible, URL field empty, Beatport tab selected</span></li>
+      <li><span class="state-name">URL Entered</span><span class="state-desc">URL validated (green check or red error), Import button enabled</span></li>
+      <li><span class="state-name">Importing</span><span class="state-desc">Progress bar, track count updating, cancel available</span></li>
+      <li><span class="state-name">Complete</span><span class="state-desc">Summary card: N tracks imported, N skipped. "View Catalog" CTA</span></li>
+      <li><span class="state-name">Error</span><span class="state-desc">Network/auth/invalid URL. Retry button, error description</span></li>
+      <li><span class="state-name">Partial Import</span><span class="state-desc">Some tracks succeeded, some failed. Summary + error details</span></li>
+    </ul>
+  </div>
+
+  <div class="screen-detail">
+    <div class="name">Track Catalog</div>
+    <div class="purpose">Enriched track tiles with BPM, Camelot key, genre, source badges. Browse imported library.</div>
+    <ul class="state-list">
+      <li><span class="state-name">Default</span><span class="state-desc">Track tiles loaded, showing all imported tracks</span></li>
+      <li><span class="state-name">Empty (first use)</span><span class="state-desc">No tracks yet. CTA: "Import your first tracks"</span></li>
+      <li><span class="state-name">Loading</span><span class="state-desc">Skeleton tiles while catalog loads</span></li>
+      <li><span class="state-name">Error</span><span class="state-desc">Failed to load catalog. Retry option</span></li>
+    </ul>
+  </div>
+
+  <div class="codebase-note">
+    <strong>Codebase note:</strong> Extends existing <code>spotify_import_screen.dart</code> into a tabbed multi-source import. Existing <code>track_tile.dart</code> becomes the enriched catalog tile. Both files need significant refactoring.
+  </div>
+</body>
+</html>

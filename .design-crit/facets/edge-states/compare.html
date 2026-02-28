@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Edge States — Round 1 Compare</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --surface-input: #111113;
+    --border-subtle: #1E1E22;
+    --border-focus: #6366F1;
+    --accent: #6366F1;
+    --accent-hover: #818CF8;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --status-error: #F87171;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .banner {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: var(--surface-base);
+    border-bottom: 1px solid var(--border-subtle);
+    z-index: 100; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 24px;
+  }
+  .banner-left { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .banner-project { font-weight: 500; color: var(--text-primary); }
+  .banner-sep { color: var(--text-muted); }
+  .banner-facet, .banner-round { color: var(--text-muted); }
+  .banner-right { display: flex; align-items: center; gap: 8px; }
+  .nav-link {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--text-muted); text-decoration: none;
+    padding: 6px 12px; border-radius: 4px; transition: color 150ms ease-out;
+  }
+  .nav-link:hover { color: var(--text-primary); }
+  .content {
+    max-width: 1440px; margin: 0 auto; padding: 72px 24px 48px;
+  }
+  .options-grid {
+    display: flex; flex-direction: column; gap: 32px;
+  }
+  .option-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px; overflow: hidden;
+  }
+  .option-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px 0;
+  }
+  .option-label { font-size: 18px; font-weight: 600; color: var(--accent); }
+  .open-tab-link { font-size: 11px; color: var(--text-muted); text-decoration: none; }
+  .open-tab-link:hover { color: var(--text-secondary); }
+  .option-iframe-wrap { padding: 12px 20px; }
+  .option-iframe-wrap iframe {
+    width: 100%; min-height: 700px; border: none; border-radius: 8px 8px 0 0;
+    background: var(--surface-base);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .option-body { padding: 16px 20px 20px; }
+  .option-name { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 16px; }
+  .rationale-section { margin-bottom: 16px; }
+  .rationale-section:last-of-type { margin-bottom: 0; }
+  .rationale-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--text-muted); margin-bottom: 4px;
+  }
+  .rationale-text { color: var(--text-secondary); max-width: 680px; }
+  .option-controls {
+    display: flex; gap: 8px; margin-top: 20px; padding-top: 16px;
+    border-top: 1px solid var(--border-subtle);
+  }
+  .action-btn {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; padding: 6px 16px; border-radius: 9999px;
+    border: 1px solid var(--border-subtle); background: transparent;
+    color: var(--text-muted); cursor: pointer; transition: all 150ms ease-out;
+  }
+  .action-btn:hover { border-color: var(--text-secondary); color: var(--text-secondary); }
+  .action-btn:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .action-btn.active[data-action="keep"] {
+    background: var(--status-success); border-color: var(--status-success); color: #0D0D0F;
+  }
+  .action-btn.active[data-action="cut"] {
+    background: var(--status-error); border-color: var(--status-error); color: #0D0D0F;
+  }
+  .option-comment {
+    width: 100%; min-height: 60px; margin-top: 12px; padding: 10px 12px;
+    background: var(--surface-input); border: 1px solid var(--border-subtle);
+    border-radius: 6px; color: var(--text-primary); font-family: var(--font-ui);
+    font-size: 13px; line-height: 1.5; resize: vertical;
+  }
+  .option-comment::placeholder { color: var(--text-muted); }
+  .option-comment:focus { outline: none; border-color: var(--border-focus); }
+  .my-take {
+    background: var(--surface-overlay); border-radius: 8px;
+    border-left: 3px solid var(--accent); padding: 24px 32px; margin-top: 48px;
+  }
+  .my-take-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--accent); margin-bottom: 8px;
+  }
+  .my-take-title { font-size: 18px; font-weight: 600; color: var(--text-primary); margin-bottom: 12px; }
+  .my-take-body {
+    font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 720px;
+  }
+  .my-take-body p { margin-bottom: 12px; }
+  .my-take-body p:last-child { margin-bottom: 0; }
+  .my-take-body strong { color: var(--text-primary); font-weight: 500; }
+  .feedback-area { margin-top: 48px; max-width: 680px; }
+  .instruction-text { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+  #direction-notes {
+    width: 100%; min-height: 100px; padding: 12px 16px;
+    background: var(--surface-input); border: 1px solid var(--border-subtle);
+    border-radius: 6px; color: var(--text-primary); font-family: var(--font-ui);
+    font-size: 13px; line-height: 1.5; resize: vertical;
+  }
+  #direction-notes::placeholder { color: var(--text-muted); }
+  #direction-notes:focus { outline: none; border-color: var(--border-focus); }
+  .button-row { display: flex; gap: 12px; margin-top: 16px; }
+  .btn-primary {
+    padding: 10px 20px; background: var(--accent); color: white; border: none;
+    border-radius: 6px; font-family: var(--font-ui); font-size: 13px;
+    font-weight: 500; cursor: pointer; transition: background 150ms ease-out;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn-ghost {
+    padding: 10px 20px; background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    font-family: var(--font-ui); font-size: 13px; cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .btn-ghost:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+  .btn-ghost:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  #delegate-context {
+    display: none; width: 100%; min-height: 60px; margin-top: 12px; padding: 10px 12px;
+    background: var(--surface-input); border: 1px solid var(--border-subtle);
+    border-radius: 6px; color: var(--text-primary); font-family: var(--font-ui);
+    font-size: 13px; resize: vertical;
+  }
+  #delegate-context::placeholder { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="banner-left">
+    <span class="banner-project">Ethnomusicology</span>
+    <span class="banner-sep">|</span>
+    <span class="banner-facet">Edge States</span>
+    <span class="banner-sep">|</span>
+    <span class="banner-round">Round 1</span>
+  </div>
+  <div class="banner-right">
+    <a href="#option-a" class="nav-link">A</a>
+    <a href="#option-b" class="nav-link">B</a>
+  </div>
+</div>
+
+<div class="content">
+  <div class="options-grid">
+
+    <!-- Option A -->
+    <div class="option-card" data-option-id="option-a" id="option-a">
+      <div class="option-header">
+        <span class="option-label">A</span>
+        <a href="option-a.html" target="_blank" class="open-tab-link">Open in new tab</a>
+      </div>
+      <div class="option-iframe-wrap">
+        <iframe src="option-a.html"></iframe>
+      </div>
+      <div class="option-body">
+        <div class="option-name">Lean & Direct</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-text">Treats DJs as power users. One-line messages, one action button, no explanations. Same pattern across all states: heading + action. Skeleton loading, no preamble. Get back to work fast.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-text">Experienced DJs who know the tools. Fast recovery with minimal reading. Consistent patterns everywhere. Less copy to maintain.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-text">"No tracks yet" is underwhelming as a first impression. "3 tracks failed" with no explanation leaves the DJ guessing. URL validation doesn't show what a correct URL looks like. "Couldn't load" — is my data gone?</div>
+        </div>
+        <div class="option-controls">
+          <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+    <!-- Option B -->
+    <div class="option-card" data-option-id="option-b" id="option-b">
+      <div class="option-header">
+        <span class="option-label">B</span>
+        <a href="option-b.html" target="_blank" class="open-tab-link">Open in new tab</a>
+      </div>
+      <div class="option-iframe-wrap">
+        <iframe src="option-b.html"></iframe>
+      </div>
+      <div class="option-body">
+        <div class="option-name">Context-Rich</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-text">Each edge state is tailored to the situation. Empty catalog shows available sources as cards. URL errors show valid examples. Import errors reassure existing tracks are safe. Partial imports show per-track results.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-text">First-time users understanding available sources. Partial import recovery with per-track breakdown. Reducing support questions with specific error messages. Trust-building with "your tracks are safe" reassurance.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-text">More copy per edge state means more maintenance. Source cards in empty state could feel stale for returning users. Per-track breakdown adds complexity to the import sheet. Could feel patronizing for experienced DJs.</div>
+        </div>
+        <div class="option-controls">
+          <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- My Take -->
+  <div class="my-take">
+    <div class="my-take-label">My Take</div>
+    <div class="my-take-title">Go with Context-Rich (B), but lean it up for returning users</div>
+    <div class="my-take-body">
+      <p><strong>B wins on first impressions and trust.</strong> The empty catalog with source cards immediately answers "what can I do here?" The "your tracks are safe" reassurance on errors costs nothing and prevents the data-loss panic. Per-track partial imports let the DJ make informed decisions about whether to retry or work with what they have.</p>
+      <p>The one adjustment: <strong>first-use empty state gets the rich treatment (source cards, explanation). Returning empty state gets A's lean pattern</strong> ("No tracks" + "Import" button). This avoids the stale onboarding problem for experienced users.</p>
+      <p>For URL validation, B's approach of showing a valid example URL is clearly better — it eliminates the most common import mistake. And the shaped skeletons matching the enriched tile layout (art + text lines + chip placeholders) feel polished and set expectations for what's coming.</p>
+      <p>The principle: <strong>match the help to the stakes.</strong> First impression? Go rich. Auth expired? Keep it simple. Partial import? Show details so the DJ can decide.</p>
+    </div>
+  </div>
+
+  <!-- Feedback Area -->
+  <div class="feedback-area">
+    <p class="instruction-text">Tell Claude your thoughts in the chat — something like "keep B" or "mix A's loading with B's errors" works great.</p>
+    <textarea id="direction-notes" placeholder="Overall thoughts or direction preferences..."></textarea>
+    <div class="button-row">
+      <button class="btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      <button class="btn-ghost" onclick="saveFeedbackWithDecision('skip')">Skip This Area</button>
+      <button class="btn-ghost" onclick="showDelegateContext()">Decide For Me</button>
+    </div>
+    <textarea id="delegate-context" placeholder="Any guidance? e.g., 'prioritize trust-building' or 'keep it minimal'"></textarea>
+  </div>
+</div>
+
+<script>
+const FACET_ID = 'edge-states';
+const ROUND_N = 1;
+const FEEDBACK_FILENAME = 'feedback-round-1.json';
+
+function toggleAction(btn, action) {
+  const card = btn.closest('[data-option-id]');
+  const keepBtn = card.querySelector('[data-action="keep"]');
+  const cutBtn = card.querySelector('[data-action="cut"]');
+  if (btn.classList.contains('active')) { btn.classList.remove('active'); return; }
+  keepBtn.classList.remove('active');
+  cutBtn.classList.remove('active');
+  btn.classList.add('active');
+}
+
+function showDelegateContext() {
+  const el = document.querySelector('#delegate-context');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function collectFeedback() {
+  const options = {};
+  document.querySelectorAll('[data-option-id]').forEach(card => {
+    const id = card.dataset.optionId;
+    const keepBtn = card.querySelector('[data-action="keep"]');
+    const cutBtn = card.querySelector('[data-action="cut"]');
+    const comment = card.querySelector('textarea')?.value || '';
+    let action = null;
+    if (keepBtn?.classList.contains('active')) action = 'keep';
+    if (cutBtn?.classList.contains('active')) action = 'cut';
+    options[id] = { action, comment };
+  });
+  const overall = document.querySelector('#direction-notes')?.value || '';
+  let decision = 'refine';
+  const keptCount = Object.values(options).filter(o => o.action === 'keep').length;
+  const totalOptions = Object.keys(options).length;
+  if (keptCount === 1 && Object.values(options).filter(o => o.action === 'cut').length === totalOptions - 1) {
+    decision = 'lock';
+  }
+  return { facet: FACET_ID, round: ROUND_N, timestamp: new Date().toISOString(), options, overall, decision };
+}
+
+async function saveFeedback() {
+  const feedback = collectFeedback();
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: FEEDBACK_FILENAME,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      return;
+    } catch (err) { if (err.name === 'AbortError') return; }
+  }
+  showFallbackModal(json);
+}
+
+function saveFeedbackWithDecision(decision) {
+  const feedback = collectFeedback();
+  feedback.decision = decision;
+  if (decision === 'delegate') {
+    feedback.delegate_context = document.querySelector('#delegate-context')?.value || '';
+  }
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    window.showSaveFilePicker({
+      suggestedName: FEEDBACK_FILENAME,
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    }).then(async handle => {
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved!');
+    }).catch(err => { if (err.name !== 'AbortError') showFallbackModal(json); });
+  } else { showFallbackModal(json); }
+}
+
+function showBanner(message) {
+  const banner = document.createElement('div');
+  banner.textContent = message;
+  banner.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#4ADE80;color:#0D0D0F;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:200';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+function showFallbackModal(json) {
+  const modal = document.createElement('div');
+  modal.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center"><div style="background:#1A1A1E;border:1px solid #1E1E22;border-radius:8px;padding:24px;max-width:600px;width:90%"><h3 style="color:#F0F0F2;margin:0 0 8px">Save not available</h3><p style="color:#8B8B92;font-size:13px;margin:0 0 16px">Copy this JSON and paste it into the terminal:</p><textarea style="width:100%;min-height:200px;background:#111113;color:#F0F0F2;border:1px solid #1E1E22;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;resize:vertical" readonly onclick="this.select()">${json}</textarea><button onclick="this.closest('div[style]').parentElement.remove()" style="margin-top:12px;padding:10px 20px;background:#6366F1;color:white;border:none;border-radius:6px;cursor:pointer">Close</button></div></div>`;
+  document.body.appendChild(modal);
+}
+</script>
+</body>
+</html>

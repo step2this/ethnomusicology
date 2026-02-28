@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context-Rich — Edge States</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border-subtle: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --status-error: #F87171;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 24px;
+  }
+  .title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 32px; max-width: 600px; }
+  .section-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--accent); margin-top: 32px; margin-bottom: 16px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+  }
+  .pattern-note {
+    color: var(--text-muted); font-size: 12px; margin-bottom: 16px; font-style: italic;
+  }
+  .wireframe {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .wireframe-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--text-muted); margin-bottom: 12px;
+  }
+  .wf-screen {
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 24px;
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 12px;
+  }
+  .wf-icon-placeholder {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: var(--surface-base); border: 1px dashed var(--border-subtle);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 20px;
+  }
+  .wf-heading {
+    font-size: 15px; font-weight: 500; color: var(--text-primary);
+  }
+  .wf-body {
+    font-size: 13px; color: var(--text-secondary); max-width: 440px;
+  }
+  .wf-body-small {
+    font-size: 12px; color: var(--text-muted); max-width: 400px;
+  }
+  .wf-button {
+    display: inline-block; padding: 8px 20px; border-radius: 6px;
+    font-size: 13px; font-weight: 500;
+    background: var(--accent); color: white; border: none;
+  }
+  .wf-button.ghost {
+    background: transparent; border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .wf-button-row {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    justify-content: center;
+  }
+  .wf-source-cards {
+    display: flex; gap: 12px; margin-top: 4px;
+  }
+  .wf-source-card {
+    background: var(--surface-base); border: 1px solid var(--border-subtle);
+    border-radius: 6px; padding: 12px 16px; text-align: center; flex: 1;
+    min-width: 100px;
+  }
+  .wf-source-card .name {
+    font-size: 13px; font-weight: 500; color: var(--text-primary);
+  }
+  .wf-source-card .desc {
+    font-size: 11px; color: var(--text-muted); margin-top: 2px;
+  }
+  .wf-source-card.disabled {
+    opacity: 0.4;
+  }
+  .wf-error-inline {
+    font-size: 12px; color: var(--status-error); text-align: left; padding: 4px 0;
+  }
+  .wf-error-hint {
+    font-size: 11px; color: var(--text-muted); text-align: left; padding: 2px 0;
+  }
+  .wf-banner {
+    padding: 12px 16px; border-radius: 6px; font-size: 12px;
+    text-align: left;
+  }
+  .wf-banner.error {
+    background: rgba(248,113,113,0.1); border: 1px solid rgba(248,113,113,0.3);
+    color: var(--status-error);
+  }
+  .wf-banner.warning {
+    background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3);
+    color: var(--status-warning);
+  }
+  .wf-banner .banner-title {
+    font-weight: 500; margin-bottom: 4px;
+  }
+  .wf-banner .banner-body {
+    opacity: 0.8; font-size: 11px;
+  }
+  .wf-banner .banner-action {
+    margin-top: 8px;
+  }
+  .wf-input {
+    background: var(--surface-base); border: 1px solid var(--border-subtle);
+    border-radius: 4px; padding: 8px 12px; color: var(--text-secondary);
+    font-size: 12px; width: 100%; text-align: left;
+  }
+  .wf-input.error { border-color: var(--status-error); }
+  .wf-skeleton {
+    background: var(--surface-overlay); border-radius: 4px;
+    margin-bottom: 8px; display: flex; gap: 12px; padding: 8px; align-items: center;
+    background: linear-gradient(90deg, var(--surface-overlay) 25%, #222228 50%, var(--surface-overlay) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s ease-in-out infinite;
+  }
+  @keyframes shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+  }
+  .wf-skel-art {
+    width: 44px; height: 44px; border-radius: 4px; background: rgba(255,255,255,0.03); flex-shrink: 0;
+  }
+  .wf-skel-lines { flex: 1; }
+  .wf-skel-line {
+    height: 8px; border-radius: 2px; background: rgba(255,255,255,0.04); margin-bottom: 6px;
+  }
+  .wf-skel-line:last-child { margin-bottom: 0; width: 60%; }
+  .wf-skel-chips {
+    display: flex; gap: 6px;
+  }
+  .wf-skel-chip {
+    width: 40px; height: 18px; border-radius: 3px; background: rgba(255,255,255,0.04);
+  }
+
+  .wf-import-detail {
+    text-align: left; width: 100%;
+  }
+  .wf-track-result {
+    display: flex; align-items: center; gap: 8px; padding: 6px 0;
+    border-bottom: 1px solid var(--border-subtle); font-size: 12px;
+  }
+  .wf-track-result:last-child { border-bottom: none; }
+  .wf-track-result .icon { width: 16px; text-align: center; flex-shrink: 0; }
+  .wf-track-result .icon.ok { color: var(--status-success); }
+  .wf-track-result .icon.fail { color: var(--status-error); }
+  .wf-track-result .track-name { color: var(--text-primary); flex: 1; }
+  .wf-track-result .track-reason { color: var(--text-muted); font-size: 11px; }
+
+  .matrix {
+    width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 24px;
+  }
+  .matrix th {
+    font-size: 10px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--text-muted); text-align: center;
+    padding: 6px 8px; border-bottom: 1px solid var(--border-subtle);
+  }
+  .matrix th:first-child { text-align: left; }
+  .matrix td {
+    padding: 6px 8px; text-align: center;
+    border-bottom: 1px solid var(--border-subtle); color: var(--text-muted);
+  }
+  .matrix td:first-child {
+    text-align: left; color: var(--text-primary); font-weight: 500;
+  }
+  .matrix .yes { color: var(--status-success); }
+  .matrix .no { color: var(--text-muted); }
+</style>
+</head>
+<body>
+  <div class="title">Context-Rich</div>
+  <div class="subtitle">Each edge state knows what the DJ was trying to do and offers specific guidance. Contextual messages, specific error types, per-track import results.</div>
+
+  <div class="section-label">Coverage Matrix</div>
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th>Screen</th>
+        <th>Empty (1st use)</th>
+        <th>Loading</th>
+        <th>Error</th>
+        <th>Partial</th>
+        <th>Validation</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Track Catalog</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+      </tr>
+      <tr>
+        <td>Import Sheet</td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+        <td class="yes">&#10003;</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="section-label">Track Catalog — Empty (First Use)</div>
+  <div class="pattern-note">Pattern: welcome message + source cards showing where tracks can come from. Oriented toward the DJ's workflow.</div>
+  <div class="wireframe">
+    <div class="wf-screen">
+      <div class="wf-icon-placeholder">&#9835;</div>
+      <div class="wf-heading">Build your library</div>
+      <div class="wf-body">Import tracks from your favorite sources. BPM, key, and genre metadata will be ready for set building.</div>
+      <div class="wf-source-cards">
+        <div class="wf-source-card">
+          <div class="name">Beatport</div>
+          <div class="desc">Charts &amp; playlists</div>
+        </div>
+        <div class="wf-source-card">
+          <div class="name">Spotify</div>
+          <div class="desc">Playlists</div>
+        </div>
+        <div class="wf-source-card disabled">
+          <div class="name">SoundCloud</div>
+          <div class="desc">Coming soon</div>
+        </div>
+      </div>
+      <div class="wf-body-small">Tracks are enriched with BPM, Camelot key, and genre automatically.</div>
+    </div>
+  </div>
+
+  <div class="section-label">Track Catalog — Loading</div>
+  <div class="pattern-note">Pattern: shaped skeleton matching enriched track tiles (art + text lines + chip placeholders).</div>
+  <div class="wireframe">
+    <div style="padding: 8px;">
+      <div class="wf-skeleton">
+        <div class="wf-skel-art"></div>
+        <div class="wf-skel-lines">
+          <div class="wf-skel-line" style="width: 70%;"></div>
+          <div class="wf-skel-line" style="width: 45%;"></div>
+        </div>
+        <div class="wf-skel-chips">
+          <div class="wf-skel-chip"></div>
+          <div class="wf-skel-chip"></div>
+          <div class="wf-skel-chip"></div>
+        </div>
+      </div>
+      <div class="wf-skeleton">
+        <div class="wf-skel-art"></div>
+        <div class="wf-skel-lines">
+          <div class="wf-skel-line" style="width: 55%;"></div>
+          <div class="wf-skel-line" style="width: 35%;"></div>
+        </div>
+        <div class="wf-skel-chips">
+          <div class="wf-skel-chip"></div>
+          <div class="wf-skel-chip"></div>
+        </div>
+      </div>
+      <div class="wf-skeleton" style="opacity: 0.5;">
+        <div class="wf-skel-art"></div>
+        <div class="wf-skel-lines">
+          <div class="wf-skel-line" style="width: 65%;"></div>
+          <div class="wf-skel-line" style="width: 40%;"></div>
+        </div>
+        <div class="wf-skel-chips">
+          <div class="wf-skel-chip"></div>
+          <div class="wf-skel-chip"></div>
+          <div class="wf-skel-chip"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Track Catalog — Error</div>
+  <div class="pattern-note">Pattern: reassuring message (your tracks are safe) + retry + explanation that it's a display issue.</div>
+  <div class="wireframe">
+    <div class="wf-screen">
+      <div class="wf-icon-placeholder">!</div>
+      <div class="wf-heading">Couldn't load your library</div>
+      <div class="wf-body">Your tracks are safe — this is a display issue. If it persists, try refreshing the page.</div>
+      <div class="wf-button">Try Again</div>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — URL Validation Error</div>
+  <div class="pattern-note">Pattern: specific error per URL type + hint showing what a valid URL looks like.</div>
+  <div class="wireframe">
+    <div style="text-align: left; max-width: 500px;">
+      <div class="wireframe-label">URL</div>
+      <div class="wf-input error">https://www.beatport.com/artist/lane-8/123</div>
+      <div class="wf-error-inline">This looks like an artist page, not a chart or playlist</div>
+      <div class="wf-error-hint">Try a link like: beatport.com/chart/top-100/123 or beatport.com/playlist/my-list/123</div>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — Network / Service Error</div>
+  <div class="pattern-note">Pattern: contextual banner with reassurance + specific next step. Mentions existing tracks are safe.</div>
+  <div class="wireframe">
+    <div class="wf-banner error">
+      <div class="banner-title">Beatport isn't responding</div>
+      <div class="banner-body">This usually resolves in a few minutes. Your existing tracks are unaffected.</div>
+      <div class="banner-action">
+        <span class="wf-button ghost" style="padding: 4px 12px; font-size: 11px;">Retry</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — Auth Expired (Spotify)</div>
+  <div class="pattern-note">Pattern: warning banner with explanation of what happened + clear action. Reassures existing tracks are safe.</div>
+  <div class="wireframe">
+    <div class="wf-banner warning">
+      <div class="banner-title">Spotify needs reconnecting</div>
+      <div class="banner-body">Your connection expired — this happens periodically. Reconnecting takes about 10 seconds. Your imported tracks won't be affected.</div>
+      <div class="banner-action">
+        <span class="wf-button ghost" style="padding: 4px 12px; font-size: 11px;">Reconnect Spotify</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Import Sheet — Partial Import</div>
+  <div class="pattern-note">Pattern: per-track breakdown showing what succeeded and what failed with reasons. DJ can work with what imported or retry failures.</div>
+  <div class="wireframe">
+    <div class="wf-import-detail">
+      <div class="wf-heading" style="margin-bottom: 12px; text-align: left;">12 of 15 tracks imported</div>
+      <div class="wf-track-result">
+        <span class="icon ok">&#10003;</span>
+        <span class="track-name">Lane 8 — Brightest Lights</span>
+      </div>
+      <div class="wf-track-result">
+        <span class="icon ok">&#10003;</span>
+        <span class="track-name">Yotto — Wondering</span>
+      </div>
+      <div class="wf-track-result">
+        <span class="icon ok">&#10003;</span>
+        <span class="track-name">Ben Bohmer — Beyond Beliefs</span>
+      </div>
+      <div style="padding: 4px 0; color: var(--text-muted); font-size: 11px;">+ 9 more imported successfully</div>
+      <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
+        <div style="font-size: 12px; color: var(--status-error); font-weight: 500; margin-bottom: 6px;">3 tracks couldn't be imported:</div>
+        <div class="wf-track-result">
+          <span class="icon fail">&#10007;</span>
+          <span class="track-name">Eli & Fur — Come Back Around</span>
+          <span class="track-reason">Region restricted</span>
+        </div>
+        <div class="wf-track-result">
+          <span class="icon fail">&#10007;</span>
+          <span class="track-name">Marsh — All Night Long</span>
+          <span class="track-reason">Removed from Beatport</span>
+        </div>
+        <div class="wf-track-result">
+          <span class="icon fail">&#10007;</span>
+          <span class="track-name">Tinlicker — Because You Move Me</span>
+          <span class="track-reason">Metadata unavailable</span>
+        </div>
+      </div>
+      <div style="margin-top: 12px; display: flex; gap: 8px;">
+        <span class="wf-button" style="font-size: 12px; padding: 6px 16px;">Done — view 12 tracks</span>
+        <span class="wf-button ghost" style="font-size: 12px; padding: 6px 16px;">Retry 3 failed</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,11 @@
+{
+  "facet": "edge-states",
+  "round": 1,
+  "timestamp": "2026-02-28T21:15:00Z",
+  "options": {
+    "option-a": { "action": "cut", "comment": "" },
+    "option-b": { "action": "keep", "comment": "Context-rich approach is right for a catalog-first DJ tool." }
+  },
+  "overall": "",
+  "decision": "lock"
+}

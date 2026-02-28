@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Unified Workspace — Screen Inventory</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border-subtle: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --primary-screen: #6366F1;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 24px;
+  }
+  .title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: var(--text-secondary);
+    margin-bottom: 32px;
+  }
+  .stats {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 32px;
+  }
+  .stat {
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .stat-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+  }
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 40px;
+  }
+  .screen-box {
+    border: 2px solid var(--primary-screen);
+    border-radius: 8px;
+    padding: 16px 20px;
+    min-width: 200px;
+    text-align: center;
+    background: var(--surface-raised);
+  }
+  .screen-box .name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .screen-box .type {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .zone-diagram {
+    background: var(--surface-raised);
+    border: 2px solid var(--primary-screen);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    max-width: 500px;
+  }
+  .zone {
+    padding: 16px 20px;
+    border-bottom: 1px dashed var(--border-subtle);
+  }
+  .zone:last-child { border-bottom: none; }
+  .zone-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--accent);
+    margin-bottom: 4px;
+  }
+  .zone-content {
+    color: var(--text-secondary);
+    font-size: 12px;
+  }
+  .zone-height {
+    color: var(--text-muted);
+    font-size: 10px;
+    float: right;
+  }
+  .happy-path-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--status-success);
+    margin-bottom: 12px;
+  }
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    margin-top: 24px;
+  }
+  .screen-detail {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+  }
+  .screen-detail .name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .screen-detail .purpose {
+    color: var(--text-secondary);
+    margin-bottom: 12px;
+  }
+  .state-list {
+    list-style: none;
+  }
+  .state-list li {
+    padding: 4px 0;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .state-list li:last-child { border-bottom: none; }
+  .state-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    min-width: 140px;
+  }
+  .state-desc {
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+  .arrow-down {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 4px 0;
+    font-size: 11px;
+  }
+  .codebase-note {
+    background: var(--surface-overlay);
+    border-left: 3px solid var(--status-warning);
+    border-radius: 4px;
+    padding: 12px 16px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    margin-top: 24px;
+  }
+  .codebase-note strong { color: var(--text-primary); }
+</style>
+</head>
+<body>
+  <div class="title">Unified Workspace</div>
+  <div class="subtitle">Import controls and catalog on one screen. No navigation for the core loop.</div>
+
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">1</div>
+      <div class="stat-label">Primary screen</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Secondary screens</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">8</div>
+      <div class="stat-label">Total states</div>
+    </div>
+  </div>
+
+  <div class="happy-path-label">Screen Zones</div>
+
+  <div class="zone-diagram">
+    <div class="zone">
+      <div class="zone-label">Zone 1: Import Controls <span class="zone-height">collapsible</span></div>
+      <div class="zone-content">Source tabs (Spotify | Beatport | SoundCloud) + URL input + Import button. Collapses to a slim bar after successful import.</div>
+    </div>
+    <div class="zone">
+      <div class="zone-label">Zone 2: Import Status <span class="zone-height">contextual</span></div>
+      <div class="zone-content">Progress bar during import, summary after completion. Hidden when not importing.</div>
+    </div>
+    <div class="zone">
+      <div class="zone-label">Zone 3: Track Catalog <span class="zone-height">scrollable, fills remaining</span></div>
+      <div class="zone-content">Enriched track tiles with BPM, Camelot key, genre, source badges. Grows as tracks are imported.</div>
+    </div>
+  </div>
+
+  <div class="happy-path-label">Happy Path (zero navigation)</div>
+  <div style="max-width: 300px;">
+    <div class="screen-box" style="margin-bottom: 0; border-radius: 8px 8px 0 0; border-bottom: 1px dashed var(--border-subtle);">
+      <div class="name">Select tab + paste URL</div>
+      <div class="type">Zone 1</div>
+    </div>
+    <div class="arrow-down">&darr; import starts</div>
+    <div class="screen-box" style="margin-bottom: 0; border-radius: 0; border-bottom: 1px dashed var(--border-subtle); border-top: none;">
+      <div class="name">Progress bar</div>
+      <div class="type">Zone 2 appears</div>
+    </div>
+    <div class="arrow-down">&darr; import done</div>
+    <div class="screen-box" style="border-radius: 0 0 8px 8px; border-top: none;">
+      <div class="name">Tracks in catalog</div>
+      <div class="type">Zone 3 updates, Zone 1 collapses</div>
+    </div>
+  </div>
+
+  <div class="section-label">Screen Details &amp; States</div>
+
+  <div class="screen-detail">
+    <div class="name">Library (unified screen)</div>
+    <div class="purpose">All-in-one: import controls, progress, and enriched track catalog. Zones appear/hide based on context.</div>
+    <ul class="state-list">
+      <li><span class="state-name">Default (has tracks)</span><span class="state-desc">Import collapsed to slim bar, catalog showing all tracks</span></li>
+      <li><span class="state-name">Empty (first use)</span><span class="state-desc">Import expanded prominently, empty catalog with "Import to get started" message</span></li>
+      <li><span class="state-name">Import expanded</span><span class="state-desc">Tabs + URL visible, catalog below (may have existing tracks)</span></li>
+      <li><span class="state-name">Importing</span><span class="state-desc">Progress zone visible between import controls and catalog</span></li>
+      <li><span class="state-name">Import complete</span><span class="state-desc">Summary inline, new tracks highlighted in catalog below</span></li>
+      <li><span class="state-name">Import error</span><span class="state-desc">Error in zone 2, catalog unaffected below</span></li>
+      <li><span class="state-name">Catalog loading</span><span class="state-desc">Skeleton tiles in zone 3</span></li>
+      <li><span class="state-name">Catalog error</span><span class="state-desc">Error message in zone 3, import controls still functional</span></li>
+    </ul>
+  </div>
+
+  <div class="codebase-note">
+    <strong>Codebase note:</strong> Replaces <code>spotify_import_screen.dart</code> with a unified screen. Import controls become a collapsible widget. Catalog uses enriched <code>track_tile.dart</code>. Single route in GoRouter.
+  </div>
+</body>
+</html>

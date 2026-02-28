@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Centered Catalog — Layout</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border-subtle: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --grid-line: rgba(99,102,241,0.12);
+    --grid-col: rgba(99,102,241,0.06);
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 32px 24px;
+  }
+  .title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 24px; max-width: 600px; }
+  .section-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: var(--accent); margin-top: 32px; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border-subtle);
+  }
+  .tokens {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 24px;
+  }
+  .token {
+    background: var(--surface-raised); border: 1px solid var(--border-subtle);
+    border-radius: 6px; padding: 10px 12px;
+  }
+  .token-label {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted); margin-bottom: 2px;
+  }
+  .token-value { font-size: 14px; font-weight: 600; color: var(--accent); }
+
+  /* Wireframe */
+  .wireframe-container {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+  .wf-viewport {
+    position: relative;
+    width: 100%;
+    min-height: 400px;
+    background: var(--surface-overlay);
+  }
+  .wf-toolbar {
+    height: 48px;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+  }
+  .wf-toolbar-left { display: flex; align-items: center; gap: 16px; }
+  .wf-toolbar-right { display: flex; align-items: center; gap: 8px; }
+  .wf-app-name {
+    font-size: 14px; font-weight: 600; color: var(--text-primary);
+  }
+  .wf-btn {
+    padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    background: var(--accent); color: white; border: none;
+  }
+  .wf-btn.ghost {
+    background: transparent; border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .wf-centered-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 32px;
+  }
+  .wf-track-row {
+    height: 56px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+  }
+  .wf-art {
+    width: 40px; height: 40px; border-radius: 4px;
+    background: var(--surface-overlay); border: 1px solid var(--border-subtle);
+    flex-shrink: 0;
+  }
+  .wf-track-info { flex: 1; }
+  .wf-track-title { font-size: 13px; font-weight: 500; color: var(--text-primary); }
+  .wf-track-artist { font-size: 11px; color: var(--text-muted); }
+  .wf-chips { display: flex; gap: 6px; }
+  .wf-chip {
+    padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 500;
+    background: var(--surface-overlay); border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .wf-chip.key { border-color: rgba(99,102,241,0.3); color: var(--accent); }
+
+  /* Grid overlay */
+  .wf-grid-overlay {
+    position: absolute; top: 48px; left: 0; right: 0; bottom: 0;
+    pointer-events: none; display: flex; justify-content: center;
+  }
+  .wf-grid-inner {
+    max-width: 1200px; width: 100%; display: flex; gap: 20px; padding: 0 32px;
+  }
+  .wf-grid-col {
+    flex: 1; background: var(--grid-col);
+    border-left: 1px solid var(--grid-line);
+    border-right: 1px solid var(--grid-line);
+  }
+  .wf-annotation {
+    position: absolute; font-size: 10px; color: var(--accent);
+    background: rgba(99,102,241,0.15); padding: 2px 6px; border-radius: 3px;
+  }
+
+  .wf-margin-indicator {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 0; color: var(--text-muted); font-size: 11px;
+  }
+  .wf-margin-line {
+    flex: 1; height: 1px; background: var(--border-subtle); margin: 0 8px;
+  }
+</style>
+</head>
+<body>
+  <div class="title">Centered Catalog</div>
+  <div class="subtitle">Max-width centered content. Clean web app feel. Catalog fills a comfortable reading width with generous margins on widescreen. Simple, ships fast.</div>
+
+  <div class="section-label">Layout Tokens</div>
+  <div class="tokens">
+    <div class="token"><div class="token-label">Grid</div><div class="token-value">12-col</div></div>
+    <div class="token"><div class="token-label">Gutter</div><div class="token-value">20px</div></div>
+    <div class="token"><div class="token-label">Max Width</div><div class="token-value">1200px</div></div>
+    <div class="token"><div class="token-label">Margin</div><div class="token-value">32px</div></div>
+    <div class="token"><div class="token-label">Sidebar</div><div class="token-value">None</div></div>
+    <div class="token"><div class="token-label">Pattern</div><div class="token-value">Single col</div></div>
+  </div>
+
+  <div class="section-label">Desktop Layout (1440px viewport)</div>
+  <div class="wireframe-container">
+    <div class="wf-viewport">
+      <div class="wf-toolbar">
+        <div class="wf-toolbar-left">
+          <span class="wf-app-name">Ethnomusicology</span>
+        </div>
+        <div class="wf-toolbar-right">
+          <span class="wf-btn">+ Import</span>
+        </div>
+      </div>
+
+      <div class="wf-centered-content">
+        <div class="wf-margin-indicator">
+          <span>margin 120px</span>
+          <div class="wf-margin-line"></div>
+          <span>max-width: 1200px</span>
+          <div class="wf-margin-line"></div>
+          <span>margin 120px</span>
+        </div>
+
+        <div class="wf-track-row">
+          <div class="wf-art"></div>
+          <div class="wf-track-info">
+            <div class="wf-track-title">Brightest Lights</div>
+            <div class="wf-track-artist">Lane 8</div>
+          </div>
+          <div class="wf-chips">
+            <div class="wf-chip">128 BPM</div>
+            <div class="wf-chip key">2B</div>
+            <div class="wf-chip">Progressive House</div>
+          </div>
+        </div>
+        <div class="wf-track-row">
+          <div class="wf-art"></div>
+          <div class="wf-track-info">
+            <div class="wf-track-title">Wondering</div>
+            <div class="wf-track-artist">Yotto</div>
+          </div>
+          <div class="wf-chips">
+            <div class="wf-chip">124 BPM</div>
+            <div class="wf-chip key">8A</div>
+            <div class="wf-chip">Melodic House</div>
+          </div>
+        </div>
+        <div class="wf-track-row">
+          <div class="wf-art"></div>
+          <div class="wf-track-info">
+            <div class="wf-track-title">Beyond Beliefs</div>
+            <div class="wf-track-artist">Ben Bohmer</div>
+          </div>
+          <div class="wf-chips">
+            <div class="wf-chip">122 BPM</div>
+            <div class="wf-chip key">11B</div>
+            <div class="wf-chip">Organic House</div>
+          </div>
+        </div>
+        <div class="wf-track-row" style="opacity: 0.5;">
+          <div class="wf-art"></div>
+          <div class="wf-track-info">
+            <div class="wf-track-title">All Night Long</div>
+            <div class="wf-track-artist">Marsh</div>
+          </div>
+          <div class="wf-chips">
+            <div class="wf-chip">126 BPM</div>
+            <div class="wf-chip key">5A</div>
+            <div class="wf-chip">Deep House</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Grid overlay -->
+      <div class="wf-grid-overlay" style="opacity: 0.3;">
+        <div class="wf-grid-inner">
+          <div class="wf-grid-col"></div><div class="wf-grid-col"></div>
+          <div class="wf-grid-col"></div><div class="wf-grid-col"></div>
+          <div class="wf-grid-col"></div><div class="wf-grid-col"></div>
+          <div class="wf-grid-col"></div><div class="wf-grid-col"></div>
+          <div class="wf-grid-col"></div><div class="wf-grid-col"></div>
+          <div class="wf-grid-col"></div><div class="wf-grid-col"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Future Extensibility</div>
+  <div style="color: var(--text-secondary); font-size: 12px;">
+    <p style="margin-bottom: 8px;">Browser/filter pane: would be added as a collapsible left panel, pushing the centered content rightward. Max-width reduces to accommodate.</p>
+    <p style="margin-bottom: 8px;">Waveform/deck area: would sit above the catalog as a collapsible top section.</p>
+    <p>Search/sort: lives in the toolbar row, within the centered content max-width.</p>
+  </div>
+</body>
+</html>
