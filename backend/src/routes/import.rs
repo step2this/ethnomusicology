@@ -1,12 +1,15 @@
 use axum::extract::{Path, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 use std::sync::Arc;
 
 use crate::api::spotify::SpotifyClient;
+use crate::db::tokens;
+use crate::routes::auth::decrypt_token;
 use crate::services::import::{self, ImportError, ImportRepository, ImportSummary};
 
 // ---------------------------------------------------------------------------
@@ -76,6 +79,8 @@ impl IntoResponse for ImportError {
 pub struct ImportState {
     pub spotify: SpotifyClient,
     pub repo: Arc<dyn ImportRepository>,
+    pub pool: SqlitePool,
+    pub encryption_key: [u8; 32],
 }
 
 // ---------------------------------------------------------------------------
@@ -84,20 +89,32 @@ pub struct ImportState {
 
 async fn import_spotify(
     State(state): State<Arc<ImportState>>,
+    headers: HeaderMap,
     Json(req): Json<ImportRequest>,
 ) -> Result<Json<ImportResponse>, ImportError> {
     let playlist_id = import::validate_playlist_url(&req.playlist_url)?;
 
-    // TODO: Extract user_id from auth middleware (UC-008). For now use header or hardcoded.
-    let user_id = "dev-user";
+    // Extract user_id from header (temporary until UC-008 adds real auth)
+    let user_id = headers
+        .get("X-User-Id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("dev-user");
 
-    // TODO: Extract access_token from stored user tokens. For now use a placeholder.
-    let access_token = "placeholder-token";
+    // Fetch stored access token from DB
+    let token_row = tokens::get_tokens(&state.pool, user_id)
+        .await
+        .map_err(|e| ImportError::Database(e.to_string()))?
+        .ok_or_else(|| {
+            ImportError::AccessDenied("Not connected to Spotify. Please authorize first.".into())
+        })?;
+
+    let access_token = decrypt_token(&state.encryption_key, &token_row.0)
+        .map_err(|e| ImportError::AccessDenied(format!("Failed to decrypt token: {e}")))?;
 
     let summary = import::import_playlist(
         state.repo.as_ref(),
         &state.spotify,
-        access_token,
+        &access_token,
         user_id,
         &playlist_id,
     )
@@ -193,9 +210,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_import_invalid_url_returns_400() {
+        let pool = crate::db::create_test_pool().await;
         let state = Arc::new(ImportState {
             spotify: SpotifyClient::new("id", "secret"),
             repo: Arc::new(TestRepo::new()),
+            pool,
+            encryption_key: [0u8; 32],
         });
 
         let app = import_router(state);
@@ -218,9 +238,12 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_import_status_not_found() {
+        let pool = crate::db::create_test_pool().await;
         let state = Arc::new(ImportState {
             spotify: SpotifyClient::new("id", "secret"),
             repo: Arc::new(TestRepo::new()),
+            pool,
+            encryption_key: [0u8; 32],
         });
 
         let app = import_router(state);
@@ -270,10 +293,36 @@ mod tests {
             .mount(&mock_server)
             .await;
 
+        let pool = crate::db::create_test_pool().await;
+        let encryption_key = [0u8; 32];
+
+        // Create a test user and store encrypted tokens so the import handler can authenticate
+        let user_id = crate::db::create_test_user(&pool).await;
+        let access_encrypted =
+            crate::routes::auth::encrypt_token(&encryption_key, "fake-access-token").unwrap();
+        let refresh_encrypted =
+            crate::routes::auth::encrypt_token(&encryption_key, "fake-refresh-token").unwrap();
+        let expires_at = chrono::NaiveDate::from_ymd_opt(2099, 1, 1)
+            .unwrap()
+            .and_hms_opt(0, 0, 0)
+            .unwrap();
+        crate::db::tokens::store_tokens(
+            &pool,
+            &user_id,
+            &access_encrypted,
+            &refresh_encrypted,
+            expires_at,
+            "playlist-read-private",
+        )
+        .await
+        .unwrap();
+
         let state = Arc::new(ImportState {
             spotify: SpotifyClient::new("id", "secret")
                 .with_base_url(mock_server.uri(), mock_server.uri()),
             repo: Arc::new(TestRepo::new()),
+            pool,
+            encryption_key,
         });
 
         let app = import_router(state);
@@ -288,6 +337,7 @@ mod tests {
                     .method("POST")
                     .uri("/import/spotify")
                     .header("content-type", "application/json")
+                    .header("X-User-Id", &user_id)
                     .body(Body::from(serde_json::to_vec(&req_body).unwrap()))
                     .unwrap(),
             )

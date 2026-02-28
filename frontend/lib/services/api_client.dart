@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 class ApiClient {
-  static const _baseUrl = 'http://localhost:3001/api';
+  static const _baseUrl = '/api';
 
   final Dio _dio;
 

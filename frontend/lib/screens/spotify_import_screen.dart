@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/spotify_import_provider.dart';
 import '../widgets/import_progress.dart';
 import '../widgets/import_summary.dart';
@@ -72,17 +73,11 @@ class _SpotifyImportScreenState extends ConsumerState<SpotifyImportScreen> {
             _ConnectionCard(
               state: connectionState,
               onConnect: () async {
-                final messenger = ScaffoldMessenger.of(context);
                 final url = await ref
                     .read(spotifyConnectionProvider.notifier)
                     .getAuthorizationUrl('dev-user');
                 if (url != null && mounted) {
-                  messenger.showSnackBar(
-                    SnackBar(
-                      content: Text('Open this URL to connect: $url'),
-                      duration: const Duration(seconds: 10),
-                    ),
-                  );
+                  await launchUrl(Uri.parse(url), mode: LaunchMode.inAppBrowserView);
                 }
               },
             ),
