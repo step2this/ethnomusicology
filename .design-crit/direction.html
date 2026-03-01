@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Direction — Ethnomusicology</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --border: #1E1E22;
+    --accent: #6366F1;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --success: #4ADE80;
+    --ember-amber: #E8963A;
+    --ember-copper: #C06030;
+    --ember-surface-0: #0F0D0B;
+    --ember-surface-1: #141210;
+    --ember-surface-2: #1A1714;
+    --ember-surface-3: #201C18;
+    --ember-text: #F0ECE4;
+    --ember-text-2: #C8C4BC;
+    --ember-text-3: #8B8580;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 48px 24px 64px;
+  }
+  .container { max-width: 1080px; margin: 0 auto; }
+
+  /* Header */
+  .header { margin-bottom: 40px; }
+  .header h1 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+  .header .subtitle { font-size: 15px; font-weight: 500; color: var(--accent); margin-bottom: 12px; }
+  .header .brief { color: var(--text-secondary); max-width: 720px; margin-bottom: 16px; line-height: 1.6; }
+  .header .meta {
+    font-size: 11px; color: var(--text-muted);
+    display: flex; flex-wrap: wrap; gap: 8px 20px;
+  }
+  .meta-item { white-space: nowrap; }
+  .meta-item span { color: var(--text-secondary); }
+  .meta-accent { color: var(--success) !important; font-weight: 600; }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* Design Identity */
+  .identity-block {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--ember-amber);
+    border-radius: 6px;
+    padding: 24px 28px;
+    margin-bottom: 40px;
+  }
+  .identity-block .label {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.06em; color: var(--ember-amber); margin-bottom: 12px;
+  }
+  .identity-block p {
+    font-size: 14px; line-height: 1.7; color: var(--text-secondary);
+  }
+  .identity-block p strong { color: var(--text-primary); }
+
+  /* Section titles */
+  .section-title {
+    font-size: 18px; font-weight: 600; margin-bottom: 20px;
+  }
+  .section-subtitle {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 16px;
+  }
+
+  /* Screen gallery grid */
+  .gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+  .gallery-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 6px;
+    transition: border-color 150ms ease;
+  }
+  .gallery-card:hover { border-color: var(--accent); }
+  .gallery-card .card-num {
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: 0.04em;
+  }
+  .gallery-card .card-name { font-size: 14px; font-weight: 600; }
+  .gallery-card .card-option { font-size: 12px; color: var(--ember-amber); font-weight: 500; }
+  .gallery-card .card-desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+  .gallery-card .card-link {
+    font-size: 11px; color: var(--accent); text-decoration: none;
+    font-weight: 500; margin-top: auto; padding-top: 4px;
+  }
+  .gallery-card .card-link:hover { color: #818CF8; text-decoration: underline; }
+
+  /* Decisions */
+  .lens-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted);
+    margin: 28px 0 12px; padding-left: 2px;
+  }
+  .decision {
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .decision-head {
+    display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap;
+  }
+  .decision-name { font-size: 14px; font-weight: 600; }
+  .decision-meta { font-size: 11px; color: var(--text-muted); }
+  .decision-meta .opt { color: var(--ember-amber); }
+  .decision-meta .tag {
+    display: inline-block; padding: 1px 6px; border-radius: 3px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    background: rgba(74,222,128,0.12); color: var(--success);
+    margin-left: 4px;
+  }
+  .decision-summary {
+    font-size: 12px; color: var(--text-secondary); margin-top: 6px; line-height: 1.6;
+  }
+  details.decision-expand {
+    margin-top: 6px;
+  }
+  details.decision-expand summary {
+    cursor: pointer; font-size: 11px; color: var(--accent);
+    list-style: none; user-select: none;
+  }
+  details.decision-expand summary::-webkit-details-marker { display: none; }
+  details.decision-expand summary::before { content: "\25B6 "; font-size: 8px; }
+  details.decision-expand[open] summary::before { content: "\25BC "; }
+  .expand-content {
+    padding: 10px 0 4px; font-size: 12px;
+    color: var(--text-secondary); line-height: 1.6;
+  }
+  .expand-content strong { color: #C8C4BC; }
+
+  /* Tokens preview */
+  .tokens-section { margin-bottom: 40px; }
+  .token-group {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+    margin-bottom: 12px;
+  }
+  .token-group-title {
+    font-size: 12px; font-weight: 600; margin-bottom: 12px;
+    text-transform: uppercase; letter-spacing: 0.03em; color: var(--text-secondary);
+  }
+
+  /* Color swatches */
+  .swatch-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+  .swatch-row:last-child { margin-bottom: 0; }
+  .swatch-label {
+    font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.03em; font-weight: 500; min-width: 56px;
+    display: flex; align-items: center;
+  }
+  .swatch {
+    width: 36px; height: 36px; border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.06);
+    display: inline-flex; align-items: flex-end; justify-content: center;
+    padding-bottom: 2px; position: relative;
+  }
+  .swatch .swatch-hex {
+    font-size: 7px; font-weight: 500; color: rgba(255,255,255,0.5);
+    letter-spacing: 0.01em;
+  }
+
+  /* Type scale */
+  .type-scale-row {
+    display: flex; align-items: baseline; gap: 16px;
+    padding: 6px 0; border-bottom: 1px solid rgba(30,30,34,0.5);
+  }
+  .type-scale-row:last-child { border-bottom: none; }
+  .type-name {
+    font-size: 10px; color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: 0.03em; min-width: 72px; font-weight: 500;
+  }
+  .type-spec { font-size: 10px; color: var(--text-muted); min-width: 100px; }
+  .type-sample { color: var(--text-primary); white-space: nowrap; }
+
+  /* Spacing bars */
+  .spacing-row { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .spacing-label {
+    font-size: 10px; color: var(--text-muted); min-width: 56px;
+    text-align: right; font-weight: 500;
+  }
+  .spacing-bar {
+    height: 14px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--accent), rgba(99,102,241,0.4));
+  }
+  .spacing-value { font-size: 10px; color: var(--text-muted); }
+
+  /* Camelot wheel grid */
+  .camelot-grid {
+    display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px;
+  }
+  .camelot-chip {
+    padding: 6px 4px; border-radius: 4px; text-align: center;
+    font-size: 10px; font-weight: 600; color: #0F0D0B;
+    border: 1px solid rgba(255,255,255,0.08);
+  }
+
+  /* User voice */
+  .voice-list { list-style: none; }
+  .voice-list li {
+    padding: 8px 0; border-bottom: 1px solid rgba(30,30,34,0.5);
+    font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+  }
+  .voice-list li:last-child { border-bottom: none; }
+  .voice-list li strong { color: var(--text-primary); }
+  .voice-list li::before {
+    content: "\2014"; color: var(--ember-amber); margin-right: 10px; font-weight: 600;
+  }
+
+  /* Implementation ref */
+  .ref-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .ref-table td {
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+    font-size: 12px; vertical-align: top;
+  }
+  .ref-table td:first-child {
+    color: var(--text-muted); font-weight: 500; white-space: nowrap; width: 160px;
+  }
+  .ref-table td:last-child { color: var(--text-secondary); }
+  .ref-table code {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 11px; background: var(--surface-overlay);
+    padding: 1px 5px; border-radius: 3px; color: var(--text-primary);
+  }
+
+  /* Footer */
+  .footer {
+    margin-top: 48px; padding-top: 24px;
+    border-top: 1px solid var(--border);
+    text-align: center; font-size: 11px; color: var(--text-muted);
+  }
+
+  a:focus, button:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- 1. HEADER -->
+  <div class="header">
+    <h1>Ethnomusicology &mdash; Import &amp; Catalog</h1>
+    <div class="subtitle">Design Direction</div>
+    <p class="brief">Multi-source import screen and DJ metadata catalog for an LLM-powered DJ setlist platform. Desktop-first, designed for DJs who think in BPM, key, and energy during set prep.</p>
+    <div class="meta">
+      <div class="meta-item">Platform: <span>Flutter Web</span></div>
+      <div class="meta-item">Design System: <span>Ember Crate</span></div>
+      <div class="meta-item">Date: <span>March 2026</span></div>
+      <div class="meta-item"><span class="meta-accent">10 of 10 areas resolved</span></div>
+      <div class="meta-item">12 total rounds</div>
+      <div class="meta-item">All user-decided</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 2. DESIGN IDENTITY -->
+  <div class="identity-block">
+    <div class="label">Design Identity &mdash; Ember Crate</div>
+    <p><strong>Ember Crate</strong> is a warm, dense, professional DJ tool. Amber and copper tones on warm-tinted blacks evoke analog hardware &mdash; think Roland TR-808, not Spotify. The interface prioritizes scanning speed: flat five hierarchy, 40px dense rows, and keyboard shortcuts built for DJs who think in BPM and key. Every pixel serves the working DJ's set prep workflow.</p>
+  </div>
+
+  <!-- 3. SCREEN GALLERY -->
+  <div class="section-title">Screen Gallery</div>
+  <div class="gallery-grid">
+    <div class="gallery-card">
+      <div class="card-num">Area 1</div>
+      <div class="card-name">Screen Inventory</div>
+      <div class="card-option">Catalog-First</div>
+      <div class="card-desc">1 primary screen (Track Catalog) + 1 secondary (Import Sheet overlay). Catalog is home base.</div>
+      <a href="facets/screen-inventory/option-c.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 2</div>
+      <div class="card-name">Edge States</div>
+      <div class="card-option">Context-Rich</div>
+      <div class="card-desc">Tailored empty, error, and loading states. Errors reassure &ldquo;your tracks are safe.&rdquo;</div>
+      <a href="facets/edge-states/option-b.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 3</div>
+      <div class="card-name">Layout</div>
+      <div class="card-option">Full-Width Crate</div>
+      <div class="card-desc">Edge-to-edge track table, 48px icon rail, no max-width. DJ software density.</div>
+      <a href="facets/content-layout/option-b.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 4</div>
+      <div class="card-name">Content Hierarchy</div>
+      <div class="card-option">Flat Five</div>
+      <div class="card-desc">5 co-primary fields by visual treatment not size. 3 emphasis levels total.</div>
+      <a href="facets/content-hierarchy/option-c.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 5</div>
+      <div class="card-name">Component Design</div>
+      <div class="card-option">Crate + Board</div>
+      <div class="card-desc">14 components. C's structure + A's design language. 2 rounds to merge.</div>
+      <a href="facets/component-design/option-ac.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 6</div>
+      <div class="card-name">Elevation &amp; Shape</div>
+      <div class="card-option">Wire Lift</div>
+      <div class="card-desc">Flat table, shadows only on overlays. 4 levels, 4 radius tokens.</div>
+      <a href="facets/elevation-shape/option-b.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 7</div>
+      <div class="card-name">Typography</div>
+      <div class="card-option">Inter Tight</div>
+      <div class="card-desc">Inter + JetBrains Mono. 7-level scale, 3 weights, tabular numbers.</div>
+      <a href="facets/typography/option-b.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 8</div>
+      <div class="card-name">Color System</div>
+      <div class="card-option">Ember Crate</div>
+      <div class="card-desc">Warm amber/copper on warm blacks. TR-808 aesthetic. 24 Camelot key colors.</div>
+      <a href="facets/color-system/option-d.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 9</div>
+      <div class="card-name">Density &amp; Spacing</div>
+      <div class="card-option">Studio</div>
+      <div class="card-desc">40px rows, 19 tracks visible, 4px base unit, 7-token spacing scale.</div>
+      <a href="facets/density-spacing/option-b.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+    <div class="gallery-card">
+      <div class="card-num">Area 10</div>
+      <div class="card-name">Accessibility</div>
+      <div class="card-option">Enhanced Access</div>
+      <div class="card-desc">WCAG AA, 12/12 issues fixed. Keyboard shortcuts as a feature for DJs.</div>
+      <a href="facets/accessibility/option-b.html" class="card-link">View wireframe &rsaquo;</a>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 4. DESIGN DECISIONS -->
+  <div class="section-title">Design Decisions</div>
+
+  <div class="lens-label">Defining the Product</div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Screen Inventory &mdash; Catalog-First</span>
+      <span class="decision-meta"><span class="opt">option-c</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">1 primary screen (Track Catalog) + 1 secondary (Import Sheet overlay). Catalog is home base. DJs browse far more than they import &mdash; the catalog IS the product.</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) Multi-Screen Hub, B) Import-First, C) Catalog-First<br>
+        <strong>Decision:</strong> Immediate lock on C. Import is a drawer action, one of many future sources. Extensible architecture.<br>
+        <strong>User signal:</strong> &ldquo;DJs browse far more than they import. The catalog IS the product.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Edge States &mdash; Context-Rich</span>
+      <span class="decision-meta"><span class="opt">option-b</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">Tailored edge states per situation. Empty catalog shows source cards. URL errors show valid examples. Errors reassure &ldquo;your tracks are safe.&rdquo; Partial imports show per-track results.</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) Minimal/Generic, B) Context-Rich<br>
+        <strong>Decision:</strong> Immediate lock on B. Each error, empty, and loading state gets purpose-built messaging.<br>
+        <strong>User signal:</strong> &ldquo;Context-rich approach is the right fit for this product.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="lens-label">Arranging the Pieces</div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Layout &mdash; Full-Width Crate</span>
+      <span class="decision-meta"><span class="opt">option-b</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">Edge-to-edge track table with sortable columns. 48px collapsed icon rail reserves space for future browser pane. No max-width &mdash; DJ software density.</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) Centered Card, B) Full-Width Crate, C) Split Panel<br>
+        <strong>Decision:</strong> Immediate lock on B. V1 ships the dense track table; browser pane comes later when justified by content.<br>
+        <strong>User signal:</strong> &ldquo;V1 discipline &mdash; ship the dense track table now, expand later.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Content Hierarchy &mdash; Flat Five</span>
+      <span class="decision-meta"><span class="opt">option-c</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">5 co-primary fields (Artist, Title, BPM, Key, Energy) differentiated by visual treatment not size. Bold text, regular text, monospace, color chip, bar graph. 3 emphasis levels. Task-flexible scanning.</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) Title-Led, B) BPM-Key-Led, C) Flat Five<br>
+        <strong>Decision:</strong> Immediate lock on C. Rejects false hierarchies &mdash; all five data points matter equally during set prep.<br>
+        <strong>User signal:</strong> &ldquo;All five data points matter &mdash; artist, title, BPM, key, and energy. Don't pick a winner.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Component Design &mdash; Crate + Board</span>
+      <span class="decision-meta"><span class="opt">option-ac</span> &middot; 2 rounds <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">14 components. C's structural patterns (slide-over, detail strip, multi-column sort, source pills) merged with A's compact design language (20px Camelot chips, 5px energy bars, 6px radius, 34px buttons).</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Round 1:</strong> 3 options presented (A: Lean Crate, B: Studio Deck, C: Mixer Board). User cut A and B, kept C's structure but wanted A's compact design language. Requested A+C merge.<br>
+        <strong>Round 2:</strong> A+C merge &ldquo;Crate + Board&rdquo; presented. Locked immediately.<br>
+        <strong>User signal:</strong> &ldquo;Merge, don't compromise. C's structural patterns are critical. A's compact language keeps it dense. Sortable columns are non-negotiable.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Elevation &amp; Shape &mdash; Wire Lift</span>
+      <span class="decision-meta"><span class="opt">option-b</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">Flat table (no shadows). Shadows only on floating elements: slide-over, toasts, primary CTA. Scrim + shadow for overlay depth. 4-token radius scale (0/3/6/full).</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) Shadow Deck, B) Wire Lift, C) Glass Layer<br>
+        <strong>Decision:</strong> Immediate lock on B. Subtle differences between options &mdash; trusts designer recommendation on technical facets.<br>
+        <strong>User signal:</strong> &ldquo;Flat table + shadowed overlays makes sense.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="lens-label">Making It Feel Right</div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Typography &mdash; Inter Tight</span>
+      <span class="decision-meta"><span class="opt">option-b</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">Inter for UI + JetBrains Mono for BPM/data. 7-level discrete scale (15/13/13/12/11/10/9px). 3 weights (400/500/700). Tabular numbers. ~175KB one-time load.</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) System Stack, B) Inter Tight, C) Mono-First<br>
+        <strong>Decision:</strong> Immediate lock on B. Chose quality and cross-platform consistency over zero-load pragmatism.<br>
+        <strong>User signal:</strong> &ldquo;Type matters. Clean sans-serif, Helvetica vibes.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Color System &mdash; Ember Crate</span>
+      <span class="decision-meta"><span class="opt">option-d</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">Warm amber (#E8963A) primary, copper (#C06030) secondary on warm-tinted blacks (#0F0D0B). Warm white text. 24 warm-shifted Camelot key colors. Energy: teal to amber to copper-red. Roland TR-808 aesthetic.</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>4 options presented:</strong> A) Mondrian Board (light, primary colors), B) Indigo Crate (dark monochrome), C) Neon Deck (cyan/magenta neon), D) Ember Crate (warm amber/copper).<br>
+        <strong>Decision:</strong> Instant connection with D. The warm analog palette clicked viscerally.<br>
+        <strong>User signal:</strong> &ldquo;It's like a Roland 808. Warm amber is the brand. Subtle hardware references are welcome.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Density &amp; Spacing &mdash; Studio</span>
+      <span class="decision-meta"><span class="opt">option-b</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">40px rows, ~19 tracks visible in 900px viewport, 4px base unit. 32x32 art thumbnails. 7-token spacing scale (4/8/12/16/24/32/48px).</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) Compact, B) Studio, C) Comfortable<br>
+        <strong>Decision:</strong> Lock on B. Matches the wireframe density from all prior areas. Trusted designer recommendation.<br>
+        <strong>User signal:</strong> &ldquo;Not fussed about density &mdash; Studio matches the wireframes already approved.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <div class="lens-label">Final Check</div>
+
+  <div class="decision">
+    <div class="decision-head">
+      <span class="decision-name">Accessibility &mdash; Enhanced Access</span>
+      <span class="decision-meta"><span class="opt">option-b</span> &middot; 1 round <span class="tag">user decided</span></span>
+    </div>
+    <div class="decision-summary">WCAG AA, 12/12 issues fixed. Keyboard row navigation, focus trap on slide-over, skip link, 2px amber focus rings, semantic table, live regions, shortcut hints, row count announcements.</div>
+    <details class="decision-expand">
+      <summary>History</summary>
+      <div class="expand-content">
+        <strong>Options presented:</strong> A) Standard AA, B) Enhanced Access, C) Power User<br>
+        <strong>Decision:</strong> Immediate lock on B. The DJ audience actively seeks hotkeys and keyboard shortcuts &mdash; accessibility features double as power-user features.<br>
+        <strong>User signal:</strong> &ldquo;DJs actively seek hotkeys &mdash; keyboard shortcuts are a feature, not just compliance.&rdquo;
+      </div>
+    </details>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 5. DESIGN TOKENS PREVIEW -->
+  <div class="section-title">Design Tokens Preview</div>
+  <div class="tokens-section">
+
+    <!-- Color palette -->
+    <div class="token-group">
+      <div class="token-group-title">Color Palette</div>
+      <div class="swatch-row">
+        <span class="swatch-label">Surface</span>
+        <div class="swatch" style="background:#0F0D0B"><span class="swatch-hex">.0B</span></div>
+        <div class="swatch" style="background:#141210"><span class="swatch-hex">.10</span></div>
+        <div class="swatch" style="background:#1A1714"><span class="swatch-hex">.14</span></div>
+        <div class="swatch" style="background:#201C18"><span class="swatch-hex">.18</span></div>
+      </div>
+      <div class="swatch-row">
+        <span class="swatch-label">Brand</span>
+        <div class="swatch" style="background:#E8963A"><span class="swatch-hex" style="color:rgba(0,0,0,0.5)">amber</span></div>
+        <div class="swatch" style="background:#C06030"><span class="swatch-hex" style="color:rgba(0,0,0,0.5)">copper</span></div>
+      </div>
+      <div class="swatch-row">
+        <span class="swatch-label">Text</span>
+        <div class="swatch" style="background:#F0ECE4"><span class="swatch-hex" style="color:rgba(0,0,0,0.4)">pri</span></div>
+        <div class="swatch" style="background:#C8C4BC"><span class="swatch-hex" style="color:rgba(0,0,0,0.4)">sec</span></div>
+        <div class="swatch" style="background:#8B8580"><span class="swatch-hex" style="color:rgba(0,0,0,0.4)">mut</span></div>
+      </div>
+      <div class="swatch-row">
+        <span class="swatch-label">Status</span>
+        <div class="swatch" style="background:#5AC070"><span class="swatch-hex" style="color:rgba(0,0,0,0.5)">ok</span></div>
+        <div class="swatch" style="background:#E8C43A"><span class="swatch-hex" style="color:rgba(0,0,0,0.5)">warn</span></div>
+        <div class="swatch" style="background:#D05040"><span class="swatch-hex" style="color:rgba(255,255,255,0.5)">err</span></div>
+        <div class="swatch" style="background:#5A9EC0"><span class="swatch-hex" style="color:rgba(0,0,0,0.5)">info</span></div>
+      </div>
+    </div>
+
+    <!-- Type scale -->
+    <div class="token-group">
+      <div class="token-group-title">Type Scale</div>
+      <div class="type-scale-row">
+        <span class="type-name">Display</span>
+        <span class="type-spec">15px / 700</span>
+        <span class="type-sample" style="font-size:15px;font-weight:700">Track Catalog</span>
+      </div>
+      <div class="type-scale-row">
+        <span class="type-name">Heading</span>
+        <span class="type-spec">13px / 700</span>
+        <span class="type-sample" style="font-size:13px;font-weight:700">Daft Punk</span>
+      </div>
+      <div class="type-scale-row">
+        <span class="type-name">Subheading</span>
+        <span class="type-spec">13px / 500</span>
+        <span class="type-sample" style="font-size:13px;font-weight:500">Sort by BPM</span>
+      </div>
+      <div class="type-scale-row">
+        <span class="type-name">Body</span>
+        <span class="type-spec">12px / 400</span>
+        <span class="type-sample" style="font-size:12px;font-weight:400">Around the World (Original Mix)</span>
+      </div>
+      <div class="type-scale-row">
+        <span class="type-name">Label</span>
+        <span class="type-spec">11px / 500</span>
+        <span class="type-sample" style="font-size:11px;font-weight:500">ARTIST &middot; TITLE &middot; BPM &middot; KEY</span>
+      </div>
+      <div class="type-scale-row">
+        <span class="type-name">Caption</span>
+        <span class="type-spec">10px / 400</span>
+        <span class="type-sample" style="font-size:10px;font-weight:400">French House &middot; Electronic</span>
+      </div>
+      <div class="type-scale-row">
+        <span class="type-name">Micro</span>
+        <span class="type-spec">9px / 500</span>
+        <span class="type-sample" style="font-size:9px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em">SPOTIFY &middot; BEATPORT</span>
+      </div>
+    </div>
+
+    <!-- Spacing scale -->
+    <div class="token-group">
+      <div class="token-group-title">Spacing Scale</div>
+      <div class="spacing-row">
+        <span class="spacing-label">xs</span>
+        <div class="spacing-bar" style="width:16px"></div>
+        <span class="spacing-value">4px</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-label">sm</span>
+        <div class="spacing-bar" style="width:32px"></div>
+        <span class="spacing-value">8px</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-label">md</span>
+        <div class="spacing-bar" style="width:48px"></div>
+        <span class="spacing-value">12px</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-label">lg</span>
+        <div class="spacing-bar" style="width:64px"></div>
+        <span class="spacing-value">16px</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-label">xl</span>
+        <div class="spacing-bar" style="width:96px"></div>
+        <span class="spacing-value">24px</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-label">2xl</span>
+        <div class="spacing-bar" style="width:128px"></div>
+        <span class="spacing-value">32px</span>
+      </div>
+      <div class="spacing-row">
+        <span class="spacing-label">3xl</span>
+        <div class="spacing-bar" style="width:192px"></div>
+        <span class="spacing-value">48px</span>
+      </div>
+    </div>
+
+    <!-- Camelot wheel -->
+    <div class="token-group">
+      <div class="token-group-title">Camelot Key Colors (Major)</div>
+      <div class="camelot-grid">
+        <div class="camelot-chip" style="background:#C04A6E">1A</div>
+        <div class="camelot-chip" style="background:#C07A4A">2A</div>
+        <div class="camelot-chip" style="background:#C0A84A">3A</div>
+        <div class="camelot-chip" style="background:#9BC04A">4A</div>
+        <div class="camelot-chip" style="background:#C0A84A">5A</div>
+        <div class="camelot-chip" style="background:#4A9B6E;color:#F0ECE4">6A</div>
+        <div class="camelot-chip" style="background:#6E9B4A">7A</div>
+        <div class="camelot-chip" style="background:#4A8BC0;color:#F0ECE4">8A</div>
+        <div class="camelot-chip" style="background:#4AC0A8">9A</div>
+        <div class="camelot-chip" style="background:#6E4AC0;color:#F0ECE4">10A</div>
+        <div class="camelot-chip" style="background:#9B4AC0;color:#F0ECE4">11A</div>
+        <div class="camelot-chip" style="background:#C04A9B;color:#F0ECE4">12A</div>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- 6. USER VOICE -->
+  <div class="section-title">User Voice</div>
+  <p style="font-size:12px;color:var(--text-muted);margin-bottom:16px">Design preferences discovered across 10 areas and 12 crit rounds.</p>
+  <ul class="voice-list">
+    <li><strong>Thinks like a working DJ</strong>, not a product manager &mdash; decisions rooted in set prep workflow</li>
+    <li><strong>V1 discipline</strong> &mdash; ship what works, expand only when content justifies it</li>
+    <li><strong>Rejects false hierarchies</strong> &mdash; all DJ data points matter equally during mixing</li>
+    <li><strong>Appreciates merges over compromises</strong> &mdash; combine the best parts, never water down</li>
+    <li><strong>Color is the differentiator</strong> &mdash; warm amber/copper is the brand identity</li>
+    <li><strong>Roland TR-808 aesthetic</strong> &mdash; analog warmth, not digital cool</li>
+    <li><strong>Keyboard access is a feature</strong>, not compliance &mdash; DJs actively seek hotkeys</li>
+    <li><strong>Designs should feel &ldquo;sick&rdquo;</strong> &mdash; visceral, professional, dense</li>
+  </ul>
+
+  <hr class="divider">
+
+  <!-- 7. IMPLEMENTATION REFERENCE -->
+  <div class="section-title">Implementation Reference</div>
+  <table class="ref-table">
+    <tr>
+      <td>Design tokens</td>
+      <td><code>design-tokens.json</code></td>
+    </tr>
+    <tr>
+      <td>Decision log</td>
+      <td><code>decisions.md</code></td>
+    </tr>
+    <tr>
+      <td>Wireframes</td>
+      <td><code>facets/</code> directory &mdash; 10 areas, locked options linked above</td>
+    </tr>
+    <tr>
+      <td>Tech stack</td>
+      <td>Flutter/Dart, Riverpod, GoRouter, Material 3</td>
+    </tr>
+    <tr>
+      <td>Font loading</td>
+      <td>Inter variable (~120KB) + JetBrains Mono (~55KB) &mdash; 175KB one-time</td>
+    </tr>
+    <tr>
+      <td>Color approach</td>
+      <td>Custom <code>ColorScheme</code>, <strong>not</strong> Material 3 <code>fromSeed</code> &mdash; warm palette requires manual control</td>
+    </tr>
+    <tr>
+      <td>Accessibility</td>
+      <td>WCAG AA &middot; 2px amber focus rings &middot; semantic table &middot; live regions &middot; skip link</td>
+    </tr>
+    <tr>
+      <td>Key components</td>
+      <td>14 total: track row, Camelot chip, energy bar, source badge, genre pill, slide-over panel, detail strip, toolbar, column header, import sheet, empty state card, error banner, skeleton row, toast</td>
+    </tr>
+  </table>
+
+  <!-- 8. FOOTER -->
+  <div class="footer">
+    Generated by Design Crit &middot; 10 areas &middot; 12 rounds &middot; March 2026
+  </div>
+
+</div>
+</body>
+</html>

@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Design Crit — Ethnomusicology Import &amp; Catalog</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Crit — Ethnomusicology</title>
 <style>
   :root {
     --surface-base: #0D0D0F;
@@ -11,6 +11,7 @@
     --surface-overlay: #1A1A1E;
     --border-subtle: #1E1E22;
     --accent: #6366F1;
+    --accent-hover: #818CF8;
     --text-primary: #F0F0F2;
     --text-secondary: #8B8B92;
     --text-muted: #5C5C63;
@@ -18,450 +19,424 @@
     --status-warning: #FBBF24;
     --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  html { scroll-behavior: smooth; }
   body {
     background: var(--surface-base);
     color: var(--text-primary);
     font-family: var(--font-ui);
     font-size: 13px;
     line-height: 1.5;
-  }
-
-  .page {
-    max-width: 960px;
-    margin: 0 auto;
     padding: 48px 24px;
   }
+  .container { max-width: 960px; margin: 0 auto; }
 
-  .header {
-    margin-bottom: 48px;
+  /* Header */
+  .header { margin-bottom: 48px; }
+  .project-name { font-size: 24px; font-weight: 600; line-height: 1.3; margin-bottom: 8px; }
+  .brief-summary { color: var(--text-secondary); max-width: 680px; margin-bottom: 16px; }
+
+  .pipeline { display: flex; gap: 8px; align-items: center; }
+  .pipeline-step {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    padding: 6px 16px; border-radius: 9999px;
+    border: 1px solid var(--border-subtle); color: var(--text-muted);
   }
+  .pipeline-step.done { color: var(--status-success); border-color: var(--status-success); }
+  .pipeline-step.active { color: var(--accent); border-color: var(--accent); background: rgba(99,102,241,0.08); }
+  .pipeline-sep { color: var(--text-muted); font-size: 11px; }
 
-  .header h1 {
-    font-size: 24px;
-    font-weight: 600;
-    line-height: 1.3;
-    margin-bottom: 8px;
-  }
+  .divider { border: none; border-top: 1px solid var(--border-subtle); margin: 32px 0; }
 
-  .header .summary {
-    color: var(--text-secondary);
-    max-width: 680px;
-    margin-bottom: 24px;
-  }
-
-  .pipeline {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-
-  .pipeline .step {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    padding: 6px 16px;
-    border-radius: 9999px;
-    border: 1px solid var(--border-subtle);
-    color: var(--text-muted);
-  }
-
-  .pipeline .step.done {
-    color: var(--status-success);
-    border-color: var(--status-success);
-  }
-
-  .pipeline .step.active {
-    color: var(--accent);
-    border-color: var(--accent);
-  }
-
-  .pipeline .sep {
-    color: var(--text-muted);
-    font-size: 11px;
-  }
-
-  .divider {
-    border: none;
-    border-top: 1px solid var(--border-subtle);
-    margin: 32px 0;
-  }
-
-  .section-title {
-    font-size: 18px;
-    font-weight: 600;
-    line-height: 1.3;
-    margin-bottom: 8px;
-  }
-
-  .section-subtitle {
-    color: var(--text-secondary);
-    margin-bottom: 24px;
-    max-width: 680px;
-  }
-
-  .phase-label {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    color: var(--text-muted);
-    margin-top: 24px;
-    margin-bottom: 12px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .facet-list {
-    margin-top: 0;
-  }
-
-  .facet-row {
-    display: flex;
-    align-items: center;
-    padding: 12px 0;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .facet-number {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--text-muted);
-    width: 24px;
-    flex-shrink: 0;
-  }
-
-  .facet-indicator {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    border: 1px solid var(--border-subtle);
-    margin-right: 12px;
-    flex-shrink: 0;
-  }
-
-  .facet-indicator.active {
-    border-color: var(--status-warning);
-    background: var(--status-warning);
-    animation: pulse 2s ease-in-out infinite;
-  }
-
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-  }
-
-  .facet-content {
-    flex: 1;
-  }
-
-  .facet-name {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--text-primary);
-  }
-
-  .facet-rationale {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin-top: 2px;
-  }
-
-  .facet-status {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-left: 12px;
-    flex-shrink: 0;
-  }
-
-  .facet-status.active {
-    color: var(--status-warning);
-  }
-
-  .brief-section {
-    margin-top: 32px;
-  }
-
-  .brief-field {
-    margin-bottom: 24px;
-  }
-
-  .brief-field .label {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    color: var(--text-muted);
-    margin-bottom: 4px;
-  }
-
-  .brief-field .value {
-    color: var(--text-secondary);
-    max-width: 680px;
-  }
-
-  .brief-field .value strong {
-    color: var(--text-primary);
-    font-weight: 500;
-  }
-
-  .tech-tags {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    margin-top: 4px;
-  }
-
-  .tech-tag {
-    font-size: 11px;
-    font-weight: 500;
-    padding: 4px 8px;
-    border-radius: 4px;
-    background: var(--surface-overlay);
-    border: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-  }
-
-  .decisions-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 16px;
-  }
-
-  .decisions-table th {
-    font-size: 11px;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
-    color: var(--text-muted);
-    text-align: left;
-    padding: 8px 12px;
-    border-bottom: 1px solid var(--border-subtle);
-  }
-
-  .decisions-table td {
-    padding: 12px;
-    border-bottom: 1px solid var(--border-subtle);
-    color: var(--text-secondary);
-    vertical-align: top;
-  }
-
-  .decisions-table td:first-child {
-    color: var(--text-primary);
-    font-weight: 500;
-    white-space: nowrap;
-  }
-
-  .status-banner {
+  /* Progress summary */
+  .progress-banner {
     background: var(--surface-overlay);
     border: 1px solid var(--accent);
     border-radius: 8px;
     padding: 16px 24px;
-    margin-top: 32px;
-    color: var(--accent);
-    font-size: 13px;
+    margin-bottom: 32px;
+    color: var(--accent); font-size: 13px;
   }
+
+  /* Facet groups */
+  .phase-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin: 24px 0 12px; padding-left: 4px;
+  }
+
+  .facet-row {
+    display: flex; align-items: flex-start;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .facet-indicator {
+    width: 12px; height: 12px;
+    border-radius: 50%; margin-right: 16px;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .facet-indicator.locked { background: var(--status-success); }
+  .facet-indicator.in-progress { background: var(--status-warning); animation: pulse 2s ease-in-out infinite; }
+  .facet-indicator.pending { border: 2px solid var(--border-subtle); background: transparent; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .facet-info { flex: 1; }
+  .facet-name { font-size: 14px; font-weight: 500; }
+  .facet-status-text { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .facet-status-text .winner { color: var(--text-secondary); }
+
+  .facet-action {
+    padding: 4px 12px; border-radius: 9999px;
+    border: 1px solid var(--border-subtle); background: transparent;
+    color: var(--text-secondary); font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    cursor: pointer; text-decoration: none;
+    transition: all 150ms ease-out;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .facet-action:hover { border-color: var(--accent); color: var(--text-primary); }
+
+  /* Review expansion */
+  .facet-details { margin-left: 28px; }
+  .facet-details summary {
+    cursor: pointer; font-size: 12px; color: var(--accent);
+    margin-top: 4px; list-style: none;
+  }
+  .facet-details summary::-webkit-details-marker { display: none; }
+  .facet-details summary::after { content: " \25B6"; font-size: 9px; }
+  .facet-details[open] summary::after { content: " \25BC"; }
+  .review-content {
+    padding: 12px 0; font-size: 12px;
+    color: var(--text-secondary); line-height: 1.6;
+  }
+  .review-content strong { color: #C0C0C6; }
+  .decision-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .decision-tag.user { background: rgba(74,222,128,0.15); color: var(--status-success); }
+  .decision-tag.llm { background: rgba(99,102,241,0.15); color: var(--accent-hover); }
+
+  /* Decision timeline */
+  .timeline { margin-top: 48px; }
+  .timeline-title { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .timeline-entry {
+    display: flex; gap: 16px; padding: 12px 0;
+    border-bottom: 1px solid rgba(30,30,34,0.5);
+  }
+  .timeline-num { font-size: 12px; font-weight: 600; color: var(--text-muted); min-width: 24px; }
+  .timeline-text { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+  .timeline-text strong { color: #C0C0C6; }
+  .timeline-constraint {
+    font-size: 11px; color: var(--text-muted); margin-top: 4px;
+    font-style: italic;
+  }
+
+  button:focus, a:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
 </style>
 </head>
 <body>
-<div class="page">
+<div class="container">
+
   <div class="header">
     <h1>Ethnomusicology — Import &amp; Catalog</h1>
-    <p class="summary">Multi-source import screen and DJ metadata catalog for an LLM-powered DJ setlist platform. Designing the tabbed import flow (Spotify + Beatport) and enriched track tiles with BPM, Camelot key color chips, genre, and source badges.</p>
+    <p class="brief-summary">Multi-source import screen and DJ metadata catalog for an LLM-powered DJ setlist platform. Desktop-first, designed for DJs who think in BPM, key, and energy during set prep.</p>
     <div class="pipeline">
-      <span class="step done">Brief</span>
-      <span class="sep">&rsaquo;</span>
-      <span class="step done">Plan</span>
-      <span class="sep">&rsaquo;</span>
-      <span class="step active">Design Areas</span>
-      <span class="sep">&rsaquo;</span>
-      <span class="step">Direction</span>
+      <span class="pipeline-step done">Brief</span>
+      <span class="pipeline-sep">&rsaquo;</span>
+      <span class="pipeline-step done">Plan</span>
+      <span class="pipeline-sep">&rsaquo;</span>
+      <span class="pipeline-step done">Design Areas</span>
+      <span class="pipeline-sep">&rsaquo;</span>
+      <span class="pipeline-step done">Direction</span>
     </div>
   </div>
 
   <hr class="divider">
 
-  <h2 class="section-title">Design Review Plan</h2>
-  <p class="section-subtitle">10 areas to review, in dependency order. Each area gets 1-2 rounds of options and feedback before locking a direction.</p>
+  <div class="progress-banner">
+    Design crit complete. 10 of 10 areas locked. Design direction synthesized.
+  </div>
 
-  <div class="facet-list">
-    <div class="phase-label">Defining the product</div>
+  <div style="display:flex;gap:12px;margin-bottom:32px;flex-wrap:wrap;">
+    <a href="direction.html" style="padding:10px 20px;border-radius:6px;background:#6366F1;color:white;text-decoration:none;font-size:13px;font-weight:500;">View Design Direction</a>
+    <a href="design-tokens.json" target="_blank" style="padding:10px 20px;border-radius:6px;background:transparent;color:#8B8B92;border:1px solid #1E1E22;text-decoration:none;font-size:13px;font-weight:500;">Design Tokens (JSON)</a>
+    <a href="decisions.md" target="_blank" style="padding:10px 20px;border-radius:6px;background:transparent;color:#8B8B92;border:1px solid #1E1E22;text-decoration:none;font-size:13px;font-weight:500;">Decisions Log (MD)</a>
+  </div>
 
-    <div class="facet-row">
-      <span class="facet-number">1</span>
-      <div class="facet-indicator" style="background: var(--status-success); border-color: var(--status-success);"></div>
-      <div class="facet-content">
-        <div class="facet-name">Screen Inventory — locked (Catalog-First)</div>
-        <div class="facet-rationale">1 primary (Track Catalog) + 1 secondary (Import Sheet). Catalog is home base.</div>
+  <!-- STRUCTURAL -->
+  <div class="phase-label">Defining the product</div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Screen Inventory</div>
+      <div class="facet-status-text">locked <span class="winner">— Catalog-First</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> 1 primary screen (Track Catalog) + 1 secondary (Import Sheet overlay). Catalog is home base, import is a drawer/sheet action. Extensible for multiple sources and AI generation.<br><br>
+          <strong>User signal:</strong> "DJs browse far more than they import. The catalog IS the product."
+        </div>
+      </details>
+    </div>
+    <a href="facets/screen-inventory/compare.html" class="facet-action">View</a>
+  </div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Edge States</div>
+      <div class="facet-status-text">locked <span class="winner">— Context-Rich</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> Tailored edge states per situation. Empty catalog shows source cards. URL errors show valid examples. Errors reassure "your tracks are safe." Partial imports show per-track results.<br><br>
+          <strong>User signal:</strong> "Context-rich approach is the right fit for this product."
+        </div>
+      </details>
+    </div>
+    <a href="facets/edge-states/compare.html" class="facet-action">View</a>
+  </div>
+
+  <!-- COMPOSITIONAL -->
+  <div class="phase-label">Arranging the pieces</div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Layout</div>
+      <div class="facet-status-text">locked <span class="winner">— Full-Width Crate</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> Edge-to-edge track table with sortable columns. 48px icon rail reserves space for future browser pane. No max-width — DJ software density.<br><br>
+          <strong>User signal:</strong> "V1 discipline — ship the dense track table now, expand later."
+        </div>
+      </details>
+    </div>
+    <a href="facets/content-layout/compare.html" class="facet-action">View</a>
+  </div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Content Hierarchy</div>
+      <div class="facet-status-text">locked <span class="winner">— Flat Five</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> 5 co-primary fields (Artist, Title, BPM, Key, Energy) differentiated by visual treatment not size. Bold text, regular text, monospace, color chip, bar graph. 3 emphasis levels total. Task-flexible scanning.<br><br>
+          <strong>User signal:</strong> "All five data points matter — artist, title, BPM, key, and energy. Don't pick a winner."
+        </div>
+      </details>
+    </div>
+    <a href="facets/content-hierarchy/compare.html" class="facet-action">View</a>
+  </div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Component Design</div>
+      <div class="facet-status-text">locked <span class="winner">— Crate + Board</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 2 rounds<br><br>
+          <strong>Decision:</strong> 14 components. C's structure (slide-over with scrim, click-to-select accent border, expandable detail strip, multi-column sort with priority numbers, source pills) with A's design language (compact pill Camelot chips, thin vertical energy bars, flat borders, 6px radius, 34px buttons, 320px panel).<br><br>
+          <strong>Round 1:</strong> Three options generated (Lean Crate, Studio Deck, Mixer Board). User cut A and B, kept C's structure but wanted A's compact design language. Requested A+C merge.<br>
+          <strong>Round 2:</strong> A+C merge "Crate + Board" presented. Locked immediately.<br><br>
+          <strong>User signal:</strong> "Merge, don't compromise. C's structural patterns are critical. A's compact language keeps it dense. Sortable columns are non-negotiable."
+        </div>
+      </details>
+    </div>
+    <a href="facets/component-design/compare.html" class="facet-action">View</a>
+  </div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Elevation &amp; Shape</div>
+      <div class="facet-status-text">locked <span class="winner">— Wire Lift</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> 4-level elevation. Table is flat (no shadows). Shadows only on floating elements: slide-over (directional), toasts, primary CTA. Scrim + shadow for overlay depth. 4-token radius scale (0/3/6/full).<br><br>
+          <strong>User signal:</strong> "Differences are subtle — trusts designer recommendation on technical facets."
+        </div>
+      </details>
+    </div>
+    <a href="facets/elevation-shape/compare.html" class="facet-action">View</a>
+  </div>
+
+  <!-- SENSORY -->
+  <div class="phase-label">Making it feel right</div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Typography</div>
+      <div class="facet-status-text">locked <span class="winner">— Inter Tight</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> Inter for UI + JetBrains Mono for BPM/data. 7-level discrete scale (15/13/13/12/11/10/9px). 3 weights (400/500/700). Tabular numbers. ~175KB one-time load.<br><br>
+          <strong>User signal:</strong> "Type matters. Clean sans-serif, Helvetica vibes. Chose quality and cross-platform consistency over zero-load pragmatism."
+        </div>
+      </details>
+    </div>
+    <a href="facets/typography/compare.html" class="facet-action">View</a>
+  </div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Color System</div>
+      <div class="facet-status-text">locked <span class="winner">— Ember Crate</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> Warm dark palette. Amber (#E8963A) primary, copper (#C06030) secondary on warm-tinted blacks (#0F0D0B). Warm white text (#F0ECE4). 24 warm-shifted Camelot key colors. Energy bars: teal&rarr;amber&rarr;copper-red. Roland TR-808 aesthetic.<br><br>
+          <strong>User signal:</strong> "It's like a Roland 808. Warm amber is the brand. Subtle hardware references are welcome."
+        </div>
+      </details>
+    </div>
+    <a href="facets/color-system/compare.html" class="facet-action">View</a>
+  </div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Density &amp; Spacing</div>
+      <div class="facet-status-text">locked <span class="winner">— Studio</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> 40px rows, ~19 tracks visible in 900px viewport, 4px base unit. 32x32 art thumbnails. 7-token spacing scale (4/8/12/16/24/32/48px). Matches wireframe density from all prior facets.<br><br>
+          <strong>User signal:</strong> "Not fussed about density — trusted designer recommendation. Studio density matches the wireframes already approved."
+        </div>
+      </details>
+    </div>
+    <a href="facets/density-spacing/compare.html" class="facet-action">View</a>
+  </div>
+
+  <!-- CROSS-CUTTING -->
+  <div class="phase-label">Final check</div>
+
+  <div class="facet-row">
+    <div class="facet-indicator locked"></div>
+    <div class="facet-info">
+      <div class="facet-name">Accessibility</div>
+      <div class="facet-status-text">locked <span class="winner">— Enhanced Access</span></div>
+      <details class="facet-details">
+        <summary>Review</summary>
+        <div class="review-content">
+          <span class="decision-tag user">user decided</span> &middot; 1 round<br><br>
+          <strong>Decision:</strong> WCAG AA, 12/12 issues fixed. Keyboard row navigation (arrow keys + Enter/Space), focus trap on slide-over, skip link, 2px amber focus rings, semantic table with aria-sort, live regions, energy bar tooltips, icon rail tooltips, keyboard shortcut hints, row count announcements.<br><br>
+          <strong>User signal:</strong> "DJs actively seek hotkeys — keyboard shortcuts are a feature, not just compliance."
+        </div>
+      </details>
+    </div>
+    <a href="facets/accessibility/compare.html" class="facet-action">View</a>
+  </div>
+
+  <!-- Decision Timeline -->
+  <div class="timeline">
+    <div class="timeline-title">Decision History</div>
+
+    <div class="timeline-entry">
+      <div class="timeline-num">1</div>
+      <div class="timeline-text">
+        <strong>Screen Inventory</strong> locked as Catalog-First. Established the catalog as home base, import as secondary action.
       </div>
-      <span class="facet-status" style="color: var(--status-success);">locked</span>
     </div>
 
-    <div class="facet-row">
-      <span class="facet-number">2</span>
-      <div class="facet-indicator active"></div>
-      <div class="facet-content">
-        <div class="facet-name">Edge States</div>
-        <div class="facet-rationale">Empty catalogs, failed imports, invalid URLs, downtime recovery</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">2</div>
+      <div class="timeline-text">
+        <strong>Edge States</strong> locked as Context-Rich. Tailored empty/error/loading states per situation.
+        <div class="timeline-constraint">Built on: Screen Inventory (catalog-first architecture)</div>
       </div>
-      <span class="facet-status active">up next</span>
     </div>
 
-    <div class="phase-label">Arranging the pieces</div>
-
-    <div class="facet-row">
-      <span class="facet-number">3</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Layout</div>
-        <div class="facet-rationale">Spatial arrangement of import controls and catalog tiles</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">3</div>
+      <div class="timeline-text">
+        <strong>Layout</strong> locked as Full-Width Crate. Edge-to-edge track table, 48px icon rail for future expansion.
+        <div class="timeline-constraint">Built on: Screen Inventory (catalog is primary screen)</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
 
-    <div class="facet-row">
-      <span class="facet-number">4</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Content Hierarchy</div>
-        <div class="facet-rationale">What gets emphasis — BPM and key over artist and title</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">4</div>
+      <div class="timeline-text">
+        <strong>Content Hierarchy</strong> locked as Flat Five. All five core DJ data points at co-primary emphasis via distinct visual treatments. 3 emphasis levels.
+        <div class="timeline-constraint">Built on: Layout (full-width table structure). Constrains: Typography (3 levels), Color System (energy bar + Camelot chip colors)</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
 
-    <div class="facet-row">
-      <span class="facet-number">5</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Component Design</div>
-        <div class="facet-rationale">Track tiles, source tabs, Camelot chips, import controls</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">5</div>
+      <div class="timeline-text">
+        <strong>Component Design</strong> locked as Crate + Board (A+C merge). 14 components: slide-over, detail strip, multi-column sort, source pills, compact Camelot chips, thin energy bars. 2 rounds.
+        <div class="timeline-constraint">Built on: Content Hierarchy (flat five fields), Layout (full-width table). Constrains: Elevation &amp; Shape (mostly flat, slide-over is main layer), Color System (Camelot tints, energy gradient, accent), Typography (6 sizes/weights), Density &amp; Spacing (~48px rows, column grid)</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
 
-    <div class="facet-row">
-      <span class="facet-number">6</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Elevation &amp; Shape</div>
-        <div class="facet-rationale">Surface depth, shadows, and chip shapes for Material 3</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">6</div>
+      <div class="timeline-text">
+        <strong>Elevation &amp; Shape</strong> locked as Wire Lift. Flat table (no shadows) + targeted shadows on overlays only. 4 levels, 3 shadow tokens, 4 radius tokens (0/3/6/full).
+        <div class="timeline-constraint">Built on: Component Design (mostly flat directive, slide-over as main overlay). Constrains: Color System (4 surface tints per level), Density &amp; Spacing (elevated elements need balanced padding), Accessibility (contrast at each surface level)</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
 
-    <div class="phase-label">Making it feel right</div>
-
-    <div class="facet-row">
-      <span class="facet-number">7</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Typography</div>
-        <div class="facet-rationale">Font sizes and weights for scanning dozens of tracks</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">7</div>
+      <div class="timeline-text">
+        <strong>Typography</strong> locked as Inter Tight. Inter + JetBrains Mono. 7-level discrete scale, 3 weights, tabular numbers. 175KB one-time load.
+        <div class="timeline-constraint">Built on: Component Design (exact size specs), Content Hierarchy (3 emphasis levels). Constrains: Color System (text contrast at 9px minimum), Density &amp; Spacing (line-height 1.3-1.5 baseline), Accessibility (9px Micro level audit)</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
 
-    <div class="facet-row">
-      <span class="facet-number">8</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Color System</div>
-        <div class="facet-rationale">Camelot key color-coding (24 keys) and source badge colors</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">8</div>
+      <div class="timeline-text">
+        <strong>Color System</strong> locked as Ember Crate. Warm amber/copper on warm-tinted blacks. Roland TR-808 aesthetic. 24 warm-shifted Camelot key colors. 4 options presented (Mondrian Board, Indigo Crate, Neon Deck, Ember Crate) — user connected instantly with the warm analog palette.
+        <div class="timeline-constraint">Built on: Component Design (14 components need color states), Elevation &amp; Shape (4 surface levels need warm tints). Constrains: Density &amp; Spacing (warm borders affect visual weight), Accessibility (warm Camelot chip contrast, amber vs warning differentiation)</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
 
-    <div class="facet-row">
-      <span class="facet-number">9</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Density &amp; Spacing</div>
-        <div class="facet-rationale">How many tracks visible at once — density as a feature</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">9</div>
+      <div class="timeline-text">
+        <strong>Density &amp; Spacing</strong> locked as Studio. 40px rows, 19 tracks visible, 4px base unit with 7-token scale. First facet rendered with the complete design system — Ember Crate colors, Inter typography, Wire Lift elevation, Crate + Board components all together.
+        <div class="timeline-constraint">Built on: Layout (full-width table), Component Design (row structure, chip/bar sizing). Constrains: Accessibility (touch target audit at 40px, spacing for keyboard focus rings)</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
 
-    <div class="phase-label">Final check</div>
-
-    <div class="facet-row">
-      <span class="facet-number">10</span>
-      <div class="facet-indicator"></div>
-      <div class="facet-content">
-        <div class="facet-name">Accessibility</div>
-        <div class="facet-rationale">Camelot color contrast, keyboard nav, screen reader labels</div>
+    <div class="timeline-entry">
+      <div class="timeline-num">10</div>
+      <div class="timeline-text">
+        <strong>Accessibility</strong> locked as Enhanced Access. WCAG AA with 12/12 issues fixed. Keyboard navigation, focus management, semantic markup, live regions, and QoL additions (shortcut hints, energy tooltips, row count). User insight: DJs actively seek hotkeys &mdash; keyboard access is a feature, not just compliance.
+        <div class="timeline-constraint">Built on: ALL prior facets (cross-cutting audit). Final layer &mdash; overlays the complete accumulated design.</div>
       </div>
-      <span class="facet-status">pending</span>
     </div>
   </div>
 
-  <hr class="divider">
-
-  <h2 class="section-title">Confirmed Brief</h2>
-
-  <div class="brief-section">
-    <div class="brief-field">
-      <div class="label">Target Users</div>
-      <div class="value">DJs building sets from digital catalogs. Desktop-first (laptop at desk), during set prep. Think in BPM, key, and energy.</div>
-    </div>
-
-    <div class="brief-field">
-      <div class="label">Core Interaction Loop</div>
-      <div class="value"><strong>Source tab &rarr; URL &rarr; import &rarr; enriched track list</strong></div>
-    </div>
-
-    <div class="brief-field">
-      <div class="label">Differentiator</div>
-      <div class="value">DJ-grade metadata at a glance. Beatport native BPM/key. Camelot color-coding for harmonic awareness.</div>
-    </div>
-
-    <div class="brief-field">
-      <div class="label">Platform</div>
-      <div class="value">Flutter Web, desktop-first, responsive to tablet</div>
-    </div>
-
-    <div class="brief-field">
-      <div class="label">Tech Stack</div>
-      <div class="tech-tags">
-        <span class="tech-tag">Flutter / Dart</span>
-        <span class="tech-tag">Material 3</span>
-        <span class="tech-tag">Riverpod</span>
-        <span class="tech-tag">GoRouter</span>
-      </div>
-    </div>
-
-    <div class="brief-field">
-      <div class="label">Design Decisions (from brief)</div>
-      <table class="decisions-table">
-        <thead>
-          <tr><th>Decision</th><th>Choice</th><th>Rationale</th></tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td>Source selector</td>
-            <td>Tabs on single screen</td>
-            <td>Keeps flow together, easy switching. Beatport tab skips OAuth.</td>
-          </tr>
-          <tr>
-            <td>Catalog density</td>
-            <td>Enriched tiles</td>
-            <td>Album art + DJ metadata chips. Fits design system TrackTile pattern.</td>
-          </tr>
-          <tr>
-            <td>Camelot key</td>
-            <td>Colored chips</td>
-            <td>Tinted background by wheel position. Instant harmonic awareness.</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <div class="status-banner">
-    Screen Inventory locked as Catalog-First. Next up: Edge States.
-  </div>
 </div>
 </body>
 </html>

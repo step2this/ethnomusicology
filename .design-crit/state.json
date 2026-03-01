@@ -60,8 +60,13 @@
       "lens": "compositional",
       "rationale": "DJs think in BPM and key, not artist and title — what gets emphasis on the track tile is the core design question",
       "depends_on": ["content-layout"],
-      "status": "pending",
-      "enabled": true
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-c",
+      "locked_summary": "Flat Five: 5 co-primary fields (Artist, Title, BPM, Key, Energy) differentiated by visual treatment not size. Artist leads (bold), Title (regular), BPM (monospace), Key (Camelot color chip), Energy (bar graph). 3 emphasis levels total. Task-flexible scanning.",
+      "decided_by": "user",
+      "decision_rationale": "All five data points matter equally to working DJs. Flat hierarchy lets the current task (browsing vs set-building) determine scan pattern. Mirrors Rekordbox/Traktor column approach. Energy level inclusion was essential.",
+      "rounds_completed": 1
     },
     {
       "id": "component-design",
@@ -70,8 +75,13 @@
       "lens": "compositional",
       "rationale": "Enriched track tile, source tabs, Camelot key chips, source badges, import controls — the building blocks of the feature",
       "depends_on": ["content-hierarchy", "content-layout"],
-      "status": "pending",
-      "enabled": true
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-ac",
+      "locked_summary": "Crate + Board: 14 components merging C's structure (slide-over with scrim, click-to-select accent border, expandable detail strip, multi-column sort with priority numbers, source pills) with A's design language (compact pill Camelot chips, thin vertical energy bars, flat borders, 6px radius, 34px buttons, 320px panel). Full table context view is the primary artifact.",
+      "decided_by": "user",
+      "decision_rationale": "C's structural patterns (slide-over, detail strip, multi-sort) are critical for DJ workflow. A's compact design language keeps rows dense and scannable. The merge gives DJ-software density with clean interaction patterns. Sortable columns were non-negotiable.",
+      "rounds_completed": 2
     },
     {
       "id": "elevation-shape",
@@ -80,8 +90,13 @@
       "lens": "compositional",
       "rationale": "Surface treatments for track tiles and metadata chips — Material 3 elevation applied to DJ-specific components",
       "depends_on": ["component-design"],
-      "status": "pending",
-      "enabled": true
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-b",
+      "locked_summary": "Wire Lift: 4-level elevation (base, content, raised, overlay). Table is flat (levels 0-1, no shadows). Shadows only on floating elements: slide-over (directional -4px 0 16px), toasts (1px 3px), primary CTA (1px 3px). Scrim + shadow for overlay depth. 4-token radius scale (0/3/6/full) from component design.",
+      "decided_by": "user",
+      "decision_rationale": "Differences between options are subtle on dark backgrounds. Wire Lift's targeted shadow approach matches the flat DJ-software aesthetic while giving overlays physical presence. Recommended by designer.",
+      "rounds_completed": 1
     },
     {
       "id": "typography",
@@ -90,8 +105,13 @@
       "lens": "sensory",
       "rationale": "Track tile scannability across dozens of tracks — font sizes and weights for BPM, key, genre at a glance",
       "depends_on": ["content-layout", "content-hierarchy"],
-      "status": "pending",
-      "enabled": true
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-b",
+      "locked_summary": "Inter Tight: Inter variable font for UI + JetBrains Mono for BPM/data. 7-level discrete scale (15/13/13/12/11/10/9px). 3 weights (400/500/700). Tabular numbers enabled. ~175KB one-time load. Cross-platform consistent rendering.",
+      "decided_by": "user",
+      "decision_rationale": "Inter's small-size optimization (10-15px) matches the exact sizes this product uses. Clean, geometric, Helvetica-adjacent aesthetic. JetBrains Mono provides excellent number readability for BPM column. Cross-platform consistency valued over zero-load system fonts.",
+      "rounds_completed": 1
     },
     {
       "id": "color-system",
@@ -100,8 +120,13 @@
       "lens": "sensory",
       "rationale": "Camelot key color-coding is the core differentiator — 24 keys mapped to tinted chips, plus source badge colors",
       "depends_on": ["component-design"],
-      "status": "pending",
-      "enabled": true
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-d",
+      "locked_summary": "Ember Crate: warm dark palette. Amber (#E8963A) primary, copper (#C06030) secondary on warm-tinted blacks (#0F0D0B). Warm white text (#F0ECE4). 24 warm-shifted Camelot key colors. Energy bars: teal→amber→copper-red. Roland TR-808 aesthetic — analog warmth, not digital cool. All text passes WCAG AA.",
+      "decided_by": "user",
+      "decision_rationale": "Immediate visceral connection — 'like a Roland 808.' Warm amber/copper palette evokes analog hardware and vinyl culture, setting the product apart from every cool-toned DJ tool. User wants subtle 808 design references woven in. Warmth is the differentiator.",
+      "rounds_completed": 1
     },
     {
       "id": "density-spacing",
@@ -110,8 +135,13 @@
       "lens": "sensory",
       "rationale": "DJs need to scan fast — catalog density is a feature. How many tracks visible at once, tile padding, chip spacing",
       "depends_on": ["content-layout", "component-design"],
-      "status": "pending",
-      "enabled": true
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-b",
+      "locked_summary": "Studio: 40px rows, 19 tracks visible, 4px base unit. 32x32 art thumbnails. 7-token spacing scale (4/8/12/16/24/32/48px). Matches wireframe density approved throughout crit. Desktop-first density with room for the Ember palette to breathe.",
+      "decided_by": "user",
+      "decision_rationale": "Not a close call — Studio density matches every wireframe already reviewed and approved. 19 visible tracks balances scanning speed with component readability. Delegated to designer recommendation.",
+      "rounds_completed": 1
     },
     {
       "id": "accessibility",
@@ -120,10 +150,22 @@
       "lens": "cross-cutting",
       "rationale": "Camelot colors need contrast checking, keyboard nav through catalog, screen reader labels for metadata chips",
       "depends_on": ["typography", "color-system", "density-spacing"],
-      "status": "pending",
-      "enabled": true
+      "status": "locked",
+      "enabled": true,
+      "locked_option": "option-b",
+      "locked_summary": "Enhanced Access: WCAG AA achieved, 12/12 issues fixed. Keyboard row navigation (arrow keys, Enter/Space), focus trap on slide-over, skip link, 2px amber focus rings, semantic table with aria-sort, live regions for toasts and sort changes, energy bar numeric tooltips, icon rail tooltips, keyboard shortcut hints in toolbar, row count announcements.",
+      "decided_by": "user",
+      "decision_rationale": "Complete accessibility coverage with keyboard QoL that matches DJ expectations. DJs actively seek hotkeys in software — keyboard shortcuts are a feature, not just compliance. Enhanced Access delivers genuine power-user value with minimal visual disruption to the locked design.",
+      "rounds_completed": 1
     }
   ],
-  "current_facet": "content-hierarchy",
-  "current_round": null
+  "current_facet": null,
+  "current_round": null,
+  "direction_status": "complete",
+  "direction_generated": "2026-03-01",
+  "deliverables": [
+    "direction.html",
+    "design-tokens.json",
+    "decisions.md"
+  ]
 }
