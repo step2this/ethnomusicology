@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Crit — Elevation & Shape — Round 1</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --surface-input: #111113;
+    --border-subtle: #1E1E22;
+    --border-focus: #6366F1;
+    --accent: #6366F1;
+    --accent-hover: #818CF8;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --status-error: #F87171;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); font-size: 13px; line-height: 1.5; }
+
+  /* ─── Banner ─── */
+  .banner {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: var(--surface-base); border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; z-index: 100;
+  }
+  .banner-left { display: flex; align-items: center; gap: 8px; }
+  .banner-left span { font-size: 13px; color: var(--text-muted); }
+  .banner-left .project { font-weight: 500; color: var(--text-primary); }
+  .banner-nav { display: flex; gap: 4px; }
+  .banner-nav a {
+    font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em;
+    padding: 6px 14px; border-radius: 9999px; text-decoration: none;
+    border: 1px solid var(--border-subtle); color: var(--text-muted);
+    transition: all 150ms ease-out;
+  }
+  .banner-nav a:hover { border-color: var(--accent); color: var(--text-primary); }
+  .banner-nav a.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* ─── Content ─── */
+  .content { max-width: 1440px; margin: 0 auto; padding: 72px 24px 48px; }
+
+  /* ─── Option Grid — stacked for desktop wireframes ─── */
+  .option-grid { display: flex; flex-direction: column; gap: 32px; }
+
+  .option-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px; overflow: hidden;
+    position: relative;
+  }
+  .option-letter {
+    position: absolute; top: 12px; left: 16px; z-index: 2;
+    font-size: 18px; font-weight: 600; color: var(--accent);
+  }
+  .option-card iframe {
+    width: 100%; min-height: 520px; border: none;
+    border-radius: 8px 8px 0 0;
+    background: var(--surface-input);
+  }
+  .open-tab {
+    display: block; text-align: right; padding: 4px 12px;
+    font-size: 11px; color: var(--text-muted); text-decoration: none;
+  }
+  .open-tab:hover { color: var(--text-primary); }
+
+  .option-body { padding: 16px; }
+  .option-name { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+
+  .rationale-section { margin-bottom: 16px; }
+  .rationale-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 4px;
+  }
+  .rationale-body { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* ─── Controls ─── */
+  .option-controls { display: flex; gap: 8px; margin: 16px 0 12px; }
+  .ctrl-btn {
+    padding: 6px 16px; border-radius: 9999px; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer;
+    border: 1px solid var(--border-subtle); background: transparent;
+    color: var(--text-secondary); transition: all 150ms ease-out;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+  .ctrl-btn.active[data-action="keep"] { background: var(--status-success); color: #0D0D0F; border-color: var(--status-success); }
+  .ctrl-btn.active[data-action="cut"] { background: var(--status-error); color: #0D0D0F; border-color: var(--status-error); }
+
+  .option-card textarea {
+    width: 100%; min-height: 60px; resize: vertical;
+    background: var(--surface-input); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    padding: 10px 12px; font-family: var(--font-ui); font-size: 13px;
+  }
+  .option-card textarea::placeholder { color: var(--text-muted); }
+  .option-card textarea:focus { outline: none; border-color: var(--border-focus); }
+
+  /* ─── My Take ─── */
+  .my-take {
+    background: var(--surface-overlay);
+    border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 24px 32px;
+    margin-top: 48px;
+  }
+  .my-take-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--accent); margin-bottom: 4px;
+  }
+  .my-take-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+  .my-take-body { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 720px; }
+  .my-take-body strong { color: #C0C0C6; }
+
+  /* ─── Feedback Area ─── */
+  .feedback-area { margin-top: 32px; max-width: 680px; }
+  .instruction-text { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+  #direction-notes {
+    width: 100%; min-height: 100px; resize: vertical;
+    background: var(--surface-input); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    padding: 12px; font-family: var(--font-ui); font-size: 13px;
+  }
+  #direction-notes::placeholder { color: var(--text-muted); }
+  #direction-notes:focus { outline: none; border-color: var(--border-focus); }
+  .button-row { display: flex; gap: 12px; margin-top: 16px; }
+  .btn-primary {
+    padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+    transition: background 150ms ease-out;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost {
+    padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border-subtle); cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--text-primary); }
+  #delegate-context {
+    display: none; width: 100%; min-height: 80px; resize: vertical;
+    background: var(--surface-input); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    padding: 12px; font-family: var(--font-ui); font-size: 13px;
+    margin-top: 12px;
+  }
+  #delegate-context::placeholder { color: var(--text-muted); }
+
+  button:focus, a:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 768px) {
+    .option-grid { gap: 24px; }
+    .option-card iframe { min-height: 360px; }
+    .banner-nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── Banner ─── -->
+<div class="banner">
+  <div class="banner-left">
+    <span class="project">Ethnomusicology</span>
+    <span>|</span>
+    <span>Elevation &amp; Shape</span>
+    <span>|</span>
+    <span>Round 1</span>
+  </div>
+  <div class="banner-nav">
+    <a href="#option-a">A</a>
+    <a href="#option-b">B</a>
+    <a href="#option-c">C</a>
+    <a href="#my-take">My Take</a>
+  </div>
+</div>
+
+<!-- ─── Content ─── -->
+<div class="content">
+
+  <div class="option-grid">
+
+    <!-- ═══ Option A ═══ -->
+    <div class="option-card" data-option-id="option-a" id="option-a">
+      <span class="option-letter">A</span>
+      <iframe src="option-a.html"></iframe>
+      <a class="open-tab" href="option-a.html" target="_blank">Open in new tab</a>
+      <div class="option-body">
+        <div class="option-name">Flat Crate</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-body">Maximum flatness. Zero shadows anywhere. All depth via background tint steps and 1px borders. Matches the "mostly flat" directive from the locked component design as literally as possible. DJ software (Rekordbox, Serato, Traktor) uses this approach — flat rows, flat headers, scrim for overlays.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-body">Dense data tables with hundreds of rows. Zero rendering overhead. Simplest possible token set (3 surface tints, 4 radius values, no shadow tokens). Fastest to implement.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-body">The slide-over panel relies solely on scrim + tint for depth. Sort dropdowns and tooltips may not feel elevated enough — borders alone may not separate them from the table rows beneath. Toast could blend with content surface on some monitors.</div>
+        </div>
+        <div class="option-controls">
+          <button class="ctrl-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="ctrl-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+    <!-- ═══ Option B ═══ -->
+    <div class="option-card" data-option-id="option-b" id="option-b">
+      <span class="option-letter">B</span>
+      <iframe src="option-b.html"></iframe>
+      <a class="open-tab" href="option-b.html" target="_blank">Open in new tab</a>
+      <div class="option-body">
+        <div class="option-name">Wire Lift</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-body">Flat table + targeted shadows on overlays. The daily-use catalog view is completely shadow-free (fast, dense, clean). Shadows appear only on transient elements that genuinely float: the import slide-over (directional shadow), toasts, sort dropdown, and the primary CTA button. The rule is simple: "if it overlaps content, it gets a shadow."</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-body">Products where the primary view is a dense data table but overlays need physical presence. The slide-over gets a convincing "sliding in" effect with a leftward directional shadow. The primary button shadow is a subtle affordance cue. 3 shadow tokens, 4 surface tints — low complexity.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-body">The shadow/no-shadow boundary needs to be clear to developers: inline = flat, floating = shadow. Not hard, but needs to be documented. Otherwise, this is a very safe option with no real risk.</div>
+        </div>
+        <div class="option-controls">
+          <button class="ctrl-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="ctrl-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+    <!-- ═══ Option C ═══ -->
+    <div class="option-card" data-option-id="option-c" id="option-c">
+      <span class="option-letter">C</span>
+      <iframe src="option-c.html"></iframe>
+      <a class="open-tab" href="option-c.html" target="_blank">Open in new tab</a>
+      <div class="option-body">
+        <div class="option-name">Soft Stack</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-body">Full Material-style depth. Every surface above L0 casts a shadow, creating a smooth depth gradient from the flattest row to the most prominent overlay. 5 levels with doubling blur progression. Adds an 8px "md" radius token for floating elements.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-body">Applications that want rich, tangible layering. The 5-level system gives maximum flexibility for future complexity. The "rounder = floating" radius convention is a nice touch for overlay elements.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-body">Contradicts the "mostly flat" directive from component design. Shadows on every track row creates visual noise with 100+ rows. L1 and L2 shadows are nearly indistinguishable on dark backgrounds. More tokens to maintain for marginal benefit. Moves toward consumer SaaS, away from DJ-software aesthetic.</div>
+        </div>
+        <div class="option-controls">
+          <button class="ctrl-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="ctrl-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══ My Take ═══ -->
+  <div class="my-take" id="my-take">
+    <div class="my-take-label">My Take</div>
+    <div class="my-take-title">Go with B (Wire Lift)</div>
+    <div class="my-take-body">
+      <p><strong>A is pure, B is practical, C is too much.</strong></p>
+      <br>
+      <p>A (Flat Crate) is the most faithful to the DJ-software reference and the "mostly flat" component design. It's a valid choice. But the import slide-over — the most important overlay in the product — benefits from a real shadow. Scrim alone says "something is on top." Scrim + directional shadow says "a panel slid in from the right." That physical cue matters for a transient panel the DJ uses dozens of times.</p>
+      <br>
+      <p>C (Soft Stack) is over-built. Shadows on track rows contradicts the locked component design, adds visual noise in a 100-row catalog, and pushes toward a consumer SaaS feel that doesn't match the user's established DJ-software preferences.</p>
+      <br>
+      <p><strong>B (Wire Lift) is the sweet spot:</strong> flat where you browse (the daily table view), shadowed where you act (import panel, toasts, primary CTA). Simple rule: "inline = flat, floating = shadow." 3 shadow tokens, 4 surface tints, 4 radius values. Clean, fast, implementable, and it gives the slide-over the physical presence it deserves.</p>
+      <br>
+      <p>The shape language is a non-decision — all three options use the same 4-token radius scale (0/3/6/full) already locked by the component design. The real question is just: how many things get shadows?</p>
+    </div>
+  </div>
+
+  <!-- ═══ Feedback Area ═══ -->
+  <div class="feedback-area">
+    <p class="instruction-text">Click Save Feedback and Claude will pick it up automatically. Or just tell Claude your thoughts in the chat.</p>
+    <textarea id="direction-notes" placeholder="Overall thoughts or direction preferences..."></textarea>
+    <div class="button-row">
+      <button class="btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      <button class="btn-ghost" onclick="saveFeedbackWithDecision('skip')">Skip This Area</button>
+      <button class="btn-ghost" onclick="showDelegateContext()">Decide For Me</button>
+    </div>
+    <textarea id="delegate-context" placeholder="Any guidance? e.g., 'prioritize accessibility' or 'keep it simple'"></textarea>
+  </div>
+
+</div>
+
+<script>
+const FACET_ID = 'elevation-shape';
+const ROUND_N = 1;
+const FEEDBACK_FILENAME = 'feedback-round-1.json';
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+function toggleAction(btn, action) {
+  const card = btn.closest('[data-option-id]');
+  const keepBtn = card.querySelector('[data-action="keep"]');
+  const cutBtn = card.querySelector('[data-action="cut"]');
+  if (btn.classList.contains('active')) { btn.classList.remove('active'); return; }
+  keepBtn.classList.remove('active');
+  cutBtn.classList.remove('active');
+  btn.classList.add('active');
+}
+
+function showDelegateContext() {
+  const el = document.querySelector('#delegate-context');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function collectFeedback() {
+  const options = {};
+  document.querySelectorAll('[data-option-id]').forEach(card => {
+    const id = card.dataset.optionId;
+    const keepBtn = card.querySelector('[data-action="keep"]');
+    const cutBtn = card.querySelector('[data-action="cut"]');
+    const comment = card.querySelector('textarea')?.value || '';
+    let action = null;
+    if (keepBtn?.classList.contains('active')) action = 'keep';
+    if (cutBtn?.classList.contains('active')) action = 'cut';
+    options[id] = { action, comment };
+  });
+  const overall = document.querySelector('#direction-notes')?.value || '';
+  let decision = 'refine';
+  const keptCount = Object.values(options).filter(o => o.action === 'keep').length;
+  const totalOptions = Object.keys(options).length;
+  if (keptCount === 1 && Object.values(options).filter(o => o.action === 'cut').length === totalOptions - 1) {
+    decision = 'lock';
+  }
+  return { facet: FACET_ID, round: ROUND_N, timestamp: new Date().toISOString(), options, overall, decision };
+}
+
+async function saveFeedback() {
+  const feedback = collectFeedback();
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: FEEDBACK_FILENAME,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved! Claude is processing it.' });
+      }
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('File System Access API failed:', err);
+    }
+  }
+  showFallbackModal(json);
+}
+
+function saveFeedbackWithDecision(decision) {
+  const feedback = collectFeedback();
+  feedback.decision = decision;
+  if (decision === 'delegate') {
+    feedback.delegate_context = document.querySelector('#delegate-context')?.value || '';
+  }
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    window.showSaveFilePicker({
+      suggestedName: FEEDBACK_FILENAME,
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    }).then(async handle => {
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved! Claude is processing it.' });
+      }
+    }).catch(err => {
+      if (err.name !== 'AbortError') showFallbackModal(json);
+    });
+  } else {
+    showFallbackModal(json);
+  }
+}
+
+function showBanner(message) {
+  const banner = document.createElement('div');
+  banner.textContent = message;
+  banner.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);' +
+    'background:#4ADE80;color:#0D0D0F;padding:12px 24px;border-radius:8px;font-size:14px;' +
+    'font-weight:600;z-index:200;animation:fadeIn 0.2s ease-out';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+function showFallbackModal(json) {
+  const modal = document.createElement('div');
+  modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center">
+      <div style="background:#1A1A1E;border:1px solid #1E1E22;border-radius:8px;padding:24px;max-width:600px;width:90%">
+        <h3 style="color:#F0F0F2;margin:0 0 8px">Save not available in this browser</h3>
+        <p style="color:#8B8B92;font-size:13px;margin:0 0 16px">Copy this JSON and paste it into the terminal:</p>
+        <textarea style="width:100%;min-height:200px;background:#111113;color:#F0F0F2;border:1px solid #1E1E22;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;resize:vertical"
+          readonly onclick="this.select()">${json}</textarea>
+        <button onclick="this.closest('div[style]').parentElement.remove()"
+          style="margin-top:12px;padding:10px 20px;background:#6366F1;color:white;border:none;border-radius:6px;cursor:pointer">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean Crate — Component Design Option A</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111113;
+    color: #F0F0F2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  .option-name { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .option-subtitle { font-size: 13px; color: #8B8B92; margin-bottom: 32px; line-height: 1.5; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; margin: 32px 0 16px;
+    padding-bottom: 8px; border-bottom: 1px solid #1E1E22;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .specimen {
+    background: #0D0D0F; border: 1px solid #1E1E22; border-radius: 8px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .specimen-label {
+    font-size: 11px; font-weight: 500; color: #5C5C63;
+    text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 12px;
+  }
+  .specimen-note {
+    font-size: 11px; color: #5C5C63; margin-top: 8px; line-height: 1.4;
+  }
+
+  /* States strip */
+  .states-strip {
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end;
+  }
+  .state-box { text-align: center; }
+  .state-label {
+    font-size: 9px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; margin-top: 6px;
+  }
+
+  /* --- TRACK ROW --- */
+  .track-row-demo {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 56px 72px 48px 80px 64px;
+    padding: 8px 12px; align-items: center; gap: 6px;
+    border-radius: 4px; border: 1px solid transparent;
+  }
+  .track-row-demo.default { background: transparent; }
+  .track-row-demo.hover { background: rgba(99,102,241,0.06); border-color: rgba(99,102,241,0.1); }
+  .track-row-demo.selected { background: rgba(99,102,241,0.12); border-color: rgba(99,102,241,0.2); }
+  .track-row-demo.focused { outline: 2px solid #6366F1; outline-offset: 1px; }
+  .art-sm { width: 32px; height: 32px; border-radius: 3px; background: #1E1E22; }
+  .t-artist { font-size: 13px; font-weight: 600; color: #F0F0F2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-title { font-size: 12px; color: #C0C0C6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-bpm { font-family: "SF Mono", monospace; font-size: 13px; font-weight: 700; color: #F0F0F2; }
+  .t-genre { font-size: 10px; color: #5C5C63; padding: 2px 6px; background: #1A1A1E; border-radius: 9999px; white-space: nowrap; }
+  .t-source { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: #5C5C63; }
+
+  /* --- CAMELOT CHIP --- */
+  .key-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 8px; border-radius: 3px;
+    font-size: 11px; font-weight: 700;
+    font-family: "SF Mono", monospace; letter-spacing: 0.02em;
+  }
+  .key-chip.k-8a { background: rgba(99,102,241,0.2); color: #818CF8; }
+  .key-chip.k-11b { background: rgba(74,222,128,0.2); color: #4ADE80; }
+  .key-chip.k-5a { background: rgba(251,191,36,0.2); color: #FBBF24; }
+  .key-chip.k-2b { background: rgba(248,113,113,0.2); color: #F87171; }
+  .key-chip.k-6b { background: rgba(236,72,153,0.2); color: #EC4899; }
+  .key-chip.k-12a { background: rgba(34,211,238,0.2); color: #22D3EE; }
+
+  /* --- ENERGY BARS --- */
+  .energy-bars { display: flex; gap: 2px; align-items: flex-end; }
+  .e-bar { width: 5px; border-radius: 1px; background: #1E1E22; }
+  .e-bar.on { background: #6366F1; }
+  .e-bar.on.high { background: #F87171; }
+  .e-bar.on.mid { background: #FBBF24; }
+  .e-bar.on.low { background: #4ADE80; }
+
+  /* --- BUTTONS --- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 7px 16px; border-radius: 6px;
+    font-size: 12px; font-weight: 500; border: none; cursor: pointer;
+    font-family: inherit; gap: 6px;
+  }
+  .btn-primary { background: #6366F1; color: white; }
+  .btn-primary.hover { background: #818CF8; }
+  .btn-primary.disabled { background: #6366F1; opacity: 0.4; cursor: default; }
+  .btn-secondary { background: transparent; border: 1px solid #1E1E22; color: #8B8B92; }
+  .btn-secondary.hover { border-color: #5C5C63; color: #F0F0F2; }
+  .btn-ghost { background: transparent; color: #8B8B92; border: none; padding: 7px 12px; }
+  .btn-ghost.hover { color: #F0F0F2; }
+  .btn-destructive { background: rgba(248,113,113,0.15); color: #F87171; border: 1px solid rgba(248,113,113,0.2); }
+
+  /* --- COLUMN HEADER --- */
+  .col-hdr {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; cursor: pointer;
+    padding: 6px 8px; border-radius: 3px;
+  }
+  .col-hdr.active { color: #F0F0F2; }
+  .col-hdr.hover { background: rgba(255,255,255,0.04); }
+  .sort-arrow { font-size: 8px; }
+
+  /* --- SOURCE TABS (segmented control) --- */
+  .seg-control {
+    display: inline-flex; background: #141416;
+    border: 1px solid #1E1E22; border-radius: 6px; padding: 2px;
+  }
+  .seg-btn {
+    padding: 6px 16px; border-radius: 4px;
+    font-size: 11px; font-weight: 500; color: #5C5C63;
+    background: transparent; border: none; cursor: pointer;
+    font-family: inherit;
+  }
+  .seg-btn.active { background: #1E1E22; color: #F0F0F2; }
+  .seg-btn.disabled { color: #333; cursor: default; }
+
+  /* --- URL INPUT --- */
+  .url-input-wrap { position: relative; display: inline-flex; align-items: stretch; }
+  .url-input {
+    padding: 8px 12px; border-radius: 6px;
+    background: #0D0D0F; border: 1px solid #1E1E22;
+    color: #F0F0F2; font-size: 13px; font-family: "SF Mono", monospace;
+    width: 320px;
+  }
+  .url-input.focused { border-color: #6366F1; outline: 2px solid rgba(99,102,241,0.3); outline-offset: 0; }
+  .url-input.error { border-color: #F87171; }
+  .url-input::placeholder { color: #5C5C63; }
+  .input-error-msg {
+    font-size: 11px; color: #F87171; margin-top: 4px;
+  }
+
+  /* --- IMPORT DRAWER (preview) --- */
+  .drawer-preview {
+    display: flex; gap: 0; border: 1px solid #1E1E22; border-radius: 8px;
+    overflow: hidden; height: 240px;
+  }
+  .drawer-table { flex: 1; background: #0D0D0F; padding: 12px; position: relative; }
+  .drawer-table-label {
+    font-size: 9px; font-weight: 500; text-transform: uppercase;
+    color: #5C5C63; letter-spacing: 0.04em;
+  }
+  .drawer-panel {
+    width: 280px; background: #141416;
+    border-left: 1px solid #1E1E22; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .drawer-handle {
+    width: 4px; background: #1E1E22; cursor: col-resize;
+    position: relative;
+  }
+  .drawer-handle:hover { background: #6366F1; }
+  .table-lines { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .table-line { height: 8px; background: #1A1A1E; border-radius: 2px; }
+  .table-line:nth-child(2) { width: 85%; }
+  .table-line:nth-child(3) { width: 90%; }
+
+  /* --- IMPORT PROGRESS ROW --- */
+  .import-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid rgba(30,30,34,0.5);
+    font-size: 12px;
+  }
+  .import-status-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .import-status-dot.success { background: #4ADE80; }
+  .import-status-dot.fail { background: #F87171; }
+  .import-status-dot.loading {
+    background: #FBBF24;
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+  .import-track-name { color: #C0C0C6; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .import-fail-reason { font-size: 10px; color: #F87171; }
+
+  /* --- SKELETON ROW --- */
+  .skeleton-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 56px 72px 48px 80px 64px;
+    padding: 8px 12px; align-items: center; gap: 6px;
+  }
+  .skel { background: #1A1A1E; border-radius: 3px; height: 12px; }
+  .skel.art { width: 32px; height: 32px; border-radius: 3px; }
+  .skel.w60 { width: 60%; }
+  .skel.w50 { width: 50%; }
+  .skel.w40 { width: 40px; }
+  .skel.chip { width: 36px; height: 20px; border-radius: 3px; }
+  .skel.bars { width: 32px; height: 16px; }
+  .skel-pulse { animation: skelpulse 1.5s ease-in-out infinite; }
+  @keyframes skelpulse { 0%,100% { opacity:0.6; } 50% { opacity:0.3; } }
+
+  /* --- TOAST --- */
+  .toast {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+  }
+  .toast.success { background: rgba(74,222,128,0.15); color: #4ADE80; border: 1px solid rgba(74,222,128,0.2); }
+  .toast.error { background: rgba(248,113,113,0.15); color: #F87171; border: 1px solid rgba(248,113,113,0.2); }
+
+  /* --- DIMENSIONS ANNOTATION --- */
+  .dim {
+    font-size: 9px; font-family: "SF Mono", monospace;
+    color: rgba(99,102,241,0.5); font-weight: 500;
+  }
+
+  .component-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  @media (max-width: 700px) { .component-grid { grid-template-columns: 1fr; } }
+
+  .inventory-table {
+    width: 100%; border-collapse: collapse; margin-top: 8px;
+  }
+  .inventory-table th {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; text-align: left;
+    padding: 6px 8px; border-bottom: 1px solid #1E1E22;
+  }
+  .inventory-table td {
+    padding: 6px 8px; border-bottom: 1px solid rgba(30,30,34,0.5);
+    font-size: 12px; color: #8B8B92; vertical-align: top;
+  }
+  .inventory-table td:first-child { color: #C0C0C6; font-weight: 500; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="option-name">Lean Crate</div>
+<div class="option-subtitle">
+  12 essential components, flat styling, minimal states. Import as a right drawer that pushes
+  the table narrower (320px). No hover-reveal actions — everything visible or one click away.
+  Optimized for fast v1 shipping.
+</div>
+
+<!-- ============ INVENTORY ============ -->
+<div class="section-label">Component Inventory (12 components)</div>
+<div class="specimen">
+  <table class="inventory-table">
+    <thead><tr><th>Component</th><th>Used In</th><th>States</th></tr></thead>
+    <tbody>
+      <tr><td>Track Row</td><td>Catalog</td><td>default, hover, selected, focused, skeleton</td></tr>
+      <tr><td>Column Header</td><td>Catalog</td><td>default, active (sorted), hover</td></tr>
+      <tr><td>Camelot Key Chip</td><td>Catalog, Import results</td><td>default only (static display)</td></tr>
+      <tr><td>Energy Bars</td><td>Catalog</td><td>default only (static display)</td></tr>
+      <tr><td>Genre Pill</td><td>Catalog</td><td>default only (static display)</td></tr>
+      <tr><td>Source Badge</td><td>Catalog</td><td>default only (static display)</td></tr>
+      <tr><td>Button (3 tiers)</td><td>Toolbar, Import sheet</td><td>default, hover, disabled, loading</td></tr>
+      <tr><td>Segmented Control</td><td>Import sheet (source tabs)</td><td>default, active, disabled</td></tr>
+      <tr><td>URL Input</td><td>Import sheet</td><td>default, focused, filled, error, disabled</td></tr>
+      <tr><td>Import Drawer</td><td>Overlay</td><td>open, closed, resizable edge</td></tr>
+      <tr><td>Import Progress Row</td><td>Import sheet</td><td>loading, success, failed</td></tr>
+      <tr><td>Toast</td><td>Global</td><td>success, error (auto-dismiss 4s)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ TRACK ROW ============ -->
+<div class="section-label">Track Row — The Hero Component</div>
+<div class="specimen">
+  <div class="specimen-label">States</div>
+  <div style="display:flex; flex-direction:column; gap:2px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">default</span>
+      <div class="track-row-demo default">
+        <div class="art-sm"></div>
+        <div class="t-artist">Fisher</div>
+        <div class="t-title">Losing It</div>
+        <div class="t-bpm">128</div>
+        <div><span class="key-chip k-8a">8A</span></div>
+        <div class="energy-bars">
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+        </div>
+        <div><span class="t-genre">Tech House</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">hover</span>
+      <div class="track-row-demo hover">
+        <div class="art-sm"></div>
+        <div class="t-artist">CamelPhat</div>
+        <div class="t-title">Cola</div>
+        <div class="t-bpm">126</div>
+        <div><span class="key-chip k-11b">11B</span></div>
+        <div class="energy-bars">
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+        </div>
+        <div><span class="t-genre">Deep House</span></div>
+        <div class="t-source">Beatport</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">selected</span>
+      <div class="track-row-demo selected">
+        <div class="art-sm"></div>
+        <div class="t-artist">deadmau5</div>
+        <div class="t-title">Strobe</div>
+        <div class="t-bpm">130</div>
+        <div><span class="key-chip k-5a">5A</span></div>
+        <div class="energy-bars">
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+        </div>
+        <div><span class="t-genre">Progressive</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    Row height: 48px. Padding: 8px 12px. Click selects. No hover-reveal actions — future context menu via right-click.
+    <br><span class="dim">48px row × 5 co-primary fields × flat visual coding</span>
+  </div>
+</div>
+
+<!-- ============ CAMELOT CHIPS + ENERGY + GENRE ============ -->
+<div class="section-label">Data Visualization Components</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Camelot Key Chips — Compact Pill</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <span class="key-chip k-8a">8A</span>
+      <span class="key-chip k-11b">11B</span>
+      <span class="key-chip k-5a">5A</span>
+      <span class="key-chip k-2b">2B</span>
+      <span class="key-chip k-6b">6B</span>
+      <span class="key-chip k-12a">12A</span>
+    </div>
+    <div class="specimen-note">
+      Pill shape, 3px radius. Tinted background per Camelot position.
+      Monospace bold for scannable key text. Height: 20px.
+    </div>
+  </div>
+
+  <div class="specimen">
+    <div class="specimen-label">Energy Bars — Vertical Thin</div>
+    <div style="display:flex; gap:20px; align-items:flex-end;">
+      <div style="text-align:center;">
+        <div class="energy-bars">
+          <div class="e-bar on low" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+        </div>
+        <div class="state-label">1/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy-bars">
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar on mid" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+          <div class="e-bar" style="height:14px;"></div>
+        </div>
+        <div class="state-label">3/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy-bars">
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar on high" style="height:14px;"></div>
+          <div class="e-bar on high" style="height:14px;"></div>
+        </div>
+        <div class="state-label">5/5</div>
+      </div>
+    </div>
+    <div class="specimen-note">5 bars, 5px wide, 14px tall. Green→Yellow→Red color coding.</div>
+  </div>
+</div>
+
+<!-- ============ BUTTONS ============ -->
+<div class="section-label">Buttons — 3 Tiers</div>
+<div class="specimen">
+  <div class="states-strip">
+    <div class="state-box">
+      <button class="btn btn-primary">+ Import</button>
+      <div class="state-label">Primary</div>
+    </div>
+    <div class="state-box">
+      <button class="btn btn-primary hover">+ Import</button>
+      <div class="state-label">Primary:hover</div>
+    </div>
+    <div class="state-box">
+      <button class="btn btn-primary disabled">+ Import</button>
+      <div class="state-label">Primary:disabled</div>
+    </div>
+    <div class="state-box">
+      <button class="btn btn-secondary">Filter</button>
+      <div class="state-label">Secondary</div>
+    </div>
+    <div class="state-box">
+      <button class="btn btn-secondary hover">Filter</button>
+      <div class="state-label">Secondary:hover</div>
+    </div>
+    <div class="state-box">
+      <button class="btn btn-ghost">Cancel</button>
+      <div class="state-label">Ghost</div>
+    </div>
+  </div>
+  <div class="specimen-note">Height: 34px. Padding: 7px 16px. Radius: 6px. Primary = accent fill. Secondary = outline. Ghost = text only.</div>
+</div>
+
+<!-- ============ COLUMN HEADERS ============ -->
+<div class="section-label">Column Headers — Sortable</div>
+<div class="specimen">
+  <div style="display:flex; gap:4px; flex-wrap:wrap; background:#0D0D0F; padding:8px; border-radius:4px;">
+    <div class="col-hdr">Artist</div>
+    <div class="col-hdr">Title</div>
+    <div class="col-hdr active">BPM <span class="sort-arrow">&#9650;</span></div>
+    <div class="col-hdr hover">Key</div>
+    <div class="col-hdr">Energy</div>
+    <div class="col-hdr">Genre</div>
+    <div class="col-hdr">Source</div>
+  </div>
+  <div class="specimen-note">Click to sort. Active shows arrow (asc/desc). No multi-column sort in v1.</div>
+</div>
+
+<!-- ============ SOURCE TABS + URL INPUT ============ -->
+<div class="section-label">Import Sheet Components</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Source Tabs — Segmented Control</div>
+    <div class="seg-control">
+      <button class="seg-btn active">Spotify</button>
+      <button class="seg-btn">Beatport</button>
+      <button class="seg-btn disabled">SoundCloud</button>
+    </div>
+    <div class="specimen-note">Compact segmented control. Disabled tab shows "coming soon" tooltip on hover.</div>
+  </div>
+
+  <div class="specimen">
+    <div class="specimen-label">URL Input — States</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <input class="url-input" placeholder="https://open.spotify.com/playlist/..." readonly>
+      <input class="url-input focused" value="https://open.spotify.com/playlist/37i9d..." readonly style="border-color:#6366F1;">
+      <div>
+        <input class="url-input error" value="spotify.com/not-a-valid-url" readonly style="border-color:#F87171;">
+        <div class="input-error-msg">Not a valid Spotify playlist URL. Try: https://open.spotify.com/playlist/...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ IMPORT DRAWER PREVIEW ============ -->
+<div class="section-label">Import Drawer — Right Push Panel</div>
+<div class="specimen">
+  <div class="drawer-preview">
+    <div class="drawer-table">
+      <div class="drawer-table-label">Track catalog (compressed)</div>
+      <div class="table-lines">
+        <div class="table-line"></div><div class="table-line"></div>
+        <div class="table-line"></div><div class="table-line"></div>
+        <div class="table-line"></div>
+      </div>
+    </div>
+    <div class="drawer-handle"></div>
+    <div class="drawer-panel">
+      <div style="font-size:14px; font-weight:600;">Import Tracks</div>
+      <div class="seg-control" style="align-self:flex-start;">
+        <button class="seg-btn active" style="padding:4px 10px; font-size:10px;">Spotify</button>
+        <button class="seg-btn" style="padding:4px 10px; font-size:10px;">Beatport</button>
+      </div>
+      <input class="url-input" style="width:100%; font-size:11px;" placeholder="Paste playlist URL..." readonly>
+      <button class="btn btn-primary" style="align-self:flex-start; font-size:11px; padding:6px 14px;">Import</button>
+      <div style="flex:1;">
+        <div class="import-row">
+          <div class="import-status-dot success"></div>
+          <div class="import-track-name">Fisher — Losing It</div>
+        </div>
+        <div class="import-row">
+          <div class="import-status-dot success"></div>
+          <div class="import-track-name">CamelPhat — Cola</div>
+        </div>
+        <div class="import-row">
+          <div class="import-status-dot loading"></div>
+          <div class="import-track-name">deadmau5 — Strobe</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    320px right drawer, pushes table. Resizable handle. Contains: source tabs, URL input, import button, progress list. Table remains visible but narrower.
+  </div>
+</div>
+
+<!-- ============ FEEDBACK COMPONENTS ============ -->
+<div class="section-label">Feedback Components</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Toast Notifications</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div class="toast success">&#10003; 24 tracks imported successfully</div>
+      <div class="toast error">&#10007; Import failed — Spotify rate limit. Try again in 30s.</div>
+    </div>
+    <div class="specimen-note">Fixed bottom-right. Auto-dismiss 4s. Max-width: 400px.</div>
+  </div>
+
+  <div class="specimen">
+    <div class="specimen-label">Skeleton Loading Row</div>
+    <div class="skeleton-row">
+      <div class="skel art skel-pulse"></div>
+      <div class="skel w60 skel-pulse"></div>
+      <div class="skel w50 skel-pulse"></div>
+      <div class="skel w40 skel-pulse"></div>
+      <div class="skel chip skel-pulse"></div>
+      <div class="skel bars skel-pulse"></div>
+      <div class="skel w40 skel-pulse"></div>
+      <div class="skel w40 skel-pulse" style="width:32px;"></div>
+    </div>
+    <div class="specimen-note">Shaped skeleton matching track row column widths. Pulse animation.</div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elevation & Shape — Option A: Flat Crate</title>
+<style>
+  :root {
+    --bg: #111113;
+    --surface-0: #111113;
+    --surface-1: #18181B;
+    --surface-2: #1E1E22;
+    --surface-overlay: #1A1A1E;
+    --border: #2A2A30;
+    --border-subtle: #222228;
+    --text: #E8E8EC;
+    --text-dim: #8B8B92;
+    --text-muted: #5C5C63;
+    --accent: #6366F1;
+    --scrim: rgba(0,0,0,0.55);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; line-height: 1.5; padding: 32px 24px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  h3 { font-size: 14px; font-weight: 600; margin: 24px 0 8px; color: var(--text); }
+  .subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+  .label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 6px; }
+
+  /* ─── Elevation Scale Diagram ─── */
+  .elev-scale { display: flex; flex-direction: column; gap: 2px; margin: 16px 0 32px; }
+  .elev-level {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 16px; border: 1px solid var(--border-subtle);
+  }
+  .elev-level.l0 { background: var(--surface-0); }
+  .elev-level.l1 { background: var(--surface-1); border-color: var(--border); }
+  .elev-level.l2 { background: var(--surface-2); border-color: var(--border); }
+  .elev-num { font-size: 11px; font-weight: 600; color: var(--accent); min-width: 20px; }
+  .elev-name { font-size: 13px; font-weight: 500; min-width: 110px; }
+  .elev-shadow { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: var(--text-muted); min-width: 120px; }
+  .elev-usage { font-size: 12px; color: var(--text-dim); }
+
+  /* ─── Surface specimens ─── */
+  .surfaces { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 16px 0 32px; }
+  .surface-spec {
+    padding: 16px; border: 1px solid var(--border-subtle); position: relative;
+  }
+  .surface-spec.s0 { background: var(--surface-0); }
+  .surface-spec.s1 { background: var(--surface-1); border-color: var(--border); }
+  .surface-spec.s2 { background: var(--surface-2); border-color: var(--border); }
+  .surface-spec .tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 8px; }
+  .surface-spec .items { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+
+  /* ─── Shape Language ─── */
+  .radius-row { display: flex; gap: 16px; align-items: flex-end; margin: 16px 0; flex-wrap: wrap; }
+  .radius-specimen {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .radius-box {
+    width: 56px; height: 56px; background: var(--surface-1); border: 1px solid var(--border);
+  }
+  .radius-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+  .radius-value { font-family: monospace; font-size: 10px; color: var(--accent); }
+
+  /* ─── Component Specimens ─── */
+  .comp-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+  .btn-spec {
+    padding: 8px 20px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface-1);
+    color: var(--text); border-radius: 6px; cursor: default;
+  }
+  .btn-spec.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .chip-spec {
+    display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+    font-size: 11px; border-radius: 3px; background: rgba(99,102,241,0.15);
+    color: #A5B4FC; border: none;
+  }
+  .pill-spec {
+    display: inline-flex; align-items: center; height: 24px; padding: 0 10px;
+    font-size: 11px; font-weight: 500; border-radius: 9999px;
+    background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border);
+  }
+  .pill-spec.active { background: rgba(99,102,241,0.12); color: var(--accent); border-color: var(--accent); }
+  .input-spec {
+    padding: 8px 12px; font-size: 12px; background: var(--surface-0);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); width: 220px;
+  }
+
+  /* ─── Overlay Stacking ─── */
+  .stack-demo { position: relative; height: 260px; margin: 16px 0 32px; background: var(--surface-0); border: 1px solid var(--border-subtle); overflow: hidden; }
+  .stack-base { position: absolute; top: 12px; left: 12px; right: 12px; bottom: 12px; background: var(--surface-0); border: 1px solid var(--border-subtle); padding: 10px; }
+  .stack-base .fake-row { height: 6px; background: var(--surface-1); border: 1px solid var(--border-subtle); margin-bottom: 4px; border-radius: 0; width: 90%; }
+  .stack-scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .stack-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 280px;
+    background: var(--surface-2); border-left: 1px solid var(--border);
+    padding: 12px 16px;
+  }
+  .stack-panel .fake-input { height: 28px; background: var(--surface-0); border: 1px solid var(--border); border-radius: 6px; margin: 8px 0; }
+  .stack-panel .fake-btn { height: 28px; width: 80px; background: var(--accent); border-radius: 6px; margin-top: 8px; }
+  .stack-toast {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-70%);
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 6px;
+    padding: 8px 16px; font-size: 11px; color: var(--text-dim);
+  }
+  .stack-label { position: absolute; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
+  .stack-label.l0 { top: 14px; left: 14px; }
+  .stack-label.l1 { top: 6px; right: 286px; }
+  .stack-label.l2 { top: 6px; right: 8px; }
+
+  /* ─── Annotation ─── */
+  .note { font-size: 12px; color: var(--text-dim); margin: 8px 0 0; line-height: 1.5; max-width: 720px; }
+  .divider { border: none; border-top: 1px solid var(--border-subtle); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h2>Flat Crate</h2>
+  <p class="subtitle">Zero shadows. All depth via borders, background tints, and a scrim. DJ software flat aesthetic.</p>
+
+  <!-- ─── Elevation Scale ─── -->
+  <h3>Elevation Scale</h3>
+  <p class="label">3 levels &mdash; no box-shadow anywhere</p>
+  <div class="elev-scale">
+    <div class="elev-level l0">
+      <span class="elev-num">0</span>
+      <span class="elev-name">Base Canvas</span>
+      <span class="elev-shadow">none</span>
+      <span class="elev-usage">Page background, table background</span>
+    </div>
+    <div class="elev-level l1">
+      <span class="elev-num">1</span>
+      <span class="elev-name">Content Surface</span>
+      <span class="elev-shadow">none</span>
+      <span class="elev-usage">Track rows, header bar, detail strip, icon rail, toasts</span>
+    </div>
+    <div class="elev-level l2">
+      <span class="elev-num">2</span>
+      <span class="elev-name">Overlay Surface</span>
+      <span class="elev-shadow">none</span>
+      <span class="elev-usage">Slide-over panel, sort dropdown, tooltips</span>
+    </div>
+  </div>
+  <p class="note">Depth is communicated entirely through background tint steps (#111 &rarr; #181 &rarr; #1E1) and 1px borders. The scrim (55% black) behind the slide-over provides the strongest depth cue. No shadow rendering cost.</p>
+
+  <hr class="divider">
+
+  <!-- ─── Surface Specimens ─── -->
+  <h3>Surface Treatments</h3>
+  <div class="surfaces">
+    <div class="surface-spec s0">
+      <div class="tag">Level 0 &mdash; Base</div>
+      <div class="items">
+        Page canvas<br>
+        Table body background<br>
+        Input field backgrounds<br>
+        <br>
+        <span style="color:var(--text-muted)">No border. Darkest value.</span>
+      </div>
+    </div>
+    <div class="surface-spec s1">
+      <div class="tag">Level 1 &mdash; Content</div>
+      <div class="items">
+        Track row hover<br>
+        Detail strip (expanded)<br>
+        Header / sort bar<br>
+        Icon rail<br>
+        Toast notifications<br>
+        <span style="color:var(--text-muted)">1px border, +1 tint step.</span>
+      </div>
+    </div>
+    <div class="surface-spec s2">
+      <div class="tag">Level 2 &mdash; Overlay</div>
+      <div class="items">
+        Import slide-over panel<br>
+        Sort priority dropdown<br>
+        Tooltips<br>
+        <br>
+        <span style="color:var(--text-muted)">1px border, +2 tint steps. Scrim behind slide-over.</span>
+      </div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ─── Shape Language ─── -->
+  <h3>Shape Language</h3>
+  <p class="label">4-token radius scale</p>
+  <div class="radius-row">
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 0;"></div>
+      <span class="radius-value">0px</span>
+      <span class="radius-label">none<br>table cells, rows</span>
+    </div>
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 3px;"></div>
+      <span class="radius-value">3px</span>
+      <span class="radius-label">xs<br>Camelot chips, badges</span>
+    </div>
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 6px;"></div>
+      <span class="radius-value">6px</span>
+      <span class="radius-label">sm<br>buttons, inputs, toasts</span>
+    </div>
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 9999px;"></div>
+      <span class="radius-value">full</span>
+      <span class="radius-label">pill<br>source pills, sort badges</span>
+    </div>
+  </div>
+  <p class="note">No medium or large radius tokens. The crate is a dense tool — nothing needs 12px+ corners. Rows are square (0px). Chips are barely rounded (3px). Buttons/inputs are subtly softened (6px). Only source pills go full round.</p>
+
+  <hr class="divider">
+
+  <!-- ─── Component Specimens with Shape ─── -->
+  <h3>Components with Shape Applied</h3>
+  <div class="comp-row">
+    <button class="btn-spec primary">Import</button>
+    <button class="btn-spec">Cancel</button>
+    <span class="chip-spec">8B</span>
+    <span class="chip-spec" style="background:rgba(74,222,128,0.15);color:#4ADE80;">11A</span>
+    <span class="pill-spec active">Spotify</span>
+    <span class="pill-spec">Beatport</span>
+    <span class="input-spec">https://open.spotify.com/...</span>
+  </div>
+  <p class="note">All component shapes match the locked component design: 6px buttons (34px height), 3px Camelot chips (20px height), full-round source pills, 6px inputs.</p>
+
+  <hr class="divider">
+
+  <!-- ─── Overlay Stacking ─── -->
+  <h3>Overlay Stacking</h3>
+  <p class="label">Scrim + border separation &mdash; no shadow needed</p>
+  <div class="stack-demo">
+    <span class="stack-label l0">Level 0: Table</span>
+    <div class="stack-base">
+      <div class="fake-row"></div>
+      <div class="fake-row" style="width:85%"></div>
+      <div class="fake-row" style="width:92%"></div>
+      <div class="fake-row" style="width:88%"></div>
+      <div class="fake-row" style="width:80%"></div>
+      <div class="fake-row" style="width:95%"></div>
+    </div>
+    <div class="stack-scrim"></div>
+    <span class="stack-label l2">Level 2: Slide-over</span>
+    <div class="stack-panel">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;">Import Tracks</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Paste a playlist or album URL</div>
+      <div class="fake-input"></div>
+      <div class="fake-btn"></div>
+    </div>
+    <span class="stack-label l1" style="bottom:10px;left:50%;transform:translateX(-70%);top:auto;">Level 1: Toast</span>
+    <div class="stack-toast">3 tracks imported successfully</div>
+  </div>
+  <p class="note">The scrim (55% black overlay) is the primary depth cue. The slide-over's left border and +2 tint background separate it from the dimmed table. Toast floats above the scrim at Level 1 tint with a border. No shadows involved at any layer.</p>
+
+</div>
+</body>
+</html>

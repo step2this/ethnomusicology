@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Content Hierarchy — Round 1 Compare</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: #0D0D0F;
+    color: #F0F0F2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-top: 56px;
+  }
+
+  /* --- Banner --- */
+  .banner {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 48px;
+    background: #0D0D0F;
+    border-bottom: 1px solid #1E1E22;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
+  .banner-left {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 13px; color: #5C5C63;
+  }
+  .banner-left .project { font-weight: 500; color: #F0F0F2; }
+  .banner-left .pipe { color: #1E1E22; }
+  .banner-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .jump-btn {
+    padding: 4px 12px; border-radius: 9999px;
+    border: 1px solid #1E1E22; background: transparent;
+    color: #8B8B92; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    cursor: pointer; text-decoration: none;
+    transition: border-color 150ms ease-out, color 150ms ease-out;
+  }
+  .jump-btn:hover { border-color: #6366F1; color: #F0F0F2; }
+
+  /* --- Content --- */
+  .content {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* --- Section header --- */
+  .section-label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: #5C5C63; margin-bottom: 8px;
+  }
+
+  /* --- Option card (stacked full-width) --- */
+  .option-card {
+    background: #141416;
+    border: 1px solid #1E1E22;
+    border-radius: 8px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .option-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1E1E22;
+  }
+  .option-letter {
+    font-size: 18px; font-weight: 600; color: #6366F1;
+  }
+  .option-name-inline {
+    font-size: 15px; font-weight: 600; color: #F0F0F2;
+    margin-left: 12px;
+  }
+  .open-tab {
+    font-size: 11px; color: #5C5C63;
+    text-decoration: none;
+    transition: color 150ms ease-out;
+  }
+  .open-tab:hover { color: #818CF8; }
+
+  .option-iframe-wrap {
+    position: relative;
+    background: #111113;
+    border-radius: 8px 8px 0 0;
+  }
+  .option-iframe-wrap iframe {
+    width: 100%;
+    min-height: 480px;
+    border: none;
+    display: block;
+    border-radius: 8px 8px 0 0;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+
+  .option-body { padding: 16px; }
+
+  .rationale-section { margin-bottom: 16px; }
+  .rationale-label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: #5C5C63; margin-bottom: 4px;
+  }
+  .rationale-text {
+    font-size: 13px; color: #8B8B92; line-height: 1.5;
+  }
+
+  /* --- Keep/Cut controls --- */
+  .option-controls {
+    display: flex; gap: 8px;
+    padding: 12px 16px;
+    border-top: 1px solid #1E1E22;
+  }
+  .action-btn {
+    padding: 6px 16px; border-radius: 9999px;
+    border: 1px solid #1E1E22; background: transparent;
+    color: #8B8B92; font-size: 13px; cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .action-btn:hover { border-color: #5C5C63; }
+  .action-btn[data-action="keep"].active {
+    background: #4ADE80; color: #0D0D0F; border-color: #4ADE80; font-weight: 600;
+  }
+  .action-btn[data-action="cut"].active {
+    background: #F87171; color: #0D0D0F; border-color: #F87171; font-weight: 600;
+  }
+
+  .option-comment {
+    display: block; width: calc(100% - 32px);
+    margin: 0 16px 16px;
+    min-height: 60px; resize: vertical;
+    background: #111113; color: #F0F0F2;
+    border: 1px solid #1E1E22; border-radius: 6px;
+    padding: 12px; font-family: inherit; font-size: 13px;
+    line-height: 1.5;
+  }
+  .option-comment::placeholder { color: #5C5C63; }
+  .option-comment:focus {
+    outline: 2px solid #6366F1; outline-offset: 2px;
+    border-color: #6366F1;
+  }
+
+  /* --- My Take --- */
+  .my-take {
+    background: #1A1A1E;
+    border-radius: 8px;
+    border-left: 3px solid #6366F1;
+    padding: 24px 32px;
+    margin-top: 48px;
+    margin-bottom: 48px;
+  }
+  .my-take-label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: #6366F1; margin-bottom: 8px;
+  }
+  .my-take-title {
+    font-size: 18px; font-weight: 600; color: #F0F0F2;
+    margin-bottom: 12px;
+  }
+  .my-take-body {
+    font-size: 14px; color: #8B8B92; line-height: 1.6;
+    max-width: 720px;
+  }
+  .my-take-body p { margin-bottom: 12px; }
+  .my-take-body strong { color: #C0C0C6; }
+
+  /* --- Feedback area --- */
+  .feedback-area {
+    max-width: 680px;
+    margin-bottom: 48px;
+  }
+  .feedback-area .instruction-text {
+    font-size: 13px; color: #5C5C63;
+    margin-bottom: 12px;
+  }
+  #direction-notes {
+    display: block; width: 100%;
+    min-height: 100px; resize: vertical;
+    background: #111113; color: #F0F0F2;
+    border: 1px solid #1E1E22; border-radius: 6px;
+    padding: 12px; font-family: inherit; font-size: 13px;
+    line-height: 1.5; margin-bottom: 16px;
+  }
+  #direction-notes::placeholder { color: #5C5C63; }
+  #direction-notes:focus {
+    outline: 2px solid #6366F1; outline-offset: 2px;
+    border-color: #6366F1;
+  }
+
+  .button-row {
+    display: flex; gap: 12px; margin-top: 16px;
+  }
+  .btn-primary {
+    padding: 10px 20px; border-radius: 6px;
+    background: #6366F1; color: white; border: none;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+    transition: background 150ms ease-out;
+  }
+  .btn-primary:hover { background: #818CF8; }
+  .btn-ghost {
+    padding: 10px 20px; border-radius: 6px;
+    background: transparent; color: #8B8B92;
+    border: 1px solid #1E1E22;
+    font-size: 13px; cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .btn-ghost:hover { border-color: #5C5C63; color: #F0F0F2; }
+
+  #delegate-context {
+    display: none; width: 100%;
+    min-height: 60px; resize: vertical;
+    background: #111113; color: #F0F0F2;
+    border: 1px solid #1E1E22; border-radius: 6px;
+    padding: 12px; font-family: inherit; font-size: 13px;
+    margin-top: 12px;
+  }
+  #delegate-context::placeholder { color: #5C5C63; }
+
+  /* --- Focus styles --- */
+  button:focus, textarea:focus, a:focus {
+    outline: 2px solid #6366F1; outline-offset: 2px;
+  }
+
+  /* --- Notification banner --- */
+  @keyframes fadeIn { from { opacity: 0; transform: translateX(-50%) translateY(-8px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+</style>
+</head>
+<body>
+
+<!-- Banner -->
+<div class="banner">
+  <div class="banner-left">
+    <span class="project">Ethnomusicology</span>
+    <span class="pipe">|</span>
+    <span>Content Hierarchy</span>
+    <span class="pipe">|</span>
+    <span>Round 1</span>
+  </div>
+  <div class="banner-right">
+    <a href="#option-a" class="jump-btn">A</a>
+    <a href="#option-b" class="jump-btn">B</a>
+    <a href="#option-c" class="jump-btn">C</a>
+    <a href="#my-take" class="jump-btn">My Take</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ==================== OPTION A ==================== -->
+  <div id="option-a" class="option-card" data-option-id="option-a">
+    <div class="option-card-header">
+      <div>
+        <span class="option-letter">A</span>
+        <span class="option-name-inline">DJ Data Forward</span>
+      </div>
+      <a href="option-a.html" target="_blank" class="open-tab">Open in new tab</a>
+    </div>
+    <div class="option-iframe-wrap">
+      <iframe src="option-a.html"></iframe>
+    </div>
+    <div class="option-body">
+      <div class="rationale-section">
+        <div class="rationale-label">Why This Option</div>
+        <div class="rationale-text">
+          Puts BPM and Camelot key in the leftmost data columns, making them the first thing the eye hits after album art. This is "mix data first" — optimized for the moment a DJ is scanning for compatible tracks to follow the current one. Column order: Art → BPM → Key → Title → Artist → Genre → Source.
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Works Well For</div>
+        <div class="rationale-text">
+          Active set building where you already know roughly what you want and you're scanning for BPM/key matches. Power users who've internalized their collection and just need the numbers.
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Watch Out For</div>
+        <div class="rationale-text">
+          Pushes Artist to tertiary emphasis (12px muted) — too low if you think of your collection in terms of "who." Doesn't include energy level. Imposes a fixed scanning order that may not match all DJ tasks.
+        </div>
+      </div>
+    </div>
+    <div class="option-controls">
+      <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+      <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+    </div>
+    <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+  </div>
+
+  <!-- ==================== OPTION B ==================== -->
+  <div id="option-b" class="option-card" data-option-id="option-b">
+    <div class="option-card-header">
+      <div>
+        <span class="option-letter">B</span>
+        <span class="option-name-inline">Identity First</span>
+      </div>
+      <a href="option-b.html" target="_blank" class="open-tab">Open in new tab</a>
+    </div>
+    <div class="option-iframe-wrap">
+      <iframe src="option-b.html"></iframe>
+    </div>
+    <div class="option-body">
+      <div class="rationale-section">
+        <div class="rationale-label">Why This Option</div>
+        <div class="rationale-text">
+          Traditional music library order: Title → Artist → BPM → Key → Genre → Source. The track's identity answers "what is this?" before "can I mix it?" BPM and Key differentiate through visual treatment (monospace, color chips) rather than positional dominance. Familiar if you've used any media library.
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Works Well For</div>
+        <div class="rationale-text">
+          Browsing and discovery — when you're exploring your collection, not actively building a set. Users transitioning from consumer music apps. The conventional order is instantly learnable.
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Watch Out For</div>
+        <div class="rationale-text">
+          Elevates Title over Artist — DJs often think "that Fisher track" not "that Losing It track." BPM/Key don't get enough structural emphasis for quick scanning when you're deep in set building. Missing energy level. Could be any media library — loses DJ-specific character.
+        </div>
+      </div>
+    </div>
+    <div class="option-controls">
+      <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+      <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+    </div>
+    <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+  </div>
+
+  <!-- ==================== OPTION C ==================== -->
+  <div id="option-c" class="option-card" data-option-id="option-c">
+    <div class="option-card-header">
+      <div>
+        <span class="option-letter">C</span>
+        <span class="option-name-inline">Flat Five</span>
+      </div>
+      <a href="option-c.html" target="_blank" class="open-tab">Open in new tab</a>
+    </div>
+    <div class="option-iframe-wrap">
+      <iframe src="option-c.html"></iframe>
+    </div>
+    <div class="option-body">
+      <div class="rationale-section">
+        <div class="rationale-label">Why This Option</div>
+        <div class="rationale-text">
+          Five core fields at co-primary emphasis: Artist, Title, BPM, Key, Energy. No single column dominates — each is differentiated by visual treatment: bold text (artist), regular weight (title), monospace number (BPM), color chip (key), bar graph (energy). Column order: Art → Artist → Title → BPM → Key → Energy → Genre → Source. Artist leads because DJs think "who" before "what."
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Works Well For</div>
+        <div class="rationale-text">
+          All DJ tasks — browsing (eye hits artist/title) and set building (eye jumps to BPM/key/energy). The flat hierarchy lets the DJ's current task determine the scan pattern, not the layout. Mirrors how Rekordbox and Traktor present column data. Includes energy level for shaping the set arc.
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Watch Out For</div>
+        <div class="rationale-text">
+          Flat hierarchy = less visual drama. No obvious "hero" element in each row, which could feel undifferentiated to new users. More visual coding complexity for the color system (energy bar colors + Camelot chip colors). Only 3 emphasis levels — less room for the typography facet to create layered hierarchy.
+        </div>
+      </div>
+    </div>
+    <div class="option-controls">
+      <button class="action-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+      <button class="action-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+    </div>
+    <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+  </div>
+
+  <!-- ==================== MY TAKE ==================== -->
+  <div id="my-take" class="my-take">
+    <div class="my-take-label">My Take</div>
+    <div class="my-take-title">Go with C (Flat Five)</div>
+    <div class="my-take-body">
+      <p>
+        You told me DJs think in terms of artist, title, BPM, key, <strong>and energy</strong> — all five matter.
+        Options A and B both try to pick a winner between identity and DJ data, but the real answer
+        is neither dominates. The DJ's current task determines what they scan for.
+      </p>
+      <p>
+        A flat hierarchy with rich visual coding is exactly how <strong>Rekordbox and Traktor</strong> work —
+        every column is equally accessible, and you scan to whatever matters right now. The visual
+        coding approach (bold vs. regular vs. mono vs. chip vs. bars) gives each field its own "shape"
+        so the eye learns to jump directly to what it needs.
+      </p>
+      <p>
+        Option A's approach of making BPM/Key physically larger is heavy-handed — it pre-decides the
+        DJ's task. Option B's traditional library ordering demotes the mix data that makes this product special.
+      </p>
+      <p>
+        <strong>The energy column is the kicker.</strong> Energy is core to set building — you need to shape the
+        night's arc, not just match BPM and key. A and B both miss it entirely.
+      </p>
+      <p>
+        Trade-off: a flat hierarchy gives the typography and color facets less room to create dramatic
+        visual layers. But for a dense, scannable catalog, that's the right trade. This is a power-user tool.
+      </p>
+    </div>
+  </div>
+
+  <!-- ==================== FEEDBACK AREA ==================== -->
+  <div class="feedback-area">
+    <p class="instruction-text">
+      Click Save Feedback and Claude will pick it up automatically.
+      Or just tell Claude your thoughts in the chat.
+    </p>
+
+    <textarea id="direction-notes" placeholder="Overall thoughts or direction preferences..."></textarea>
+
+    <div class="button-row">
+      <button class="btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      <button class="btn-ghost" onclick="saveFeedbackWithDecision('skip')">Skip This Area</button>
+      <button class="btn-ghost" onclick="showDelegateContext()">Decide For Me</button>
+    </div>
+
+    <textarea id="delegate-context" placeholder="Any guidance? e.g., 'prioritize accessibility' or 'keep it simple'"></textarea>
+  </div>
+
+</div>
+
+<script>
+// --- Keep/Cut toggle ---
+function toggleAction(btn, action) {
+  const card = btn.closest('[data-option-id]');
+  const keepBtn = card.querySelector('[data-action="keep"]');
+  const cutBtn = card.querySelector('[data-action="cut"]');
+
+  if (btn.classList.contains('active')) {
+    btn.classList.remove('active');
+    return;
+  }
+
+  keepBtn.classList.remove('active');
+  cutBtn.classList.remove('active');
+  btn.classList.add('active');
+}
+
+function showDelegateContext() {
+  const el = document.querySelector('#delegate-context');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+// --- REQUIRED: Save Feedback to Disk ---
+const FACET_ID = 'content-hierarchy';
+const ROUND_N = 1;
+const FEEDBACK_FILENAME = 'feedback-round-1.json';
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+function collectFeedback() {
+  const options = {};
+  document.querySelectorAll('[data-option-id]').forEach(card => {
+    const id = card.dataset.optionId;
+    const keepBtn = card.querySelector('[data-action="keep"]');
+    const cutBtn = card.querySelector('[data-action="cut"]');
+    const comment = card.querySelector('textarea')?.value || '';
+    let action = null;
+    if (keepBtn?.classList.contains('active')) action = 'keep';
+    if (cutBtn?.classList.contains('active')) action = 'cut';
+    options[id] = { action, comment };
+  });
+
+  const overall = document.querySelector('#direction-notes')?.value || '';
+
+  let decision = 'refine';
+  const keptCount = Object.values(options).filter(o => o.action === 'keep').length;
+  const totalOptions = Object.keys(options).length;
+  if (keptCount === 1 && Object.values(options).filter(o => o.action === 'cut').length === totalOptions - 1) {
+    decision = 'lock';
+  }
+
+  return {
+    facet: FACET_ID,
+    round: ROUND_N,
+    timestamp: new Date().toISOString(),
+    options,
+    overall,
+    decision
+  };
+}
+
+async function saveFeedback() {
+  const feedback = collectFeedback();
+  const json = JSON.stringify(feedback, null, 2);
+
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: FEEDBACK_FILENAME,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved! Claude is processing it.' });
+      }
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      console.error('File System Access API failed:', err);
+    }
+  }
+
+  showFallbackModal(json);
+}
+
+function saveFeedbackWithDecision(decision) {
+  const feedback = collectFeedback();
+  feedback.decision = decision;
+  if (decision === 'delegate') {
+    feedback.delegate_context = document.querySelector('#delegate-context')?.value || '';
+  }
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    window.showSaveFilePicker({
+      suggestedName: FEEDBACK_FILENAME,
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    }).then(async handle => {
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved! Claude is processing it.' });
+      }
+    }).catch(err => {
+      if (err.name !== 'AbortError') showFallbackModal(json);
+    });
+  } else {
+    showFallbackModal(json);
+  }
+}
+
+function showBanner(message) {
+  const banner = document.createElement('div');
+  banner.textContent = message;
+  banner.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);' +
+    'background:#4ADE80;color:#0D0D0F;padding:12px 24px;border-radius:8px;font-size:14px;' +
+    'font-weight:600;z-index:200;animation:fadeIn 0.2s ease-out';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+function showFallbackModal(json) {
+  const modal = document.createElement('div');
+  modal.innerHTML = `
+    <div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center">
+      <div style="background:#1A1A1E;border:1px solid #1E1E22;border-radius:8px;padding:24px;max-width:600px;width:90%">
+        <h3 style="color:#F0F0F2;margin:0 0 8px">Save not available in this browser</h3>
+        <p style="color:#8B8B92;font-size:13px;margin:0 0 16px">Copy this JSON and paste it into the terminal:</p>
+        <textarea style="width:100%;min-height:200px;background:#111113;color:#F0F0F2;border:1px solid #1E1E22;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;resize:vertical"
+          readonly onclick="this.select()">${json}</textarea>
+        <button onclick="this.closest('div[style]').parentElement.remove()"
+          style="margin-top:12px;padding:10px 20px;background:#6366F1;color:white;border:none;border-radius:6px;cursor:pointer">Close</button>
+      </div>
+    </div>`;
+  document.body.appendChild(modal);
+}
+</script>
+
+</body>
+</html>

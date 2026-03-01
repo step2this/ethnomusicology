@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Identity First — Content Hierarchy Option B</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111113;
+    color: #F0F0F2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+
+  .screen-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #5C5C63;
+    margin-bottom: 8px;
+  }
+
+  .wireframe {
+    background: #0D0D0F;
+    border: 1px solid #1E1E22;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .rail {
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 48px;
+    background: #141416;
+    border-right: 1px solid #1E1E22;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 16px;
+    gap: 16px;
+  }
+  .rail-icon {
+    width: 24px; height: 24px;
+    border-radius: 4px;
+    background: #1E1E22;
+  }
+  .rail-icon.active { background: #6366F1; opacity: 0.6; }
+
+  .table-area { margin-left: 48px; }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1E1E22;
+  }
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .page-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #F0F0F2;
+  }
+  .track-count {
+    font-size: 12px;
+    color: #5C5C63;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+  .toolbar-right { display: flex; gap: 8px; }
+  .toolbar-btn {
+    padding: 6px 14px; border-radius: 6px;
+    background: #6366F1; border: none;
+    font-size: 12px; color: white; font-weight: 500;
+  }
+  .toolbar-btn.ghost {
+    background: transparent;
+    border: 1px solid #1E1E22;
+    color: #8B8B92;
+  }
+
+  /* Column headers — traditional order */
+  .col-header-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 72px 90px 120px 80px;
+    padding: 8px 16px;
+    border-bottom: 1px solid #1E1E22;
+    align-items: center;
+    gap: 8px;
+  }
+  .col-header {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: #5C5C63;
+  }
+
+  /* Track rows */
+  .track-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 72px 90px 120px 80px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(30,30,34,0.5);
+    align-items: center;
+    gap: 8px;
+    transition: background 150ms ease-out;
+  }
+  .track-row:hover { background: rgba(99,102,241,0.04); }
+
+  .art {
+    width: 36px; height: 36px;
+    border-radius: 4px; background: #1E1E22;
+  }
+
+  /* Title — PRIMARY emphasis */
+  .title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #F0F0F2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  /* Artist — SECONDARY emphasis */
+  .artist {
+    font-size: 13px;
+    color: #8B8B92;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* BPM — SECONDARY emphasis (distinct via monospace) */
+  .bpm {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 13px;
+    font-weight: 600;
+    color: #C0C0C6;
+  }
+
+  /* Key — SECONDARY emphasis (distinct via color chip) */
+  .key-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+  .key-chip.k-8a { background: rgba(99,102,241,0.2); color: #818CF8; }
+  .key-chip.k-11b { background: rgba(74,222,128,0.2); color: #4ADE80; }
+  .key-chip.k-5a { background: rgba(251,191,36,0.2); color: #FBBF24; }
+  .key-chip.k-2b { background: rgba(248,113,113,0.2); color: #F87171; }
+  .key-chip.k-9a { background: rgba(168,85,247,0.2); color: #A855F7; }
+
+  /* Genre — TERTIARY */
+  .genre {
+    font-size: 11px; color: #5C5C63;
+    padding: 2px 8px;
+    background: #1A1A1E;
+    border-radius: 9999px;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  /* Source — AMBIENT */
+  .source-badge {
+    font-size: 10px; font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #5C5C63; opacity: 0.7;
+  }
+
+  /* Reading order */
+  .reading-order { position: absolute; pointer-events: none; z-index: 10; }
+  .ro-dot {
+    position: absolute;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(99,102,241,0.85); color: white;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid rgba(99,102,241,1);
+  }
+
+  /* Emphasis key */
+  .emphasis-key {
+    margin-top: 16px; padding: 16px;
+    background: #141416;
+    border: 1px solid #1E1E22;
+    border-radius: 8px;
+  }
+  .emphasis-key h3 {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: #5C5C63; margin-bottom: 12px;
+  }
+  .ek-row {
+    display: grid;
+    grid-template-columns: 80px 220px 1fr;
+    padding: 6px 0; font-size: 12px; gap: 12px;
+    align-items: baseline;
+  }
+  .ek-level { font-weight: 600; }
+  .ek-level.primary { color: #818CF8; }
+  .ek-level.secondary { color: #C0C0C6; }
+  .ek-level.tertiary { color: #8B8B92; }
+  .ek-level.ambient { color: #5C5C63; }
+  .ek-role { color: #8B8B92; }
+  .ek-treatment { color: #5C5C63; }
+
+  .option-name { font-size: 18px; font-weight: 600; color: #F0F0F2; margin-bottom: 6px; }
+  .option-subtitle { font-size: 13px; color: #8B8B92; margin-bottom: 24px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<div class="option-name">Identity First</div>
+<div class="option-subtitle">
+  Traditional music library order: Art → Title → Artist → BPM → Key → Genre → Source.
+  Track identity (what is this?) comes before DJ data (can I mix it?).
+  BPM and Key stand out through monospace font and Camelot color chips — they don't need positional dominance.
+</div>
+
+<div class="screen-label">Track Catalog — Primary Screen</div>
+
+<div class="wireframe" style="position:relative; min-height: 380px;">
+  <div class="rail">
+    <div class="rail-icon active"></div>
+    <div class="rail-icon"></div>
+    <div class="rail-icon"></div>
+  </div>
+
+  <div class="table-area">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="page-title">Tracks</span>
+        <span class="track-count">247 tracks</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="toolbar-btn ghost">Filter</button>
+        <button class="toolbar-btn">+ Import</button>
+      </div>
+    </div>
+
+    <div class="col-header-row">
+      <div class="col-header"></div>
+      <div class="col-header">TITLE</div>
+      <div class="col-header">ARTIST</div>
+      <div class="col-header">BPM</div>
+      <div class="col-header">KEY</div>
+      <div class="col-header">GENRE</div>
+      <div class="col-header">SOURCE</div>
+    </div>
+
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="title">Losing It</div>
+      <div class="artist">Fisher</div>
+      <div class="bpm">128</div>
+      <div><span class="key-chip k-8a">8A</span></div>
+      <div><span class="genre">Tech House</span></div>
+      <div class="source-badge">Spotify</div>
+    </div>
+
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="title">Cola</div>
+      <div class="artist">CamelPhat & Elderbrook</div>
+      <div class="bpm">126</div>
+      <div><span class="key-chip k-11b">11B</span></div>
+      <div><span class="genre">Deep House</span></div>
+      <div class="source-badge">Beatport</div>
+    </div>
+
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="title">Blind Faith</div>
+      <div class="artist">Chase & Status</div>
+      <div class="bpm">174</div>
+      <div><span class="key-chip k-5a">5A</span></div>
+      <div><span class="genre">DnB</span></div>
+      <div class="source-badge">Spotify</div>
+    </div>
+
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="title">Opus</div>
+      <div class="artist">Eric Prydz</div>
+      <div class="bpm">122</div>
+      <div><span class="key-chip k-2b">2B</span></div>
+      <div><span class="genre">Progressive</span></div>
+      <div class="source-badge">Beatport</div>
+    </div>
+
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="title">Strobe</div>
+      <div class="artist">deadmau5</div>
+      <div class="bpm">130</div>
+      <div><span class="key-chip k-9a">9A</span></div>
+      <div><span class="genre">Progressive</span></div>
+      <div class="source-badge">Spotify</div>
+    </div>
+  </div>
+
+  <!-- Reading order overlay for row 2 -->
+  <div class="reading-order">
+    <div class="ro-dot" style="top:162px; left:62px;">1</div>
+    <div class="ro-dot" style="top:162px; left:170px;">2</div>
+    <div class="ro-dot" style="top:162px; left:380px;">3</div>
+    <div class="ro-dot" style="top:162px; left:540px;">4</div>
+    <div class="ro-dot" style="top:162px; left:620px;">5</div>
+    <div class="ro-dot" style="top:162px; left:740px;">6</div>
+
+    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+      <line x1="84" y1="173" x2="158" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="192" y1="173" x2="368" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="402" y1="173" x2="528" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="562" y1="173" x2="608" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="642" y1="173" x2="728" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+    </svg>
+  </div>
+</div>
+
+<div class="emphasis-key">
+  <h3>Emphasis Map</h3>
+  <div class="ek-row">
+    <span class="ek-level primary">Primary</span>
+    <span class="ek-role">Track Title, Page Title, Import CTA</span>
+    <span class="ek-treatment">Largest text in row (14px/600), full brightness. Title IS the anchor.</span>
+  </div>
+  <div class="ek-row">
+    <span class="ek-level secondary">Secondary</span>
+    <span class="ek-role">Artist, BPM, Camelot Key</span>
+    <span class="ek-treatment">Medium (13px), BPM in monospace, Key in color chip. Visual distinction not size.</span>
+  </div>
+  <div class="ek-row">
+    <span class="ek-level tertiary">Tertiary</span>
+    <span class="ek-role">Genre</span>
+    <span class="ek-treatment">Pill badge (11px), low-contrast background, scans as metadata</span>
+  </div>
+  <div class="ek-row">
+    <span class="ek-level ambient">Ambient</span>
+    <span class="ek-role">Source Badge, Track Count</span>
+    <span class="ek-treatment">Near-invisible (10px, uppercase, muted), there when you look for it</span>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio Deck — Component Design Option B</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111113;
+    color: #F0F0F2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  .option-name { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .option-subtitle { font-size: 13px; color: #8B8B92; margin-bottom: 32px; line-height: 1.5; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; margin: 32px 0 16px;
+    padding-bottom: 8px; border-bottom: 1px solid #1E1E22;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .specimen {
+    background: #0D0D0F; border: 1px solid #1E1E22; border-radius: 8px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .specimen-label {
+    font-size: 11px; font-weight: 500; color: #5C5C63;
+    text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 12px;
+  }
+  .specimen-note {
+    font-size: 11px; color: #5C5C63; margin-top: 8px; line-height: 1.4;
+  }
+  .states-strip { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .state-box { text-align: center; }
+  .state-label {
+    font-size: 9px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; margin-top: 6px;
+  }
+  .dim {
+    font-size: 9px; font-family: "SF Mono", monospace;
+    color: rgba(99,102,241,0.5); font-weight: 500;
+  }
+  .component-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .component-grid { grid-template-columns: 1fr; } }
+
+  /* --- TRACK ROW with hover actions --- */
+  .track-row-demo {
+    display: grid;
+    grid-template-columns: 28px 40px 1fr 1fr 56px 76px 48px 80px 64px;
+    padding: 8px 12px; align-items: center; gap: 6px;
+    border-radius: 4px; position: relative;
+  }
+  .track-row-demo.default { background: transparent; }
+  .track-row-demo.hover { background: rgba(99,102,241,0.06); }
+  .track-row-demo.selected { background: rgba(99,102,241,0.12); }
+  .track-row-demo.playing { background: rgba(74,222,128,0.08); }
+
+  .row-checkbox {
+    width: 16px; height: 16px; border-radius: 3px;
+    border: 1.5px solid #5C5C63; background: transparent;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .row-checkbox.checked {
+    background: #6366F1; border-color: #6366F1;
+    color: white; font-size: 10px; font-weight: 700;
+  }
+
+  .art-sm { width: 36px; height: 36px; border-radius: 4px; background: #1E1E22; position: relative; }
+  .art-play-overlay {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.6);
+    border-radius: 4px; display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 14px;
+  }
+
+  .t-artist { font-size: 13px; font-weight: 600; color: #F0F0F2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-title { font-size: 12px; color: #C0C0C6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-bpm { font-family: "SF Mono", monospace; font-size: 13px; font-weight: 700; color: #F0F0F2; }
+  .t-genre { font-size: 10px; color: #5C5C63; padding: 2px 6px; background: #1A1A1E; border-radius: 9999px; white-space: nowrap; }
+  .t-source { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: #5C5C63; }
+
+  .hover-actions {
+    position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+    display: flex; gap: 4px; background: rgba(20,20,22,0.95);
+    padding: 4px; border-radius: 6px; border: 1px solid #1E1E22;
+  }
+  .hover-action-btn {
+    width: 28px; height: 28px; border-radius: 4px;
+    background: transparent; border: none; color: #8B8B92;
+    font-size: 12px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .hover-action-btn:hover { background: #1E1E22; color: #F0F0F2; }
+
+  /* --- CAMELOT CHIP — Circle badge --- */
+  .key-circle {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; border-radius: 50%;
+    font-size: 10px; font-weight: 700;
+    font-family: "SF Mono", monospace;
+  }
+  .key-circle.k-8a { background: rgba(99,102,241,0.25); color: #818CF8; border: 1.5px solid rgba(99,102,241,0.4); }
+  .key-circle.k-11b { background: rgba(74,222,128,0.25); color: #4ADE80; border: 1.5px solid rgba(74,222,128,0.4); }
+  .key-circle.k-5a { background: rgba(251,191,36,0.25); color: #FBBF24; border: 1.5px solid rgba(251,191,36,0.4); }
+  .key-circle.k-2b { background: rgba(248,113,113,0.25); color: #F87171; border: 1.5px solid rgba(248,113,113,0.4); }
+  .key-circle.k-6b { background: rgba(236,72,153,0.25); color: #EC4899; border: 1.5px solid rgba(236,72,153,0.4); }
+  .key-circle.k-12a { background: rgba(34,211,238,0.25); color: #22D3EE; border: 1.5px solid rgba(34,211,238,0.4); }
+
+  /* Also include pill variant for inline/compact use */
+  .key-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 8px; border-radius: 3px;
+    font-size: 11px; font-weight: 700;
+    font-family: "SF Mono", monospace;
+  }
+  .key-chip.k-8a { background: rgba(99,102,241,0.2); color: #818CF8; }
+
+  /* --- ENERGY — Horizontal meter --- */
+  .energy-meter {
+    display: flex; align-items: center; gap: 4px; width: 48px;
+  }
+  .meter-track {
+    flex: 1; height: 6px; border-radius: 3px; background: #1E1E22;
+    overflow: hidden;
+  }
+  .meter-fill {
+    height: 100%; border-radius: 3px;
+  }
+  .meter-fill.low { width: 20%; background: #4ADE80; }
+  .meter-fill.mid { width: 60%; background: #FBBF24; }
+  .meter-fill.high { width: 80%; background: #F87171; }
+  .meter-fill.max { width: 100%; background: #F87171; }
+
+  /* --- BUTTONS --- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 8px 18px; border-radius: 8px;
+    font-size: 13px; font-weight: 500; border: none; cursor: pointer;
+    font-family: inherit; gap: 6px;
+  }
+  .btn-primary { background: #6366F1; color: white; }
+  .btn-primary.hover { background: #818CF8; }
+  .btn-primary.loading { background: #6366F1; opacity: 0.7; }
+  .btn-primary.disabled { background: #6366F1; opacity: 0.35; }
+  .btn-secondary { background: transparent; border: 1px solid #1E1E22; color: #8B8B92; }
+  .btn-ghost { background: transparent; color: #8B8B92; border: none; }
+  .btn-destructive { background: transparent; color: #F87171; border: 1px solid rgba(248,113,113,0.3); }
+
+  .btn-icon {
+    width: 36px; height: 36px; border-radius: 8px;
+    background: transparent; border: 1px solid #1E1E22;
+    color: #8B8B92; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; cursor: pointer;
+  }
+  .btn-icon.hover { background: #1E1E22; color: #F0F0F2; }
+
+  /* --- TABS --- */
+  .tab-bar {
+    display: flex; border-bottom: 1px solid #1E1E22;
+  }
+  .tab-item {
+    padding: 10px 20px; font-size: 13px; font-weight: 500;
+    color: #5C5C63; border: none; background: none;
+    cursor: pointer; position: relative; font-family: inherit;
+  }
+  .tab-item.active { color: #F0F0F2; }
+  .tab-item.active::after {
+    content: ''; position: absolute; bottom: -1px; left: 0; right: 0;
+    height: 2px; background: #6366F1; border-radius: 1px;
+  }
+  .tab-item.disabled { color: #333; cursor: default; }
+  .tab-coming-soon {
+    font-size: 8px; background: #1A1A1E; color: #5C5C63;
+    padding: 1px 4px; border-radius: 3px; margin-left: 4px;
+    text-transform: uppercase; font-weight: 600; letter-spacing: 0.04em;
+  }
+
+  /* --- BOTTOM SHEET (preview) --- */
+  .sheet-preview {
+    border: 1px solid #1E1E22; border-radius: 8px;
+    overflow: hidden; height: 280px; position: relative;
+    background: #0D0D0F;
+  }
+  .sheet-table-area {
+    padding: 12px; height: 120px;
+  }
+  .sheet-table-label {
+    font-size: 9px; font-weight: 500; text-transform: uppercase;
+    color: #5C5C63; letter-spacing: 0.04em;
+  }
+  .table-lines { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .table-line { height: 6px; background: #1A1A1E; border-radius: 2px; }
+  .table-line:nth-child(2) { width: 85%; }
+  .sheet-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: #141416; border-top: 1px solid #1E1E22;
+    border-radius: 12px 12px 0 0; padding: 16px;
+    height: 180px;
+  }
+  .sheet-handle {
+    width: 32px; height: 4px; border-radius: 2px;
+    background: #5C5C63; margin: 0 auto 12px;
+  }
+
+  /* --- URL INPUT --- */
+  .url-input {
+    padding: 10px 14px; border-radius: 8px;
+    background: #0D0D0F; border: 1px solid #1E1E22;
+    color: #F0F0F2; font-size: 13px; font-family: "SF Mono", monospace;
+    width: 100%;
+  }
+  .url-input.focused { border-color: #6366F1; }
+  .url-input.error { border-color: #F87171; }
+  .url-input::placeholder { color: #5C5C63; }
+  .input-helper {
+    font-size: 11px; color: #5C5C63; margin-top: 4px;
+  }
+  .input-error-msg { font-size: 11px; color: #F87171; margin-top: 4px; }
+
+  /* --- BATCH TOOLBAR --- */
+  .batch-bar {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 16px; background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.2); border-radius: 8px;
+  }
+  .batch-count {
+    font-size: 12px; font-weight: 600; color: #818CF8;
+  }
+  .batch-actions { display: flex; gap: 8px; }
+
+  /* --- IMPORT PROGRESS --- */
+  .progress-bar-wrap {
+    width: 100%; height: 4px; background: #1E1E22; border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-bar-fill {
+    height: 100%; background: #6366F1; border-radius: 2px;
+    transition: width 300ms ease-out;
+  }
+  .import-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid rgba(30,30,34,0.5);
+    font-size: 12px;
+  }
+  .import-status-icon { font-size: 12px; flex-shrink: 0; }
+  .import-track { color: #C0C0C6; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .import-track-meta { font-size: 10px; color: #5C5C63; }
+  .import-fail-reason { font-size: 10px; color: #F87171; }
+
+  /* --- TOAST --- */
+  .toast {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 12px 20px; border-radius: 10px;
+    font-size: 13px; font-weight: 500;
+  }
+  .toast.success { background: rgba(74,222,128,0.12); color: #4ADE80; border: 1px solid rgba(74,222,128,0.2); }
+  .toast.error { background: rgba(248,113,113,0.12); color: #F87171; border: 1px solid rgba(248,113,113,0.2); }
+  .toast-action {
+    font-size: 11px; font-weight: 600; color: inherit;
+    text-decoration: underline; cursor: pointer;
+    margin-left: 8px;
+  }
+
+  /* --- INLINE ALERT --- */
+  .inline-alert {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 10px 14px; border-radius: 8px; font-size: 12px;
+  }
+  .inline-alert.info { background: rgba(99,102,241,0.08); color: #818CF8; border: 1px solid rgba(99,102,241,0.15); }
+  .inline-alert.warning { background: rgba(251,191,36,0.08); color: #FBBF24; border: 1px solid rgba(251,191,36,0.15); }
+  .inline-alert.error { background: rgba(248,113,113,0.08); color: #F87171; border: 1px solid rgba(248,113,113,0.15); }
+  .alert-icon { flex-shrink: 0; font-size: 14px; }
+
+  .inventory-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .inventory-table th {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; text-align: left;
+    padding: 6px 8px; border-bottom: 1px solid #1E1E22;
+  }
+  .inventory-table td {
+    padding: 6px 8px; border-bottom: 1px solid rgba(30,30,34,0.5);
+    font-size: 12px; color: #8B8B92; vertical-align: top;
+  }
+  .inventory-table td:first-child { color: #C0C0C6; font-weight: 500; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="option-name">Studio Deck</div>
+<div class="option-subtitle">
+  16 components with full state coverage. Import as a bottom sheet (slides up 50%). Track rows
+  have checkbox selection for batch operations and hover-reveal action buttons (preview, queue, more).
+  Camelot chip as a circle badge (CDJ-inspired). Energy as a horizontal meter (VU-style).
+</div>
+
+<!-- ============ INVENTORY ============ -->
+<div class="section-label">Component Inventory (16 components)</div>
+<div class="specimen">
+  <table class="inventory-table">
+    <thead><tr><th>Component</th><th>Used In</th><th>States</th></tr></thead>
+    <tbody>
+      <tr><td>Track Row</td><td>Catalog</td><td>default, hover, selected, playing, focused, skeleton</td></tr>
+      <tr><td>Row Checkbox</td><td>Catalog</td><td>unchecked, checked, indeterminate</td></tr>
+      <tr><td>Hover Actions Bar</td><td>Catalog (on hover)</td><td>visible, hidden</td></tr>
+      <tr><td>Column Header</td><td>Catalog</td><td>default, active (sorted), hover</td></tr>
+      <tr><td>Camelot Key Circle</td><td>Catalog, Import results</td><td>default (static)</td></tr>
+      <tr><td>Energy Meter</td><td>Catalog</td><td>default (static)</td></tr>
+      <tr><td>Genre Pill</td><td>Catalog</td><td>default (static)</td></tr>
+      <tr><td>Source Badge</td><td>Catalog</td><td>default (static)</td></tr>
+      <tr><td>Button (4 tiers)</td><td>Everywhere</td><td>default, hover, active, disabled, loading</td></tr>
+      <tr><td>Icon Button</td><td>Toolbar, Hover actions</td><td>default, hover, active, disabled</td></tr>
+      <tr><td>Tab Bar</td><td>Import sheet</td><td>default, active, disabled</td></tr>
+      <tr><td>URL Input</td><td>Import sheet</td><td>default, focused, filled, error, disabled</td></tr>
+      <tr><td>Bottom Sheet</td><td>Import</td><td>collapsed, half, full, dragging</td></tr>
+      <tr><td>Batch Action Bar</td><td>Catalog (on selection)</td><td>visible, hidden</td></tr>
+      <tr><td>Import Progress</td><td>Import sheet</td><td>idle, in-progress, complete, partial-fail</td></tr>
+      <tr><td>Toast + Inline Alert</td><td>Global, Import</td><td>success, error, warning, info</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ TRACK ROW ============ -->
+<div class="section-label">Track Row — With Checkbox + Hover Actions</div>
+<div class="specimen">
+  <div style="display:flex; flex-direction:column; gap:2px;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">default</span>
+      <div class="track-row-demo default" style="flex:1;">
+        <div class="row-checkbox"></div>
+        <div class="art-sm"></div>
+        <div class="t-artist">Fisher</div>
+        <div class="t-title">Losing It</div>
+        <div class="t-bpm">128</div>
+        <div><span class="key-circle k-8a" style="width:28px;height:28px;font-size:9px;">8A</span></div>
+        <div class="energy-meter"><div class="meter-track"><div class="meter-fill high"></div></div></div>
+        <div><span class="t-genre">Tech House</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">hover</span>
+      <div class="track-row-demo hover" style="flex:1; position:relative;">
+        <div class="row-checkbox"></div>
+        <div class="art-sm">
+          <div class="art-play-overlay">&#9654;</div>
+        </div>
+        <div class="t-artist">CamelPhat</div>
+        <div class="t-title">Cola</div>
+        <div class="t-bpm">126</div>
+        <div><span class="key-circle k-11b" style="width:28px;height:28px;font-size:9px;">11B</span></div>
+        <div class="energy-meter"><div class="meter-track"><div class="meter-fill mid"></div></div></div>
+        <div><span class="t-genre">Deep House</span></div>
+        <div class="t-source">Beatport</div>
+        <div class="hover-actions">
+          <div class="hover-action-btn" title="Preview">&#9654;</div>
+          <div class="hover-action-btn" title="Queue">+</div>
+          <div class="hover-action-btn" title="More">&#8943;</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">selected</span>
+      <div class="track-row-demo selected" style="flex:1;">
+        <div class="row-checkbox checked">&#10003;</div>
+        <div class="art-sm"></div>
+        <div class="t-artist">deadmau5</div>
+        <div class="t-title">Strobe</div>
+        <div class="t-bpm">130</div>
+        <div><span class="key-circle k-5a" style="width:28px;height:28px;font-size:9px;">5A</span></div>
+        <div class="energy-meter"><div class="meter-track"><div class="meter-fill mid"></div></div></div>
+        <div><span class="t-genre">Progressive</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">playing</span>
+      <div class="track-row-demo playing" style="flex:1;">
+        <div class="row-checkbox"></div>
+        <div class="art-sm">
+          <div class="art-play-overlay" style="background:rgba(74,222,128,0.3);">&#9646;&#9646;</div>
+        </div>
+        <div class="t-artist" style="color:#4ADE80;">Eric Prydz</div>
+        <div class="t-title">Opus</div>
+        <div class="t-bpm">122</div>
+        <div><span class="key-circle k-2b" style="width:28px;height:28px;font-size:9px;">2B</span></div>
+        <div class="energy-meter"><div class="meter-track"><div class="meter-fill low"></div></div></div>
+        <div><span class="t-genre">Progressive</span></div>
+        <div class="t-source">Beatport</div>
+      </div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    Row height: 52px. Checkbox column (28px). Hover reveals play overlay on art + action bar.
+    Selected = checked + tinted background. Playing = green tint + pause icon on art.
+  </div>
+</div>
+
+<!-- ============ DATA VIZ COMPONENTS ============ -->
+<div class="section-label">Data Visualization Components</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Camelot Key — Circle Badge (CDJ-style)</div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <span class="key-circle k-8a">8A</span>
+      <span class="key-circle k-11b">11B</span>
+      <span class="key-circle k-5a">5A</span>
+      <span class="key-circle k-2b">2B</span>
+      <span class="key-circle k-6b">6B</span>
+      <span class="key-circle k-12a">12A</span>
+    </div>
+    <div class="specimen-note">
+      32px circle. Colored border + tinted fill. Monospace text centered.
+      Inspired by CDJ key displays. Larger hit target for future interactions (click to filter by compatible keys).
+    </div>
+  </div>
+
+  <div class="specimen">
+    <div class="specimen-label">Energy Meter — Horizontal Bar (VU-style)</div>
+    <div style="display:flex; gap:20px; align-items:center;">
+      <div style="text-align:center;">
+        <div class="energy-meter" style="width:64px;"><div class="meter-track"><div class="meter-fill low"></div></div></div>
+        <div class="state-label">Low</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy-meter" style="width:64px;"><div class="meter-track"><div class="meter-fill mid"></div></div></div>
+        <div class="state-label">Mid</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy-meter" style="width:64px;"><div class="meter-track"><div class="meter-fill high"></div></div></div>
+        <div class="state-label">High</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy-meter" style="width:64px;"><div class="meter-track"><div class="meter-fill max"></div></div></div>
+        <div class="state-label">Max</div>
+      </div>
+    </div>
+    <div class="specimen-note">Horizontal fill bar, 6px height, rounded. Gradient from green→yellow→red by fill level.</div>
+  </div>
+</div>
+
+<!-- ============ BUTTONS ============ -->
+<div class="section-label">Buttons — 4 Tiers + Icon Buttons</div>
+<div class="specimen">
+  <div class="states-strip">
+    <div class="state-box"><button class="btn btn-primary">+ Import</button><div class="state-label">Primary</div></div>
+    <div class="state-box"><button class="btn btn-primary hover">+ Import</button><div class="state-label">Hover</div></div>
+    <div class="state-box"><button class="btn btn-primary loading">Importing...</button><div class="state-label">Loading</div></div>
+    <div class="state-box"><button class="btn btn-primary disabled">+ Import</button><div class="state-label">Disabled</div></div>
+    <div class="state-box"><button class="btn btn-secondary">Filter</button><div class="state-label">Secondary</div></div>
+    <div class="state-box"><button class="btn btn-ghost">Cancel</button><div class="state-label">Ghost</div></div>
+    <div class="state-box"><button class="btn btn-destructive">Remove</button><div class="state-label">Destructive</div></div>
+    <div class="state-box"><div class="btn-icon">&#9881;</div><div class="state-label">Icon</div></div>
+    <div class="state-box"><div class="btn-icon hover">&#9881;</div><div class="state-label">Icon:hover</div></div>
+  </div>
+  <div class="specimen-note">Height: 38px (buttons), 36px (icon). Radius: 8px. Loading state replaces label text.</div>
+</div>
+
+<!-- ============ BATCH TOOLBAR ============ -->
+<div class="section-label">Batch Action Bar — Appears on Selection</div>
+<div class="specimen">
+  <div class="batch-bar">
+    <span class="batch-count">3 tracks selected</span>
+    <div class="batch-actions">
+      <button class="btn btn-primary" style="padding:6px 14px; font-size:11px;">Add to Setlist</button>
+      <button class="btn btn-secondary" style="padding:6px 14px; font-size:11px;">Export</button>
+      <button class="btn btn-destructive" style="padding:6px 14px; font-size:11px;">Remove</button>
+    </div>
+    <button class="btn btn-ghost" style="margin-left:auto; font-size:11px;">Deselect All</button>
+  </div>
+  <div class="specimen-note">Slides in above the table when 1+ rows are checked. Fixed position. Accent-tinted background.</div>
+</div>
+
+<!-- ============ SOURCE TABS + URL INPUT ============ -->
+<div class="section-label">Import Sheet Components</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Source Tabs — Underline Tab Bar</div>
+    <div class="tab-bar">
+      <button class="tab-item active">Spotify</button>
+      <button class="tab-item">Beatport</button>
+      <button class="tab-item disabled">SoundCloud <span class="tab-coming-soon">soon</span></button>
+    </div>
+    <div class="specimen-note">Standard tab bar with 2px accent underline. Disabled tab shows "soon" badge. Padding: 10px 20px.</div>
+  </div>
+
+  <div class="specimen">
+    <div class="specimen-label">URL Input — States</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div>
+        <input class="url-input" placeholder="https://open.spotify.com/playlist/..." readonly>
+        <div class="input-helper">Paste a Spotify playlist or album URL</div>
+      </div>
+      <input class="url-input focused" value="https://open.spotify.com/playlist/37i9d..." readonly style="border-color:#6366F1;">
+      <div>
+        <input class="url-input error" value="not-a-valid-url" readonly style="border-color:#F87171;">
+        <div class="input-error-msg">Not a valid Spotify URL. Try: https://open.spotify.com/playlist/...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ BOTTOM SHEET PREVIEW ============ -->
+<div class="section-label">Import — Bottom Sheet (Slides Up)</div>
+<div class="specimen">
+  <div class="sheet-preview">
+    <div class="sheet-table-area">
+      <div class="sheet-table-label">Track catalog (visible behind sheet)</div>
+      <div class="table-lines">
+        <div class="table-line"></div><div class="table-line"></div><div class="table-line"></div>
+      </div>
+    </div>
+    <div class="sheet-overlay">
+      <div class="sheet-handle"></div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div class="tab-bar" style="margin:0 -16px; padding:0 16px;">
+          <button class="tab-item active" style="padding:6px 14px; font-size:11px;">Spotify</button>
+          <button class="tab-item" style="padding:6px 14px; font-size:11px;">Beatport</button>
+        </div>
+        <input class="url-input" style="font-size:11px;" placeholder="Paste playlist URL..." readonly>
+        <button class="btn btn-primary" style="align-self:flex-start; font-size:11px; padding:6px 14px;">Import</button>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:65%;"></div></div>
+      </div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    Bottom sheet: 50% height default, draggable to full. Scrim behind. Catalog visible above.
+    Contains: source tabs, URL input, import button, progress bar, result rows.
+  </div>
+</div>
+
+<!-- ============ FEEDBACK ============ -->
+<div class="section-label">Feedback Components</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Toast — With Action Link</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div class="toast success">&#10003; 24 tracks imported <span class="toast-action">View</span></div>
+      <div class="toast error">&#10007; Import failed <span class="toast-action">Retry</span></div>
+    </div>
+  </div>
+  <div class="specimen">
+    <div class="specimen-label">Inline Alerts</div>
+    <div style="display:flex; flex-direction:column; gap:8px;">
+      <div class="inline-alert info"><span class="alert-icon">&#8505;</span> Beatport imports include native BPM and key data</div>
+      <div class="inline-alert warning"><span class="alert-icon">&#9888;</span> 3 tracks failed — your imported tracks are safe</div>
+      <div class="inline-alert error"><span class="alert-icon">&#10007;</span> Spotify is rate-limiting. Try again in 30 seconds.</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

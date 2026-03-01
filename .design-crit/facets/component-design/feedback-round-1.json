@@ -1,0 +1,12 @@
+{
+  "facet": "component-design",
+  "round": 1,
+  "timestamp": "2026-03-01T01:00:00Z",
+  "options": {
+    "option-a": { "action": "cut", "comment": "Right design language (pills, bars, flat) but missing C's structure" },
+    "option-b": { "action": "cut", "comment": "Too much for v1 — checkboxes, batch, playing state, bottom sheet all premature" },
+    "option-c": { "action": "keep", "comment": "Right structure (slide-over, detail strip, multi-sort, source pills) but want A's compact design language" }
+  },
+  "overall": "Merge A+C: C's layout (slide-over, detail strip, multi-column sort, source pills, accent-border selection) with A's design language (compact pill chips, thin vertical bars, flat styling). Multi-column sort is critical.",
+  "decision": "refine"
+}

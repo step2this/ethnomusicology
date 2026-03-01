@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flat Five — Content Hierarchy Option C</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111113;
+    color: #F0F0F2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+
+  .screen-label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: #5C5C63; margin-bottom: 8px;
+  }
+
+  .wireframe {
+    background: #0D0D0F;
+    border: 1px solid #1E1E22;
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    position: relative;
+  }
+
+  .rail {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 48px;
+    background: #141416;
+    border-right: 1px solid #1E1E22;
+    display: flex; flex-direction: column;
+    align-items: center;
+    padding-top: 16px; gap: 16px;
+  }
+  .rail-icon {
+    width: 24px; height: 24px;
+    border-radius: 4px; background: #1E1E22;
+  }
+  .rail-icon.active { background: #6366F1; opacity: 0.6; }
+
+  .table-area { margin-left: 48px; }
+
+  .toolbar {
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid #1E1E22;
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-size: 18px; font-weight: 600; color: #F0F0F2; }
+  .track-count {
+    font-size: 12px; color: #5C5C63;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+  .toolbar-right { display: flex; gap: 8px; }
+  .toolbar-btn {
+    padding: 6px 14px; border-radius: 6px;
+    background: #6366F1; border: none;
+    font-size: 12px; color: white; font-weight: 500;
+  }
+  .toolbar-btn.ghost {
+    background: transparent;
+    border: 1px solid #1E1E22;
+    color: #8B8B92;
+  }
+
+  /* Column headers — the five core fields get equal weight */
+  .col-header-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 64px 80px 56px 100px 72px;
+    padding: 8px 16px;
+    border-bottom: 1px solid #1E1E22;
+    align-items: center;
+    gap: 4px;
+  }
+  .col-header {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: #5C5C63;
+  }
+  .col-header.core {
+    color: #8B8B92;
+    font-weight: 700;
+  }
+
+  /* Track rows */
+  .track-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 64px 80px 56px 100px 72px;
+    padding: 10px 16px;
+    border-bottom: 1px solid rgba(30,30,34,0.5);
+    align-items: center;
+    gap: 4px;
+    transition: background 150ms ease-out;
+  }
+  .track-row:hover { background: rgba(99,102,241,0.04); }
+
+  .art {
+    width: 36px; height: 36px;
+    border-radius: 4px; background: #1E1E22;
+  }
+
+  /* Artist — CO-PRIMARY (the "who") */
+  .artist {
+    font-size: 14px;
+    font-weight: 600;
+    color: #F0F0F2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Title — CO-PRIMARY (the "what") */
+  .title {
+    font-size: 13px;
+    font-weight: 400;
+    color: #C0C0C6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* BPM — CO-PRIMARY (the "speed") */
+  .bpm {
+    font-family: "SF Mono", "Fira Code", monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #F0F0F2;
+  }
+
+  /* Key — CO-PRIMARY (the "harmony") */
+  .key-chip {
+    display: inline-flex;
+    align-items: center; justify-content: center;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 12px; font-weight: 700;
+    font-family: "SF Mono", "Fira Code", monospace;
+  }
+  .key-chip.k-8a { background: rgba(99,102,241,0.2); color: #818CF8; }
+  .key-chip.k-11b { background: rgba(74,222,128,0.2); color: #4ADE80; }
+  .key-chip.k-5a { background: rgba(251,191,36,0.2); color: #FBBF24; }
+  .key-chip.k-2b { background: rgba(248,113,113,0.2); color: #F87171; }
+  .key-chip.k-9a { background: rgba(168,85,247,0.2); color: #A855F7; }
+
+  /* Energy — CO-PRIMARY (the "intensity") */
+  .energy {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .energy-bar {
+    width: 6px;
+    border-radius: 1px;
+    background: #1E1E22;
+  }
+  .energy-bar.filled {
+    background: #6366F1;
+  }
+  .energy-bar.filled.high {
+    background: #F87171;
+  }
+  .energy-bar.filled.mid {
+    background: #FBBF24;
+  }
+  .energy-bar.filled.low {
+    background: #4ADE80;
+  }
+
+  /* Genre — SECONDARY */
+  .genre {
+    font-size: 11px; color: #8B8B92;
+    padding: 2px 8px;
+    background: #1A1A1E;
+    border-radius: 9999px;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  /* Source — AMBIENT */
+  .source-badge {
+    font-size: 10px; font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #5C5C63; opacity: 0.7;
+  }
+
+  /* Reading order */
+  .reading-order { position: absolute; pointer-events: none; z-index: 10; }
+  .ro-dot {
+    position: absolute;
+    width: 22px; height: 22px; border-radius: 50%;
+    background: rgba(99,102,241,0.85); color: white;
+    font-size: 11px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    border: 2px solid rgba(99,102,241,1);
+  }
+  .ro-group {
+    position: absolute;
+    border: 2px dashed rgba(99,102,241,0.25);
+    border-radius: 6px;
+    pointer-events: none;
+  }
+  .ro-group-label {
+    position: absolute;
+    top: -10px; left: 8px;
+    font-size: 9px; font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: rgba(99,102,241,0.6);
+    background: #0D0D0F;
+    padding: 0 4px;
+  }
+
+  .emphasis-key {
+    margin-top: 16px; padding: 16px;
+    background: #141416;
+    border: 1px solid #1E1E22;
+    border-radius: 8px;
+  }
+  .emphasis-key h3 {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: #5C5C63; margin-bottom: 12px;
+  }
+  .ek-row {
+    display: grid;
+    grid-template-columns: 80px 280px 1fr;
+    padding: 6px 0; font-size: 12px; gap: 12px;
+    align-items: baseline;
+  }
+  .ek-level { font-weight: 600; }
+  .ek-level.primary { color: #818CF8; }
+  .ek-level.secondary { color: #C0C0C6; }
+  .ek-level.tertiary { color: #8B8B92; }
+  .ek-level.ambient { color: #5C5C63; }
+  .ek-role { color: #8B8B92; }
+  .ek-treatment { color: #5C5C63; }
+
+  .option-name { font-size: 18px; font-weight: 600; color: #F0F0F2; margin-bottom: 6px; }
+  .option-subtitle { font-size: 13px; color: #8B8B92; margin-bottom: 24px; line-height: 1.5; }
+
+  .flat-five-note {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; margin-bottom: 16px;
+    background: rgba(99,102,241,0.06);
+    border: 1px solid rgba(99,102,241,0.15);
+    border-radius: 6px;
+    font-size: 12px; color: #8B8B92;
+  }
+  .flat-five-note strong { color: #C0C0C6; }
+</style>
+</head>
+<body>
+
+<div class="option-name">Flat Five</div>
+<div class="option-subtitle">
+  Five core fields at co-primary emphasis: Artist, Title, BPM, Key, Energy.
+  No single column dominates — each is differentiated by visual treatment, not size hierarchy.
+  Artist is bold (the "who"), Title is regular weight (the "what"), BPM is monospace (the "speed"),
+  Key is a colored chip (the "harmony"), Energy is a bar graph (the "intensity").
+</div>
+
+<div class="flat-five-note">
+  <strong>Design principle:</strong> Flat hierarchy, rich visual coding. Each column has a distinct visual voice
+  so the DJ's eye learns to jump to whatever matters for the current task.
+</div>
+
+<div class="screen-label">Track Catalog — Primary Screen</div>
+
+<div class="wireframe" style="position:relative; min-height: 380px;">
+  <div class="rail">
+    <div class="rail-icon active"></div>
+    <div class="rail-icon"></div>
+    <div class="rail-icon"></div>
+  </div>
+
+  <div class="table-area">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="page-title">Tracks</span>
+        <span class="track-count">247 tracks</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="toolbar-btn ghost">Filter</button>
+        <button class="toolbar-btn">+ Import</button>
+      </div>
+    </div>
+
+    <div class="col-header-row">
+      <div class="col-header"></div>
+      <div class="col-header core">ARTIST</div>
+      <div class="col-header core">TITLE</div>
+      <div class="col-header core">BPM</div>
+      <div class="col-header core">KEY</div>
+      <div class="col-header core">NRG</div>
+      <div class="col-header">GENRE</div>
+      <div class="col-header">SOURCE</div>
+    </div>
+
+    <!-- Row 1 -->
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="artist">Fisher</div>
+      <div class="title">Losing It</div>
+      <div class="bpm">128</div>
+      <div><span class="key-chip k-8a">8A</span></div>
+      <div class="energy">
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+      </div>
+      <div><span class="genre">Tech House</span></div>
+      <div class="source-badge">Spotify</div>
+    </div>
+
+    <!-- Row 2 -->
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="artist">CamelPhat</div>
+      <div class="title">Cola</div>
+      <div class="bpm">126</div>
+      <div><span class="key-chip k-11b">11B</span></div>
+      <div class="energy">
+        <div class="energy-bar filled mid" style="height:16px;"></div>
+        <div class="energy-bar filled mid" style="height:16px;"></div>
+        <div class="energy-bar filled mid" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+      </div>
+      <div><span class="genre">Deep House</span></div>
+      <div class="source-badge">Beatport</div>
+    </div>
+
+    <!-- Row 3 -->
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="artist">Chase & Status</div>
+      <div class="title">Blind Faith</div>
+      <div class="bpm">174</div>
+      <div><span class="key-chip k-5a">5A</span></div>
+      <div class="energy">
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar filled high" style="height:16px;"></div>
+        <div class="energy-bar filled high" style="height:16px;"></div>
+      </div>
+      <div><span class="genre">DnB</span></div>
+      <div class="source-badge">Spotify</div>
+    </div>
+
+    <!-- Row 4 -->
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="artist">Eric Prydz</div>
+      <div class="title">Opus</div>
+      <div class="bpm">122</div>
+      <div><span class="key-chip k-2b">2B</span></div>
+      <div class="energy">
+        <div class="energy-bar filled low" style="height:16px;"></div>
+        <div class="energy-bar filled low" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+      </div>
+      <div><span class="genre">Progressive</span></div>
+      <div class="source-badge">Beatport</div>
+    </div>
+
+    <!-- Row 5 -->
+    <div class="track-row">
+      <div><div class="art"></div></div>
+      <div class="artist">deadmau5</div>
+      <div class="title">Strobe</div>
+      <div class="bpm">130</div>
+      <div><span class="key-chip k-9a">9A</span></div>
+      <div class="energy">
+        <div class="energy-bar filled mid" style="height:16px;"></div>
+        <div class="energy-bar filled mid" style="height:16px;"></div>
+        <div class="energy-bar filled mid" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+        <div class="energy-bar" style="height:16px;"></div>
+      </div>
+      <div><span class="genre">Progressive</span></div>
+      <div class="source-badge">Spotify</div>
+    </div>
+  </div>
+
+  <!-- Reading order — task-dependent, not fixed left-to-right -->
+  <div class="reading-order">
+    <!-- Group annotations showing the two reading zones -->
+    <div class="ro-group" style="top:92px; left:54px; width:380px; height:245px;">
+      <span class="ro-group-label">Identity zone</span>
+    </div>
+    <div class="ro-group" style="top:92px; left:440px; width:240px; height:245px;">
+      <span class="ro-group-label">Mix zone</span>
+    </div>
+
+    <!-- Row 2 dots — showing DJ in "set building" mode -->
+    <div class="ro-dot" style="top:162px; left:62px;">1</div>
+    <div class="ro-dot" style="top:162px; left:200px;">2</div>
+    <div class="ro-dot" style="top:162px; left:370px;">3</div>
+    <div class="ro-dot" style="top:162px; left:450px;">4</div>
+    <div class="ro-dot" style="top:162px; left:530px;">5</div>
+    <div class="ro-dot" style="top:162px; left:610px;">6</div>
+
+    <svg style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+      <line x1="84" y1="173" x2="188" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="222" y1="173" x2="358" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="392" y1="173" x2="438" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="472" y1="173" x2="518" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+      <line x1="552" y1="173" x2="598" y2="173" stroke="rgba(99,102,241,0.35)" stroke-width="2" stroke-dasharray="4,4"/>
+    </svg>
+  </div>
+</div>
+
+<div class="emphasis-key">
+  <h3>Emphasis Map</h3>
+  <div class="ek-row">
+    <span class="ek-level primary">Co-Primary</span>
+    <span class="ek-role">Artist, Title, BPM, Key, Energy</span>
+    <span class="ek-treatment">All five at same emphasis level. Distinguished by visual coding: bold text, regular text, monospace, color chip, bar graph.</span>
+  </div>
+  <div class="ek-row">
+    <span class="ek-level secondary">Secondary</span>
+    <span class="ek-role">Genre, Page Title, Import CTA</span>
+    <span class="ek-treatment">Pill badge (11px), useful for filtering context but not row-level scanning</span>
+  </div>
+  <div class="ek-row">
+    <span class="ek-level ambient">Ambient</span>
+    <span class="ek-role">Source Badge, Track Count, Art</span>
+    <span class="ek-treatment">Near-invisible (10px uppercase), bookkeeping info</span>
+  </div>
+  <div class="ek-row" style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #1E1E22;">
+    <span class="ek-level" style="color: #6366F1;">Note</span>
+    <span class="ek-role" style="grid-column: span 2;">Only 3 emphasis levels (not 4). Flat hierarchy = fewer levels. Typography/color facets need 3 steps, not 4.</span>
+  </div>
+</div>
+
+</body>
+</html>

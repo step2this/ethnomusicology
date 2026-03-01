@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Component Design — Round 2 Compare</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: #0D0D0F; color: #F0F0F2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding-top: 56px;
+  }
+  .banner {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: #0D0D0F; border-bottom: 1px solid #1E1E22;
+    z-index: 100; display: flex; align-items: center;
+    justify-content: space-between; padding: 0 24px;
+  }
+  .banner-left { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5C5C63; }
+  .banner-left .project { font-weight: 500; color: #F0F0F2; }
+  .banner-left .pipe { color: #1E1E22; }
+  .banner-right { display: flex; align-items: center; gap: 8px; }
+  .filter-btn {
+    padding: 4px 12px; border-radius: 9999px;
+    border: 1px solid #1E1E22; background: transparent;
+    color: #8B8B92; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    cursor: pointer; text-decoration: none;
+    transition: border-color 150ms, color 150ms;
+  }
+  .filter-btn:hover { border-color: #6366F1; color: #F0F0F2; }
+  .filter-btn.active { border-color: #6366F1; background: rgba(99,102,241,0.1); color: #818CF8; }
+
+  .content { max-width: 1440px; margin: 0 auto; padding: 32px 24px 80px; }
+
+  /* Eliminated cards */
+  .eliminated-card {
+    background: #141416; border: 1px solid #1E1E22; border-radius: 8px;
+    margin-bottom: 16px; overflow: hidden; opacity: 0.5;
+    padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .eliminated-card.hidden { display: none; }
+  .cut-badge {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #F87171;
+    padding: 2px 8px; border: 1px solid rgba(248,113,113,0.3);
+    border-radius: 4px;
+  }
+  .elim-name { font-size: 13px; color: #8B8B92; }
+
+  /* Surviving option card */
+  .option-card {
+    background: #141416; border: 1px solid #1E1E22; border-radius: 8px;
+    margin-bottom: 32px; overflow: hidden;
+  }
+  .option-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; border-bottom: 1px solid #1E1E22;
+  }
+  .option-letter { font-size: 18px; font-weight: 600; color: #6366F1; }
+  .option-name-inline { font-size: 15px; font-weight: 600; color: #F0F0F2; margin-left: 12px; }
+  .merge-badge {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #4ADE80;
+    padding: 2px 8px; border: 1px solid rgba(74,222,128,0.3);
+    border-radius: 4px; margin-left: 8px;
+  }
+  .open-tab {
+    font-size: 11px; color: #5C5C63; text-decoration: none;
+    transition: color 150ms;
+  }
+  .open-tab:hover { color: #818CF8; }
+
+  .option-iframe-wrap { position: relative; background: #111113; }
+  .option-iframe-wrap iframe {
+    width: 100%; min-height: 640px; border: none; display: block;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+
+  .option-body { padding: 16px; }
+  .rationale-section { margin-bottom: 16px; }
+  .rationale-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: #5C5C63; margin-bottom: 4px;
+  }
+  .rationale-text { font-size: 13px; color: #8B8B92; line-height: 1.5; }
+
+  .option-controls {
+    display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #1E1E22;
+  }
+  .action-btn {
+    padding: 6px 16px; border-radius: 9999px;
+    border: 1px solid #1E1E22; background: transparent;
+    color: #8B8B92; font-size: 13px; cursor: pointer;
+    transition: all 150ms;
+  }
+  .action-btn:hover { border-color: #5C5C63; }
+  .action-btn[data-action="keep"].active { background: #4ADE80; color: #0D0D0F; border-color: #4ADE80; font-weight: 600; }
+  .action-btn[data-action="cut"].active { background: #F87171; color: #0D0D0F; border-color: #F87171; font-weight: 600; }
+
+  .option-comment {
+    display: block; width: calc(100% - 32px); margin: 0 16px 16px;
+    min-height: 60px; resize: vertical;
+    background: #111113; color: #F0F0F2;
+    border: 1px solid #1E1E22; border-radius: 6px;
+    padding: 12px; font-family: inherit; font-size: 13px; line-height: 1.5;
+  }
+  .option-comment::placeholder { color: #5C5C63; }
+  .option-comment:focus { outline: 2px solid #6366F1; outline-offset: 2px; border-color: #6366F1; }
+
+  .my-take {
+    background: #1A1A1E; border-radius: 8px;
+    border-left: 3px solid #6366F1;
+    padding: 24px 32px; margin-top: 48px; margin-bottom: 48px;
+  }
+  .my-take-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.02em; color: #6366F1; margin-bottom: 8px;
+  }
+  .my-take-title { font-size: 18px; font-weight: 600; color: #F0F0F2; margin-bottom: 12px; }
+  .my-take-body { font-size: 14px; color: #8B8B92; line-height: 1.6; max-width: 720px; }
+  .my-take-body p { margin-bottom: 12px; }
+  .my-take-body strong { color: #C0C0C6; }
+
+  .feedback-area { max-width: 680px; margin-bottom: 48px; }
+  .feedback-area .instruction-text { font-size: 13px; color: #5C5C63; margin-bottom: 12px; }
+  #direction-notes {
+    display: block; width: 100%; min-height: 100px; resize: vertical;
+    background: #111113; color: #F0F0F2;
+    border: 1px solid #1E1E22; border-radius: 6px;
+    padding: 12px; font-family: inherit; font-size: 13px;
+    line-height: 1.5; margin-bottom: 16px;
+  }
+  #direction-notes::placeholder { color: #5C5C63; }
+  #direction-notes:focus { outline: 2px solid #6366F1; outline-offset: 2px; border-color: #6366F1; }
+
+  .button-row { display: flex; gap: 12px; margin-top: 16px; }
+  .btn-primary {
+    padding: 10px 20px; border-radius: 6px;
+    background: #6366F1; color: white; border: none;
+    font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .btn-primary:hover { background: #818CF8; }
+  .btn-ghost {
+    padding: 10px 20px; border-radius: 6px;
+    background: transparent; color: #8B8B92;
+    border: 1px solid #1E1E22; font-size: 13px; cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: #5C5C63; color: #F0F0F2; }
+  #delegate-context {
+    display: none; width: 100%; min-height: 60px; resize: vertical;
+    background: #111113; color: #F0F0F2;
+    border: 1px solid #1E1E22; border-radius: 6px;
+    padding: 12px; font-family: inherit; font-size: 13px; margin-top: 12px;
+  }
+  #delegate-context::placeholder { color: #5C5C63; }
+
+  button:focus, textarea:focus, a:focus { outline: 2px solid #6366F1; outline-offset: 2px; }
+  @keyframes fadeIn { from { opacity:0; transform:translateX(-50%) translateY(-8px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="banner-left">
+    <span class="project">Ethnomusicology</span>
+    <span class="pipe">|</span><span>Component Design</span>
+    <span class="pipe">|</span><span>Round 2</span>
+  </div>
+  <div class="banner-right">
+    <button class="filter-btn active" onclick="toggleEliminated(this)">Show Cut</button>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- Eliminated options -->
+  <div id="eliminated">
+    <div class="eliminated-card">
+      <span class="elim-name">A — Lean Crate &nbsp;&mdash;&nbsp; Right design language, missing C's structural features</span>
+      <span class="cut-badge">Cut R1</span>
+    </div>
+    <div class="eliminated-card">
+      <span class="elim-name">B — Studio Deck &nbsp;&mdash;&nbsp; Too much for v1, bottom sheet too mobile, batch premature</span>
+      <span class="cut-badge">Cut R1</span>
+    </div>
+    <div class="eliminated-card">
+      <span class="elim-name">C — Mixer Board &nbsp;&mdash;&nbsp; Merged into A+C (kept structure, replaced design language)</span>
+      <span class="cut-badge">Merged</span>
+    </div>
+  </div>
+
+  <!-- SURVIVING: A+C Merge -->
+  <div id="option-ac" class="option-card" data-option-id="option-ac">
+    <div class="option-card-header">
+      <div>
+        <span class="option-letter">A+C</span>
+        <span class="option-name-inline">Crate + Board</span>
+        <span class="merge-badge">Merged</span>
+      </div>
+      <a href="option-ac.html" target="_blank" class="open-tab">Open in new tab</a>
+    </div>
+    <div class="option-iframe-wrap"><iframe src="option-ac.html"></iframe></div>
+    <div class="option-body">
+      <div class="rationale-section">
+        <div class="rationale-label">What This Merges</div>
+        <div class="rationale-text">
+          <strong>From C:</strong> Slide-over import panel with scrim, click-to-select with accent border,
+          expandable detail strip, multi-column sort with priority numbers, source pills.<br>
+          <strong>From A:</strong> Compact pill Camelot chips, thin vertical energy bars, flat borders,
+          6px radius, 34px buttons, 320px panel width, shaped skeletons, simple toasts.
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Why This Combination</div>
+        <div class="rationale-text">
+          C had the right interaction patterns for a DJ catalog — multi-sort is critical, the detail
+          strip gives progressive disclosure, and the slide-over with scrim communicates "temporary
+          focused task." A had the right visual density — compact, flat, no wasted space. The merge
+          preserves both: DJ-grade interactions in a lean visual package. 14 components total.
+        </div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Watch Out For</div>
+        <div class="rationale-text">
+          Detail strip metadata depends on backend having label/year/album data (show "—" for missing).
+          Multi-column sort needs backend support for multi-field ordering. Scrim blocks table
+          during import — acceptable since import is infrequent and focused.
+        </div>
+      </div>
+    </div>
+    <div class="option-controls">
+      <button class="action-btn" data-action="keep" onclick="toggleAction(this,'keep')">Keep</button>
+      <button class="action-btn" data-action="cut" onclick="toggleAction(this,'cut')">Cut</button>
+    </div>
+    <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+  </div>
+
+  <!-- MY TAKE -->
+  <div id="my-take" class="my-take">
+    <div class="my-take-label">My Take</div>
+    <div class="my-take-title">This is ready to lock</div>
+    <div class="my-take-body">
+      <p>
+        The merge captures exactly what you described — <strong>C's structural bones with A's compact skin</strong>.
+        The full table view in the wireframe shows all the key decisions working together: multi-sort headers,
+        flat pill chips, thin energy bars, accent-border selection, and the detail strip expanding below.
+      </p>
+      <p>
+        The <strong>import result rows showing BPM + key</strong> on success is a nice emergent detail — the DJ
+        immediately sees whether the imported data is useful before closing the panel.
+      </p>
+      <p>
+        I think we're good to lock this and move on. The remaining differences are implementation details
+        that the typography, color, and density facets will resolve. Ready to go?
+      </p>
+    </div>
+  </div>
+
+  <!-- FEEDBACK -->
+  <div class="feedback-area">
+    <p class="instruction-text">Click Save Feedback and Claude will pick it up automatically. Or just tell Claude your thoughts in the chat.</p>
+    <textarea id="direction-notes" placeholder="Overall thoughts — ready to lock, or want adjustments?"></textarea>
+    <div class="button-row">
+      <button class="btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      <button class="btn-ghost" onclick="saveFeedbackWithDecision('skip')">Skip This Area</button>
+      <button class="btn-ghost" onclick="showDelegateContext()">Decide For Me</button>
+    </div>
+    <textarea id="delegate-context" placeholder="Any guidance?"></textarea>
+  </div>
+</div>
+
+<script>
+function toggleAction(btn, action) {
+  const card = btn.closest('[data-option-id]');
+  const keepBtn = card.querySelector('[data-action="keep"]');
+  const cutBtn = card.querySelector('[data-action="cut"]');
+  if (btn.classList.contains('active')) { btn.classList.remove('active'); return; }
+  keepBtn.classList.remove('active');
+  cutBtn.classList.remove('active');
+  btn.classList.add('active');
+}
+
+function toggleEliminated(btn) {
+  const el = document.getElementById('eliminated');
+  const cards = el.querySelectorAll('.eliminated-card');
+  const showing = btn.classList.contains('active');
+  cards.forEach(c => c.classList.toggle('hidden', showing));
+  btn.classList.toggle('active');
+  btn.textContent = showing ? 'Show Cut' : 'Hide Cut';
+}
+
+function showDelegateContext() {
+  const el = document.querySelector('#delegate-context');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+const FACET_ID = 'component-design';
+const ROUND_N = 2;
+const FEEDBACK_FILENAME = 'feedback-round-2.json';
+
+if ('Notification' in window && Notification.permission === 'default') { Notification.requestPermission(); }
+
+function collectFeedback() {
+  const options = {};
+  document.querySelectorAll('[data-option-id]').forEach(card => {
+    const id = card.dataset.optionId;
+    const keepBtn = card.querySelector('[data-action="keep"]');
+    const cutBtn = card.querySelector('[data-action="cut"]');
+    const comment = card.querySelector('textarea')?.value || '';
+    let action = null;
+    if (keepBtn?.classList.contains('active')) action = 'keep';
+    if (cutBtn?.classList.contains('active')) action = 'cut';
+    options[id] = { action, comment };
+  });
+  const overall = document.querySelector('#direction-notes')?.value || '';
+  let decision = 'refine';
+  const keptCount = Object.values(options).filter(o => o.action === 'keep').length;
+  const totalOptions = Object.keys(options).length;
+  if (keptCount === 1 && Object.values(options).filter(o => o.action === 'cut').length === totalOptions - 1) {
+    decision = 'lock';
+  }
+  if (keptCount === 1 && totalOptions === 1) { decision = 'lock'; }
+  return { facet: FACET_ID, round: ROUND_N, timestamp: new Date().toISOString(), options, overall, decision };
+}
+
+async function saveFeedback() {
+  const feedback = collectFeedback();
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: FEEDBACK_FILENAME,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') { new Notification('Design Crit', { body: 'Feedback saved!' }); }
+      return;
+    } catch (err) { if (err.name === 'AbortError') return; }
+  }
+  showFallbackModal(json);
+}
+
+function saveFeedbackWithDecision(decision) {
+  const feedback = collectFeedback();
+  feedback.decision = decision;
+  if (decision === 'delegate') { feedback.delegate_context = document.querySelector('#delegate-context')?.value || ''; }
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    window.showSaveFilePicker({
+      suggestedName: FEEDBACK_FILENAME,
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    }).then(async handle => {
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved!');
+    }).catch(err => { if (err.name !== 'AbortError') showFallbackModal(json); });
+  } else { showFallbackModal(json); }
+}
+
+function showBanner(msg) {
+  const b = document.createElement('div');
+  b.textContent = msg;
+  b.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#4ADE80;color:#0D0D0F;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:200;animation:fadeIn 0.2s ease-out';
+  document.body.appendChild(b);
+  setTimeout(() => b.remove(), 5000);
+}
+
+function showFallbackModal(json) {
+  const m = document.createElement('div');
+  m.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center"><div style="background:#1A1A1E;border:1px solid #1E1E22;border-radius:8px;padding:24px;max-width:600px;width:90%"><h3 style="color:#F0F0F2;margin:0 0 8px">Save not available</h3><p style="color:#8B8B92;font-size:13px;margin:0 0 16px">Copy this JSON and paste it into the terminal:</p><textarea style="width:100%;min-height:200px;background:#111113;color:#F0F0F2;border:1px solid #1E1E22;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;resize:vertical" readonly onclick="this.select()">${json}</textarea><button onclick="this.closest('div[style]').parentElement.remove()" style="margin-top:12px;padding:10px 20px;background:#6366F1;color:white;border:none;border-radius:6px;cursor:pointer">Close</button></div></div>`;
+  document.body.appendChild(m);
+}
+</script>
+</body>
+</html>

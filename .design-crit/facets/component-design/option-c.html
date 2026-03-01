@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mixer Board — Component Design Option C</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #111113;
+    color: #F0F0F2;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  .option-name { font-size: 18px; font-weight: 600; margin-bottom: 6px; }
+  .option-subtitle { font-size: 13px; color: #8B8B92; margin-bottom: 32px; line-height: 1.5; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; margin: 32px 0 16px;
+    padding-bottom: 8px; border-bottom: 1px solid #1E1E22;
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  .specimen {
+    background: #0D0D0F; border: 1px solid #1E1E22; border-radius: 8px;
+    padding: 20px; margin-bottom: 16px;
+  }
+  .specimen-label {
+    font-size: 11px; font-weight: 500; color: #5C5C63;
+    text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 12px;
+  }
+  .specimen-note {
+    font-size: 11px; color: #5C5C63; margin-top: 8px; line-height: 1.4;
+  }
+  .dim {
+    font-size: 9px; font-family: "SF Mono", monospace;
+    color: rgba(99,102,241,0.5); font-weight: 500;
+  }
+  .component-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 700px) { .component-grid { grid-template-columns: 1fr; } }
+
+  .states-strip { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+  .state-box { text-align: center; }
+  .state-label {
+    font-size: 9px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; margin-top: 6px;
+  }
+
+  /* --- TRACK ROW — Click to select, detail strip expands --- */
+  .track-row-demo {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 56px 76px 48px 80px 64px;
+    padding: 8px 12px; align-items: center; gap: 6px;
+    border-radius: 4px; border-left: 3px solid transparent;
+  }
+  .track-row-demo.default { background: transparent; }
+  .track-row-demo.hover { background: rgba(255,255,255,0.02); }
+  .track-row-demo.selected { background: rgba(99,102,241,0.08); border-left-color: #6366F1; }
+
+  .detail-strip {
+    padding: 8px 12px 8px 52px;
+    background: rgba(99,102,241,0.04);
+    border-left: 3px solid #6366F1;
+    border-radius: 0 0 4px 4px;
+    display: flex; gap: 24px; align-items: center;
+    font-size: 11px; color: #8B8B92;
+  }
+  .detail-chip {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 2px 8px; background: #1A1A1E; border-radius: 4px;
+    font-size: 10px; color: #8B8B92;
+  }
+  .detail-label { color: #5C5C63; font-size: 9px; text-transform: uppercase; letter-spacing: 0.04em; }
+
+  .art-sm { width: 36px; height: 36px; border-radius: 4px; background: #1E1E22; }
+  .t-artist { font-size: 13px; font-weight: 600; color: #F0F0F2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-title { font-size: 12px; color: #C0C0C6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .t-bpm { font-family: "SF Mono", monospace; font-size: 13px; font-weight: 700; color: #F0F0F2; }
+  .t-genre { font-size: 10px; color: #5C5C63; padding: 2px 6px; background: #1A1A1E; border-radius: 9999px; white-space: nowrap; }
+  .t-source { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: #5C5C63; }
+
+  /* --- CAMELOT CHIP — Rounded square --- */
+  .key-square {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 30px; height: 24px; border-radius: 5px;
+    font-size: 10px; font-weight: 700;
+    font-family: "SF Mono", monospace;
+  }
+  .key-square.k-8a { background: rgba(99,102,241,0.3); color: #A5B4FC; }
+  .key-square.k-11b { background: rgba(74,222,128,0.3); color: #86EFAC; }
+  .key-square.k-5a { background: rgba(251,191,36,0.3); color: #FDE68A; }
+  .key-square.k-2b { background: rgba(248,113,113,0.3); color: #FCA5A5; }
+  .key-square.k-6b { background: rgba(236,72,153,0.3); color: #F9A8D4; }
+  .key-square.k-12a { background: rgba(34,211,238,0.3); color: #A5F3FC; }
+
+  /* --- ENERGY — LED Dots --- */
+  .energy-dots { display: flex; gap: 3px; align-items: center; }
+  .e-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #1E1E22;
+  }
+  .e-dot.on { background: #6366F1; }
+  .e-dot.on.low { background: #4ADE80; }
+  .e-dot.on.mid { background: #FBBF24; }
+  .e-dot.on.high { background: #F87171; }
+
+  /* --- BUTTONS --- */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 7px 16px; border-radius: 6px;
+    font-size: 12px; font-weight: 500; border: none; cursor: pointer;
+    font-family: inherit; gap: 6px;
+  }
+  .btn-primary { background: #6366F1; color: white; }
+  .btn-primary.hover { background: #818CF8; }
+  .btn-primary.disabled { opacity: 0.35; }
+  .btn-secondary { background: transparent; border: 1px solid #1E1E22; color: #8B8B92; }
+  .btn-ghost { background: transparent; color: #8B8B92; border: none; }
+
+  /* --- SOURCE PILLS --- */
+  .source-pills { display: flex; gap: 6px; }
+  .source-pill {
+    padding: 6px 16px; border-radius: 9999px;
+    font-size: 12px; font-weight: 500;
+    border: 1px solid #1E1E22; background: transparent;
+    color: #5C5C63; cursor: pointer; font-family: inherit;
+  }
+  .source-pill.active {
+    background: rgba(99,102,241,0.1); border-color: #6366F1; color: #818CF8;
+  }
+  .source-pill.disabled { color: #333; border-color: #1A1A1E; cursor: default; }
+
+  /* --- URL INPUT --- */
+  .url-input {
+    padding: 8px 12px; border-radius: 6px;
+    background: #0D0D0F; border: 1px solid #1E1E22;
+    color: #F0F0F2; font-size: 13px; font-family: "SF Mono", monospace;
+    width: 100%;
+  }
+  .url-input::placeholder { color: #5C5C63; }
+  .url-input.focused { border-color: #6366F1; }
+  .url-input.error { border-color: #F87171; }
+
+  /* --- SLIDE-OVER PANEL (preview) --- */
+  .slideover-preview {
+    display: flex; gap: 0; border: 1px solid #1E1E22; border-radius: 8px;
+    overflow: hidden; height: 260px; position: relative;
+  }
+  .slideover-table { flex: 1; background: #0D0D0F; padding: 12px; position: relative; }
+  .slideover-scrim {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.4);
+  }
+  .table-label {
+    font-size: 9px; font-weight: 500; text-transform: uppercase;
+    color: #5C5C63; letter-spacing: 0.04em;
+  }
+  .table-lines { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+  .table-line { height: 6px; background: #1A1A1E; border-radius: 2px; }
+  .table-line:nth-child(2) { width: 85%; }
+  .slideover-panel {
+    width: 360px; background: #141416;
+    border-left: 1px solid #1E1E22; padding: 16px;
+    display: flex; flex-direction: column; gap: 12px;
+    z-index: 1;
+  }
+  .slideover-header {
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .slideover-title { font-size: 14px; font-weight: 600; }
+  .slideover-close {
+    width: 28px; height: 28px; border-radius: 6px;
+    background: transparent; border: 1px solid #1E1E22;
+    color: #8B8B92; display: flex; align-items: center;
+    justify-content: center; font-size: 14px; cursor: pointer;
+  }
+
+  /* --- IMPORT RESULT ROW --- */
+  .import-row {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; border-bottom: 1px solid rgba(30,30,34,0.5);
+    font-size: 11px;
+  }
+  .import-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+  }
+  .import-dot.success { background: #4ADE80; }
+  .import-dot.fail { background: #F87171; }
+  .import-dot.loading { background: #FBBF24; animation: pulse 1.5s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.3; } }
+  .import-name { color: #C0C0C6; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .import-meta { font-size: 9px; color: #5C5C63; }
+  .import-fail { font-size: 9px; color: #F87171; }
+
+  /* --- COLUMN HEADER with sort priority --- */
+  .col-hdr {
+    display: inline-flex; align-items: center; gap: 3px;
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; cursor: pointer;
+    padding: 6px 8px; border-radius: 3px;
+  }
+  .col-hdr.active { color: #F0F0F2; }
+  .col-hdr.hover { background: rgba(255,255,255,0.04); }
+  .sort-priority {
+    font-size: 8px; width: 14px; height: 14px; border-radius: 50%;
+    background: rgba(99,102,241,0.2); color: #818CF8;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-weight: 700;
+  }
+  .sort-arrow { font-size: 8px; }
+
+  /* --- TOAST --- */
+  .toast {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 16px; border-radius: 8px;
+    font-size: 12px; font-weight: 500;
+  }
+  .toast.success { background: rgba(74,222,128,0.12); color: #4ADE80; border: 1px solid rgba(74,222,128,0.2); }
+  .toast.error { background: rgba(248,113,113,0.12); color: #F87171; border: 1px solid rgba(248,113,113,0.2); }
+
+  .inventory-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  .inventory-table th {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: #5C5C63; text-align: left;
+    padding: 6px 8px; border-bottom: 1px solid #1E1E22;
+  }
+  .inventory-table td {
+    padding: 6px 8px; border-bottom: 1px solid rgba(30,30,34,0.5);
+    font-size: 12px; color: #8B8B92; vertical-align: top;
+  }
+  .inventory-table td:first-child { color: #C0C0C6; font-weight: 500; white-space: nowrap; }
+</style>
+</head>
+<body>
+
+<div class="option-name">Mixer Board</div>
+<div class="option-subtitle">
+  14 components, DJ-hardware inspired. Import as a right slide-over panel (400px) with scrim.
+  Track rows: click to select with left accent border + expandable detail strip below for secondary
+  metadata (label, year, album, waveform preview). Camelot as rounded square, energy as LED dots.
+  Multi-column sort with priority numbers on headers.
+</div>
+
+<!-- ============ INVENTORY ============ -->
+<div class="section-label">Component Inventory (14 components)</div>
+<div class="specimen">
+  <table class="inventory-table">
+    <thead><tr><th>Component</th><th>Used In</th><th>States</th></tr></thead>
+    <tbody>
+      <tr><td>Track Row</td><td>Catalog</td><td>default, hover, selected, focused, skeleton</td></tr>
+      <tr><td>Detail Strip</td><td>Catalog (below selected row)</td><td>expanded, collapsed</td></tr>
+      <tr><td>Column Header</td><td>Catalog</td><td>default, sorted (with priority #), hover</td></tr>
+      <tr><td>Camelot Key Square</td><td>Catalog, Import, Detail strip</td><td>default (static)</td></tr>
+      <tr><td>Energy Dots</td><td>Catalog</td><td>default (static)</td></tr>
+      <tr><td>Genre Pill</td><td>Catalog, Detail strip</td><td>default (static)</td></tr>
+      <tr><td>Source Badge</td><td>Catalog</td><td>default (static)</td></tr>
+      <tr><td>Button (3 tiers)</td><td>Everywhere</td><td>default, hover, disabled, loading</td></tr>
+      <tr><td>Source Pills</td><td>Import panel</td><td>default, active, disabled</td></tr>
+      <tr><td>URL Input</td><td>Import panel</td><td>default, focused, filled, error</td></tr>
+      <tr><td>Slide-Over Panel</td><td>Import</td><td>open (with scrim), closed</td></tr>
+      <tr><td>Import Result Row</td><td>Import panel</td><td>loading, success, failed</td></tr>
+      <tr><td>Detail Chip</td><td>Detail strip</td><td>default (static)</td></tr>
+      <tr><td>Toast</td><td>Global</td><td>success, error</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ TRACK ROW ============ -->
+<div class="section-label">Track Row — Select + Expandable Detail Strip</div>
+<div class="specimen">
+  <div style="display:flex; flex-direction:column; gap:0;">
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">default</span>
+      <div class="track-row-demo default" style="flex:1;">
+        <div class="art-sm"></div>
+        <div class="t-artist">Fisher</div>
+        <div class="t-title">Losing It</div>
+        <div class="t-bpm">128</div>
+        <div><span class="key-square k-8a">8A</span></div>
+        <div class="energy-dots">
+          <div class="e-dot on high"></div><div class="e-dot on high"></div>
+          <div class="e-dot on high"></div><div class="e-dot on high"></div><div class="e-dot"></div>
+        </div>
+        <div><span class="t-genre">Tech House</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="dim" style="width:56px;">hover</span>
+      <div class="track-row-demo hover" style="flex:1;">
+        <div class="art-sm"></div>
+        <div class="t-artist">CamelPhat</div>
+        <div class="t-title">Cola</div>
+        <div class="t-bpm">126</div>
+        <div><span class="key-square k-11b">11B</span></div>
+        <div class="energy-dots">
+          <div class="e-dot on mid"></div><div class="e-dot on mid"></div>
+          <div class="e-dot on mid"></div><div class="e-dot"></div><div class="e-dot"></div>
+        </div>
+        <div><span class="t-genre">Deep House</span></div>
+        <div class="t-source">Beatport</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:8px;">
+      <span class="dim" style="width:56px; padding-top:10px;">selected</span>
+      <div style="flex:1;">
+        <div class="track-row-demo selected">
+          <div class="art-sm"></div>
+          <div class="t-artist">deadmau5</div>
+          <div class="t-title">Strobe</div>
+          <div class="t-bpm">130</div>
+          <div><span class="key-square k-5a">5A</span></div>
+          <div class="energy-dots">
+            <div class="e-dot on mid"></div><div class="e-dot on mid"></div>
+            <div class="e-dot on mid"></div><div class="e-dot"></div><div class="e-dot"></div>
+          </div>
+          <div><span class="t-genre">Progressive</span></div>
+          <div class="t-source">Spotify</div>
+        </div>
+        <div class="detail-strip">
+          <div>
+            <div class="detail-label">Label</div>
+            <div class="detail-chip">mau5trap</div>
+          </div>
+          <div>
+            <div class="detail-label">Year</div>
+            <div class="detail-chip">2009</div>
+          </div>
+          <div>
+            <div class="detail-label">Album</div>
+            <div class="detail-chip">For Lack of a Better Name</div>
+          </div>
+          <div>
+            <div class="detail-label">Duration</div>
+            <div class="detail-chip">10:37</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    Row height: 48px. Click to select = accent left border + detail strip expands below.
+    Detail strip shows secondary metadata (label, year, album, duration). Single-select only.
+    No checkbox — the table is for scanning, not batch operations in v1.
+  </div>
+</div>
+
+<!-- ============ DATA VIZ COMPONENTS ============ -->
+<div class="section-label">Data Visualization Components</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Camelot Key — Rounded Square</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <span class="key-square k-8a">8A</span>
+      <span class="key-square k-11b">11B</span>
+      <span class="key-square k-5a">5A</span>
+      <span class="key-square k-2b">2B</span>
+      <span class="key-square k-6b">6B</span>
+      <span class="key-square k-12a">12A</span>
+    </div>
+    <div class="specimen-note">
+      30x24px rounded square (5px radius). Slightly higher color saturation than pill variant.
+      Monospace bold text. Shape echoes hardware buttons on mixer/controller units.
+    </div>
+  </div>
+
+  <div class="specimen">
+    <div class="specimen-label">Energy — LED Dots (Mixer-style)</div>
+    <div style="display:flex; gap:20px; align-items:center;">
+      <div style="text-align:center;">
+        <div class="energy-dots">
+          <div class="e-dot on low"></div><div class="e-dot"></div>
+          <div class="e-dot"></div><div class="e-dot"></div><div class="e-dot"></div>
+        </div>
+        <div class="state-label">1/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy-dots">
+          <div class="e-dot on mid"></div><div class="e-dot on mid"></div>
+          <div class="e-dot on mid"></div><div class="e-dot"></div><div class="e-dot"></div>
+        </div>
+        <div class="state-label">3/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy-dots">
+          <div class="e-dot on high"></div><div class="e-dot on high"></div>
+          <div class="e-dot on high"></div><div class="e-dot on high"></div><div class="e-dot on high"></div>
+        </div>
+        <div class="state-label">5/5</div>
+      </div>
+    </div>
+    <div class="specimen-note">5 dots, 7px diameter, 3px gap. Color-coded per level. Inspired by LED level meters on DJ mixers.</div>
+  </div>
+</div>
+
+<!-- ============ COLUMN HEADERS ============ -->
+<div class="section-label">Column Headers — Multi-Column Sort</div>
+<div class="specimen">
+  <div style="display:flex; gap:4px; flex-wrap:wrap; background:#0D0D0F; padding:8px; border-radius:4px;">
+    <div class="col-hdr">Artist</div>
+    <div class="col-hdr active">BPM <span class="sort-arrow">&#9650;</span> <span class="sort-priority">1</span></div>
+    <div class="col-hdr active">Key <span class="sort-arrow">&#9650;</span> <span class="sort-priority">2</span></div>
+    <div class="col-hdr">Title</div>
+    <div class="col-hdr hover">Energy</div>
+    <div class="col-hdr">Genre</div>
+    <div class="col-hdr">Source</div>
+  </div>
+  <div class="specimen-note">
+    Click to sort (primary). Shift+click to add secondary sort. Priority numbers (1, 2) show sort order.
+    Multi-column sort is how DJs actually work: "sort by BPM, then by key" for harmonic mixing prep.
+  </div>
+</div>
+
+<!-- ============ BUTTONS + SOURCE PILLS ============ -->
+<div class="section-label">Buttons + Source Pills</div>
+<div class="component-grid">
+  <div class="specimen">
+    <div class="specimen-label">Buttons — 3 Tiers</div>
+    <div class="states-strip">
+      <div class="state-box"><button class="btn btn-primary">+ Import</button><div class="state-label">Primary</div></div>
+      <div class="state-box"><button class="btn btn-primary hover">+ Import</button><div class="state-label">Hover</div></div>
+      <div class="state-box"><button class="btn btn-primary disabled">+ Import</button><div class="state-label">Disabled</div></div>
+      <div class="state-box"><button class="btn btn-secondary">Filter</button><div class="state-label">Secondary</div></div>
+      <div class="state-box"><button class="btn btn-ghost">Cancel</button><div class="state-label">Ghost</div></div>
+    </div>
+    <div class="specimen-note">Height: 34px. Radius: 6px. Same spec as Lean Crate — compact, utility-grade.</div>
+  </div>
+
+  <div class="specimen">
+    <div class="specimen-label">Source Selector — Pill Toggle</div>
+    <div class="source-pills">
+      <button class="source-pill active">Spotify</button>
+      <button class="source-pill">Beatport</button>
+      <button class="source-pill disabled">SoundCloud</button>
+    </div>
+    <div class="specimen-note">Individual pill buttons. Active = accent tint + border. More extensible than tabs or segmented — easy to add sources later.</div>
+  </div>
+</div>
+
+<!-- ============ SLIDE-OVER PANEL ============ -->
+<div class="section-label">Import — Right Slide-Over with Scrim</div>
+<div class="specimen">
+  <div class="slideover-preview">
+    <div class="slideover-table">
+      <div class="slideover-scrim"></div>
+      <div class="table-label">Track catalog (scrimmed)</div>
+      <div class="table-lines">
+        <div class="table-line"></div><div class="table-line"></div>
+        <div class="table-line"></div><div class="table-line"></div>
+      </div>
+    </div>
+    <div class="slideover-panel">
+      <div class="slideover-header">
+        <span class="slideover-title">Import Tracks</span>
+        <div class="slideover-close">&times;</div>
+      </div>
+      <div class="source-pills" style="gap:4px;">
+        <button class="source-pill active" style="padding:4px 12px; font-size:10px;">Spotify</button>
+        <button class="source-pill" style="padding:4px 12px; font-size:10px;">Beatport</button>
+      </div>
+      <input class="url-input" style="font-size:11px;" placeholder="Paste playlist URL..." readonly>
+      <button class="btn btn-primary" style="align-self:flex-start; font-size:11px; padding:6px 14px;">Import</button>
+      <div style="flex:1; overflow:auto;">
+        <div class="import-row">
+          <div class="import-dot success"></div>
+          <div class="import-name">Fisher — Losing It</div>
+          <div class="import-meta">128 BPM</div>
+        </div>
+        <div class="import-row">
+          <div class="import-dot success"></div>
+          <div class="import-name">CamelPhat — Cola</div>
+          <div class="import-meta">126 BPM</div>
+        </div>
+        <div class="import-row">
+          <div class="import-dot fail"></div>
+          <div class="import-name">Track unavailable</div>
+          <div class="import-fail">Not in Spotify catalog</div>
+        </div>
+        <div class="import-row">
+          <div class="import-dot loading"></div>
+          <div class="import-name">deadmau5 — Strobe</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    400px right panel, overlays table with dark scrim. Explicit close button.
+    Contains: source pills, URL input, import button, per-track result rows.
+    ESC or scrim click to close. Table visible but dimmed — context preserved.
+  </div>
+</div>
+
+<!-- ============ FEEDBACK ============ -->
+<div class="section-label">Feedback Components</div>
+<div class="specimen">
+  <div class="specimen-label">Toasts</div>
+  <div style="display:flex; flex-direction:column; gap:8px;">
+    <div class="toast success">&#10003; 24 tracks imported</div>
+    <div class="toast error">&#10007; Import failed — try again</div>
+  </div>
+  <div class="specimen-note">Bottom-right fixed. Auto-dismiss 4s. Minimal — no action links in v1.</div>
+</div>
+
+</body>
+</html>

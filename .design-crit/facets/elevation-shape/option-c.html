@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Elevation & Shape — Option C: Soft Stack</title>
+<style>
+  :root {
+    --bg: #111113;
+    --surface-0: #111113;
+    --surface-1: #18181B;
+    --surface-2: #1E1E22;
+    --surface-3: #242428;
+    --surface-4: #2A2A30;
+    --border: #2A2A30;
+    --border-subtle: #222228;
+    --text: #E8E8EC;
+    --text-dim: #8B8B92;
+    --text-muted: #5C5C63;
+    --accent: #6366F1;
+    --scrim: rgba(0,0,0,0.55);
+    --shadow-xs: 0 1px 2px rgba(0,0,0,0.3);
+    --shadow-sm: 0 1px 4px rgba(0,0,0,0.35);
+    --shadow-md: 0 3px 10px rgba(0,0,0,0.4);
+    --shadow-lg: 0 6px 20px rgba(0,0,0,0.5);
+    --shadow-xl: 0 10px 32px rgba(0,0,0,0.55);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 13px; line-height: 1.5; padding: 32px 24px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  h3 { font-size: 14px; font-weight: 600; margin: 24px 0 8px; color: var(--text); }
+  .subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 24px; }
+  .label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 6px; }
+
+  /* ─── Elevation Scale ─── */
+  .elev-scale { display: flex; flex-direction: column; gap: 14px; margin: 16px 0 32px; }
+  .elev-level {
+    display: flex; align-items: center; gap: 16px;
+    padding: 14px 16px; border: 1px solid var(--border-subtle);
+  }
+  .elev-level.l0 { background: var(--surface-0); }
+  .elev-level.l1 { background: var(--surface-1); border-color: var(--border); box-shadow: var(--shadow-xs); }
+  .elev-level.l2 { background: var(--surface-2); border-color: var(--border); box-shadow: var(--shadow-sm); }
+  .elev-level.l3 { background: var(--surface-3); border-color: var(--border); box-shadow: var(--shadow-md); }
+  .elev-level.l4 { background: var(--surface-4); border-color: var(--border); box-shadow: var(--shadow-lg); }
+  .elev-num { font-size: 11px; font-weight: 600; color: var(--accent); min-width: 20px; }
+  .elev-name { font-size: 13px; font-weight: 500; min-width: 120px; }
+  .elev-shadow { font-family: "SF Mono", "Fira Code", monospace; font-size: 11px; color: var(--text-muted); min-width: 220px; }
+  .elev-usage { font-size: 12px; color: var(--text-dim); }
+
+  /* ─── Surfaces ─── */
+  .surfaces { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin: 16px 0 32px; }
+  .surface-spec { padding: 14px; border: 1px solid var(--border-subtle); }
+  .surface-spec.s0 { background: var(--surface-0); }
+  .surface-spec.s1 { background: var(--surface-1); border-color: var(--border); box-shadow: var(--shadow-xs); }
+  .surface-spec.s2 { background: var(--surface-2); border-color: var(--border); box-shadow: var(--shadow-sm); }
+  .surface-spec.s3 { background: var(--surface-3); border-color: var(--border); box-shadow: var(--shadow-md); }
+  .surface-spec.s4 { background: var(--surface-4); border-color: var(--border); box-shadow: var(--shadow-lg); }
+  .surface-spec .tag { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); margin-bottom: 6px; }
+  .surface-spec .items { font-size: 10px; color: var(--text-dim); line-height: 1.5; }
+
+  /* ─── Shape Language ─── */
+  .radius-row { display: flex; gap: 16px; align-items: flex-end; margin: 16px 0; flex-wrap: wrap; }
+  .radius-specimen { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .radius-box { width: 56px; height: 56px; background: var(--surface-1); border: 1px solid var(--border); }
+  .radius-label { font-size: 10px; color: var(--text-muted); text-align: center; }
+  .radius-value { font-family: monospace; font-size: 10px; color: var(--accent); }
+
+  /* ─── Components ─── */
+  .comp-row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin: 12px 0; }
+  .btn-spec {
+    padding: 8px 20px; font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border); background: var(--surface-1);
+    color: var(--text); border-radius: 6px; cursor: default; box-shadow: var(--shadow-xs);
+  }
+  .btn-spec.primary { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: var(--shadow-sm); }
+  .chip-spec {
+    display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+    font-size: 11px; border-radius: 3px; background: rgba(99,102,241,0.15); color: #A5B4FC;
+  }
+  .pill-spec {
+    display: inline-flex; align-items: center; height: 24px; padding: 0 10px;
+    font-size: 11px; font-weight: 500; border-radius: 9999px;
+    background: var(--surface-2); color: var(--text-dim); border: 1px solid var(--border); box-shadow: var(--shadow-xs);
+  }
+  .pill-spec.active { background: rgba(99,102,241,0.12); color: var(--accent); border-color: var(--accent); }
+  .input-spec {
+    padding: 8px 12px; font-size: 12px; background: var(--surface-0);
+    border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); width: 220px;
+  }
+  .toast-spec {
+    padding: 8px 16px; font-size: 11px; background: var(--surface-3);
+    border: 1px solid var(--border); border-radius: 8px; color: var(--text-dim);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* ─── Overlay Stacking ─── */
+  .stack-demo { position: relative; height: 280px; margin: 16px 0 32px; background: var(--surface-0); border: 1px solid var(--border-subtle); overflow: hidden; }
+  .stack-base { position: absolute; top: 12px; left: 12px; right: 12px; bottom: 12px; background: var(--surface-0); padding: 10px; }
+  .stack-base .fake-row { height: 6px; background: var(--surface-1); box-shadow: var(--shadow-xs); margin-bottom: 4px; width: 90%; border-radius: 0; }
+  .stack-header { position: absolute; top: 0; left: 0; right: 0; height: 36px; background: var(--surface-2); border-bottom: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+  .stack-scrim { position: absolute; inset: 0; background: var(--scrim); }
+  .stack-panel {
+    position: absolute; top: 0; right: 0; bottom: 0; width: 280px;
+    background: var(--surface-4); border-left: 1px solid var(--border);
+    box-shadow: -6px 0 20px rgba(0,0,0,0.55);
+    padding: 12px 16px;
+  }
+  .stack-panel .fake-input { height: 28px; background: var(--surface-0); border: 1px solid var(--border); border-radius: 6px; margin: 8px 0; }
+  .stack-panel .fake-btn { height: 28px; width: 80px; background: var(--accent); border-radius: 6px; margin-top: 8px; box-shadow: var(--shadow-sm); }
+  .stack-tooltip {
+    position: absolute; top: 50px; right: 290px;
+    background: var(--surface-4); border: 1px solid var(--border); border-radius: 6px;
+    padding: 6px 10px; font-size: 10px; color: var(--text-dim);
+    box-shadow: var(--shadow-lg);
+  }
+  .stack-tooltip::after {
+    content: ''; position: absolute; right: -6px; top: 50%; transform: translateY(-50%) rotate(45deg);
+    width: 10px; height: 10px; background: var(--surface-4); border-right: 1px solid var(--border); border-top: 1px solid var(--border);
+  }
+  .stack-toast {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-70%);
+    background: var(--surface-3); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 16px; font-size: 11px; color: var(--text-dim);
+    box-shadow: var(--shadow-md);
+  }
+  .stack-label { position: absolute; font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--accent); }
+
+  .note { font-size: 12px; color: var(--text-dim); margin: 8px 0 0; line-height: 1.5; max-width: 720px; }
+  .divider { border: none; border-top: 1px solid var(--border-subtle); margin: 32px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h2>Soft Stack</h2>
+  <p class="subtitle">Shadows at every level. Consistent top-center light source with soft, diffused edges. Full Material-style layering.</p>
+
+  <!-- ─── Elevation Scale ─── -->
+  <h3>Elevation Scale</h3>
+  <p class="label">5 levels &mdash; progressive shadow scale</p>
+  <div class="elev-scale">
+    <div class="elev-level l0">
+      <span class="elev-num">0</span>
+      <span class="elev-name">Base Canvas</span>
+      <span class="elev-shadow">none</span>
+      <span class="elev-usage">Page background</span>
+    </div>
+    <div class="elev-level l1">
+      <span class="elev-num">1</span>
+      <span class="elev-name">Content Surface</span>
+      <span class="elev-shadow">0 1px 2px rgba(0,0,0,0.3)</span>
+      <span class="elev-usage">Track rows, icon rail, detail strip</span>
+    </div>
+    <div class="elev-level l2">
+      <span class="elev-num">2</span>
+      <span class="elev-name">Raised</span>
+      <span class="elev-shadow">0 1px 4px rgba(0,0,0,0.35)</span>
+      <span class="elev-usage">Header bar, buttons, source pills</span>
+    </div>
+    <div class="elev-level l3">
+      <span class="elev-num">3</span>
+      <span class="elev-name">Overlay</span>
+      <span class="elev-shadow">0 3px 10px rgba(0,0,0,0.4)</span>
+      <span class="elev-usage">Toasts, sort dropdown</span>
+    </div>
+    <div class="elev-level l4">
+      <span class="elev-num">4</span>
+      <span class="elev-name">Critical Overlay</span>
+      <span class="elev-shadow">0 6px 20px rgba(0,0,0,0.5)</span>
+      <span class="elev-usage">Slide-over panel, tooltips</span>
+    </div>
+  </div>
+  <p class="note">Every surface above the base canvas casts a shadow. The scale doubles in blur radius at each step (2 &rarr; 4 &rarr; 10 &rarr; 20px). Opacity increases from 0.3 to 0.5. This creates a smooth, perceptible depth gradient from the flattest row to the most prominent overlay.</p>
+
+  <hr class="divider">
+
+  <!-- ─── Surface Specimens ─── -->
+  <h3>Surface Treatments</h3>
+  <div class="surfaces">
+    <div class="surface-spec s0">
+      <div class="tag">L0</div>
+      <div class="items">Page bg<br>Table body</div>
+    </div>
+    <div class="surface-spec s1">
+      <div class="tag">L1</div>
+      <div class="items">Track rows<br>Detail strip<br>Icon rail</div>
+    </div>
+    <div class="surface-spec s2">
+      <div class="tag">L2</div>
+      <div class="items">Header bar<br>Buttons<br>Source pills</div>
+    </div>
+    <div class="surface-spec s3">
+      <div class="tag">L3</div>
+      <div class="items">Toasts<br>Sort dropdown</div>
+    </div>
+    <div class="surface-spec s4">
+      <div class="tag">L4</div>
+      <div class="items">Slide-over<br>Tooltips</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ─── Shape Language ─── -->
+  <h3>Shape Language</h3>
+  <p class="label">5-token radius scale &mdash; wider range than flat options</p>
+  <div class="radius-row">
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 0;"></div>
+      <span class="radius-value">0px</span>
+      <span class="radius-label">none<br>table cells</span>
+    </div>
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 3px;"></div>
+      <span class="radius-value">3px</span>
+      <span class="radius-label">xs<br>Camelot chips</span>
+    </div>
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 6px;"></div>
+      <span class="radius-value">6px</span>
+      <span class="radius-label">sm<br>buttons, inputs</span>
+    </div>
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 8px;"></div>
+      <span class="radius-value">8px</span>
+      <span class="radius-label">md<br>toasts, tooltips</span>
+    </div>
+    <div class="radius-specimen">
+      <div class="radius-box" style="border-radius: 9999px;"></div>
+      <span class="radius-value">full</span>
+      <span class="radius-label">pill<br>source pills</span>
+    </div>
+  </div>
+  <p class="note">Adds an 8px "md" token for floating elements (toasts, tooltips) — softer corners signal "this element hovers." The wider radius range creates a visual cue: sharper = grounded, rounder = floating.</p>
+
+  <hr class="divider">
+
+  <!-- ─── Components ─── -->
+  <h3>Components with Elevation Applied</h3>
+  <div class="comp-row">
+    <button class="btn-spec primary">Import</button>
+    <button class="btn-spec">Cancel</button>
+    <span class="chip-spec">8B</span>
+    <span class="chip-spec" style="background:rgba(74,222,128,0.15);color:#4ADE80;">11A</span>
+    <span class="pill-spec active">Spotify</span>
+    <span class="pill-spec">Beatport</span>
+    <span class="input-spec">https://open.spotify.com/...</span>
+  </div>
+  <div class="comp-row" style="margin-top:12px;">
+    <span class="toast-spec">3 tracks imported successfully</span>
+  </div>
+  <p class="note">Every interactive element above L0 gets a shadow. Buttons lift slightly (shadow-xs for secondary, shadow-sm for primary). Source pills get shadow-xs. Toast gets shadow-md. The depth is pervasive but subtle — the dark background absorbs most shadow visibility.</p>
+
+  <hr class="divider">
+
+  <!-- ─── Overlay Stacking ─── -->
+  <h3>Overlay Stacking</h3>
+  <p class="label">Full depth stack &mdash; 5 visible layers</p>
+  <div class="stack-demo">
+    <div class="stack-header"></div>
+    <div class="stack-base" style="top:40px;">
+      <div class="fake-row"></div>
+      <div class="fake-row" style="width:85%"></div>
+      <div class="fake-row" style="width:92%"></div>
+      <div class="fake-row" style="width:88%"></div>
+      <div class="fake-row" style="width:80%"></div>
+    </div>
+    <div class="stack-scrim"></div>
+    <div class="stack-panel">
+      <div style="font-size:12px;font-weight:600;color:var(--text);margin-bottom:4px;">Import Tracks</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-bottom:8px;">Paste a playlist or album URL</div>
+      <div class="fake-input"></div>
+      <div class="fake-btn"></div>
+    </div>
+    <div class="stack-tooltip">Click to close overlay</div>
+    <div class="stack-toast">3 tracks imported successfully</div>
+  </div>
+  <p class="note">All 5 levels visible: base canvas (L0) &rarr; shadowed header (L2) &rarr; scrim &rarr; slide-over (L4) with deep shadow &rarr; tooltip (L4) with its own shadow &rarr; toast (L3). A richly layered scene, but on a dark background the shadows are subtle enough not to overwhelm.</p>
+
+</div>
+</body>
+</html>

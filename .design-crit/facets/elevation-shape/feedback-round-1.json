@@ -1,0 +1,12 @@
+{
+  "facet": "elevation-shape",
+  "round": 1,
+  "timestamp": "2026-03-01T02:30:00Z",
+  "options": {
+    "option-a": { "action": "cut", "comment": "" },
+    "option-b": { "action": "keep", "comment": "Differences are subtle, going with recommendation." },
+    "option-c": { "action": "cut", "comment": "" }
+  },
+  "overall": "Differences are subtle on dark backgrounds. B's targeted shadows on overlays make sense.",
+  "decision": "lock"
+}

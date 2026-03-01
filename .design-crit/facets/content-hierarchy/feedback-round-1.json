@@ -1,0 +1,12 @@
+{
+  "facet": "content-hierarchy",
+  "round": 1,
+  "timestamp": "2026-03-01T00:00:00Z",
+  "options": {
+    "option-a": { "action": "cut", "comment": "" },
+    "option-b": { "action": "cut", "comment": "" },
+    "option-c": { "action": "keep", "comment": "" }
+  },
+  "overall": "Keep C — flat five is the right approach",
+  "decision": "lock"
+}
