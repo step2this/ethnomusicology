@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Studio — Density &amp; Spacing Option B</title>
+<style>
+  /* ==========================================
+     DESIGN TOKENS — ALL LOCKED DECISIONS
+     ========================================== */
+  :root {
+    /* Color: Ember Crate (warm dark) */
+    --surface-base: #0F0D0B;
+    --surface-raised: #171412;
+    --surface-sunken: #0A0907;
+    --surface-overlay: #1E1A17;
+    --border-subtle: #252018;
+    --border-medium: #3A3428;
+    --text-primary: #F0ECE4;
+    --text-secondary: #918A7E;
+    --text-tertiary: #615B52;
+    --brand-primary: #E8963A;
+    --brand-secondary: #C06030;
+    --brand-accent: #F0C060;
+    --brand-primary-hover: #F0A848;
+    --status-success: #5CB870;
+    --status-warning: #E8C050;
+    --status-error: #D05040;
+    --status-info: #5A9EC0;
+    --interactive-hover: rgba(232,150,58,0.04);
+    --interactive-selected: rgba(232,150,58,0.06);
+    --selection-border: #E8963A;
+
+    /* Density: Studio (balanced) */
+    --row-height: 40px;
+    --art-size: 32px;
+    --art-radius: 3px;
+    --col-gap: 6px;
+    --toolbar-height: 44px;
+    --base-unit: 4px;
+
+    /* Spacing scale */
+    --space-xs: 4px;
+    --space-sm: 8px;
+    --space-md: 12px;
+    --space-lg: 16px;
+    --space-xl: 24px;
+    --space-2xl: 32px;
+    --space-3xl: 48px;
+  }
+
+  /* ==========================================
+     RESET & BASE
+     ========================================== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: var(--space-xl);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ==========================================
+     PAGE HEADER
+     ========================================== */
+  .option-header {
+    margin-bottom: var(--space-2xl);
+  }
+  .option-name {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+  .option-metrics {
+    font-size: 12px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: var(--text-secondary);
+    margin-top: var(--space-xs);
+    letter-spacing: 0.01em;
+  }
+  .option-label {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brand-primary);
+    background: rgba(232,150,58,0.08);
+    padding: 2px 8px;
+    border-radius: 3px;
+    margin-top: var(--space-sm);
+  }
+
+  /* ==========================================
+     SECTION LABELS
+     ========================================== */
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-tertiary);
+    margin: var(--space-3xl) 0 var(--space-lg);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .section-label:first-of-type {
+    margin-top: 0;
+  }
+
+  /* ==========================================
+     SPACING SCALE
+     ========================================== */
+  .scale-row {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--space-lg);
+    padding: var(--space-lg);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    flex-wrap: wrap;
+  }
+  .scale-token {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+  .scale-bar {
+    background: var(--brand-primary);
+    border-radius: 2px;
+    width: 20px;
+    opacity: 0.6;
+  }
+  .scale-value {
+    font-size: 10px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .scale-name {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+  }
+
+  /* ==========================================
+     TRACK TABLE CONTAINER
+     ========================================== */
+  .table-container {
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  /* ==========================================
+     TOOLBAR
+     ========================================== */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: var(--toolbar-height);
+    padding: 0 var(--space-md);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+  .toolbar-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .toolbar-count {
+    font-size: 12px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: var(--text-tertiary);
+  }
+  .toolbar-right {
+    display: flex;
+    gap: var(--space-sm);
+  }
+
+  /* ==========================================
+     BUTTONS
+     ========================================== */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    gap: 6px;
+    transition: background 150ms ease-out, border-color 150ms ease-out;
+  }
+  .btn-primary {
+    background: var(--brand-primary);
+    color: var(--surface-base);
+  }
+  .btn-primary:hover {
+    background: var(--brand-primary-hover);
+  }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .btn-secondary:hover {
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+  }
+
+  /* ==========================================
+     COLUMN HEADERS — Multi-sort
+     ========================================== */
+  .col-hdr-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 56px 72px 48px 80px 64px;
+    padding: var(--space-sm) var(--space-md);
+    align-items: center;
+    gap: var(--col-gap);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .col-hdr {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    padding: 4px 6px;
+    border-radius: 3px;
+    transition: background 150ms ease-out;
+    user-select: none;
+  }
+  .col-hdr:hover {
+    background: var(--interactive-hover);
+  }
+  .col-hdr.active {
+    color: var(--text-primary);
+  }
+  .sort-arrow {
+    font-size: 8px;
+  }
+  .sort-priority {
+    font-size: 8px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(232,150,58,0.15);
+    color: var(--brand-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  /* ==========================================
+     TRACK ROWS — 40px height, 8px 12px padding
+     ========================================== */
+  .track-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 56px 72px 48px 80px 64px;
+    padding: var(--space-sm) var(--space-md);
+    align-items: center;
+    gap: var(--col-gap);
+    height: var(--row-height);
+    border-left: 3px solid transparent;
+    transition: background 100ms ease-out;
+  }
+  .track-row.default {
+    background: transparent;
+  }
+  .track-row.hover {
+    background: var(--interactive-hover);
+  }
+  .track-row.selected {
+    background: var(--interactive-selected);
+    border-left-color: var(--selection-border);
+  }
+
+  /* ==========================================
+     TRACK DATA CELLS
+     ========================================== */
+  .art-sm {
+    width: var(--art-size);
+    height: var(--art-size);
+    border-radius: var(--art-radius);
+    background: var(--surface-overlay);
+    flex-shrink: 0;
+  }
+
+  /* Artist: 13px/600 */
+  .t-artist {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Title: 12px/400, slightly muted */
+  .t-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: #C8C4BC;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* BPM: 13px/700 monospace */
+  .t-bpm {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  /* Genre: full-radius pill, 10px */
+  .t-genre {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    padding: 2px 6px;
+    background: var(--surface-overlay);
+    border-radius: 9999px;
+    white-space: nowrap;
+    display: inline-block;
+  }
+
+  /* Source: 9px uppercase */
+  .t-source {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+  }
+
+  /* ==========================================
+     CAMELOT KEY CHIPS — 3px radius, monospace bold
+     ========================================== */
+  .key-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    letter-spacing: 0.02em;
+    line-height: 1;
+  }
+  /* Warm-shifted Camelot colors */
+  .key-chip.k-8a  { background: rgba(80,148,220,0.12); color: #5094DC; }
+  .key-chip.k-11b { background: rgba(180,48,160,0.15); color: #B430A0; }
+  .key-chip.k-5a  { background: rgba(80,200,100,0.12); color: #50C864; }
+  .key-chip.k-2b  { background: rgba(220,110,40,0.15); color: #DC6E28; }
+  .key-chip.k-6b  { background: rgba(40,176,148,0.15); color: #28B094; }
+  .key-chip.k-7a  { background: rgba(48,192,216,0.12); color: #30C0D8; }
+  .key-chip.k-9b  { background: rgba(96,96,200,0.15); color: #6060C8; }
+  .key-chip.k-12a { background: rgba(220,80,100,0.12); color: #DC5064; }
+
+  /* ==========================================
+     ENERGY BARS — 5 thin vertical, 5px wide, 14px tall, 2px gap
+     ========================================== */
+  .energy-bars {
+    display: flex;
+    gap: 2px;
+    align-items: flex-end;
+  }
+  .e-bar {
+    width: 5px;
+    height: 14px;
+    border-radius: 1px;
+    background: var(--border-subtle);
+  }
+  /* Energy colors: 1-2 teal, 3 amber, 4-5 copper-red */
+  .e-bar.on.low  { background: #5A9EC0; }
+  .e-bar.on.mid  { background: #E8963A; }
+  .e-bar.on.high { background: #D05040; }
+
+  /* ==========================================
+     DETAIL STRIP — below selected row
+     ========================================== */
+  .detail-strip {
+    padding: var(--space-sm) var(--space-md) var(--space-sm) 48px;
+    background: rgba(232,150,58,0.03);
+    border-left: 3px solid var(--selection-border);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .detail-label {
+    color: var(--text-tertiary);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--surface-overlay);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+
+  /* ==========================================
+     TOUCH TARGET NOTE
+     ========================================== */
+  .touch-note {
+    margin-top: var(--space-md);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+  }
+  .touch-note strong {
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* ==========================================
+     ANNOTATION DIMENSIONS
+     ========================================== */
+  .dim {
+    font-size: 9px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: rgba(232,150,58,0.45);
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<div class="option-header">
+  <div class="option-name">Studio</div>
+  <div class="option-metrics">40px rows &middot; 19 tracks visible &middot; 4px base unit</div>
+  <div class="option-label">Balanced Density</div>
+</div>
+
+<!-- ============================================================
+     SPACING SCALE
+     ============================================================ -->
+<div class="section-label">Spacing Scale &mdash; 7 Tokens</div>
+<div class="scale-row">
+  <div class="scale-token">
+    <div class="scale-bar" style="height: 4px;"></div>
+    <div class="scale-value">4px</div>
+    <div class="scale-name">xs</div>
+  </div>
+  <div class="scale-token">
+    <div class="scale-bar" style="height: 8px;"></div>
+    <div class="scale-value">8px</div>
+    <div class="scale-name">sm</div>
+  </div>
+  <div class="scale-token">
+    <div class="scale-bar" style="height: 12px;"></div>
+    <div class="scale-value">12px</div>
+    <div class="scale-name">md</div>
+  </div>
+  <div class="scale-token">
+    <div class="scale-bar" style="height: 16px;"></div>
+    <div class="scale-value">16px</div>
+    <div class="scale-name">lg</div>
+  </div>
+  <div class="scale-token">
+    <div class="scale-bar" style="height: 24px;"></div>
+    <div class="scale-value">24px</div>
+    <div class="scale-name">xl</div>
+  </div>
+  <div class="scale-token">
+    <div class="scale-bar" style="height: 32px;"></div>
+    <div class="scale-value">32px</div>
+    <div class="scale-name">2xl</div>
+  </div>
+  <div class="scale-token">
+    <div class="scale-bar" style="height: 48px;"></div>
+    <div class="scale-value">48px</div>
+    <div class="scale-name">3xl</div>
+  </div>
+</div>
+
+<!-- ============================================================
+     HERO: FULL TRACK TABLE
+     ============================================================ -->
+<div class="section-label">Track Catalog &mdash; Studio Density</div>
+<div class="table-container">
+
+  <!-- Toolbar: 44px -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="toolbar-title">Tracks</span>
+      <span class="toolbar-count">247</span>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn btn-secondary">Filter</button>
+      <button class="btn btn-primary">+ Import</button>
+    </div>
+  </div>
+
+  <!-- Column headers with multi-sort -->
+  <div class="col-hdr-row">
+    <div></div>
+    <div class="col-hdr">Artist</div>
+    <div class="col-hdr">Title</div>
+    <div class="col-hdr active">BPM <span class="sort-arrow">&#9650;</span> <span class="sort-priority">1</span></div>
+    <div class="col-hdr active">Key <span class="sort-arrow">&#9650;</span> <span class="sort-priority">2</span></div>
+    <div class="col-hdr">NRG</div>
+    <div class="col-hdr">Genre</div>
+    <div class="col-hdr">Source</div>
+  </div>
+
+  <!-- Row 1: Fisher — default -->
+  <div class="track-row default">
+    <div class="art-sm"></div>
+    <div class="t-artist">Fisher</div>
+    <div class="t-title">Losing It</div>
+    <div class="t-bpm">128</div>
+    <div><span class="key-chip k-8a">8A</span></div>
+    <div class="energy-bars">
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar"></div>
+    </div>
+    <div><span class="t-genre">Tech House</span></div>
+    <div class="t-source">Spotify</div>
+  </div>
+
+  <!-- Row 2: Peggy Gou — hover -->
+  <div class="track-row hover">
+    <div class="art-sm"></div>
+    <div class="t-artist">Peggy Gou</div>
+    <div class="t-title">Starry Night</div>
+    <div class="t-bpm">122</div>
+    <div><span class="key-chip k-11b">11B</span></div>
+    <div class="energy-bars">
+      <div class="e-bar on mid"></div>
+      <div class="e-bar on mid"></div>
+      <div class="e-bar on mid"></div>
+      <div class="e-bar"></div>
+      <div class="e-bar"></div>
+    </div>
+    <div><span class="t-genre">Deep House</span></div>
+    <div class="t-source">Beatport</div>
+  </div>
+
+  <!-- Row 3: Four Tet — selected + detail strip -->
+  <div>
+    <div class="track-row selected">
+      <div class="art-sm"></div>
+      <div class="t-artist">Four Tet</div>
+      <div class="t-title">Baby</div>
+      <div class="t-bpm">130</div>
+      <div><span class="key-chip k-5a">5A</span></div>
+      <div class="energy-bars">
+        <div class="e-bar on low"></div>
+        <div class="e-bar on low"></div>
+        <div class="e-bar"></div>
+        <div class="e-bar"></div>
+        <div class="e-bar"></div>
+      </div>
+      <div><span class="t-genre">Electronic</span></div>
+      <div class="t-source">Spotify</div>
+    </div>
+    <div class="detail-strip">
+      <div>
+        <div class="detail-label">Label</div>
+        <div class="detail-chip">Text Records</div>
+      </div>
+      <div>
+        <div class="detail-label">Year</div>
+        <div class="detail-chip">2020</div>
+      </div>
+      <div>
+        <div class="detail-label">Album</div>
+        <div class="detail-chip">Sixteen Oceans</div>
+      </div>
+      <div>
+        <div class="detail-label">Duration</div>
+        <div class="detail-chip">4:32</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 4: Floating Points — default -->
+  <div class="track-row default">
+    <div class="art-sm"></div>
+    <div class="t-artist">Floating Points</div>
+    <div class="t-title">Ratio</div>
+    <div class="t-bpm">133</div>
+    <div><span class="key-chip k-2b">2B</span></div>
+    <div class="energy-bars">
+      <div class="e-bar on mid"></div>
+      <div class="e-bar on mid"></div>
+      <div class="e-bar on mid"></div>
+      <div class="e-bar"></div>
+      <div class="e-bar"></div>
+    </div>
+    <div><span class="t-genre">Electronica</span></div>
+    <div class="t-source">Beatport</div>
+  </div>
+
+  <!-- Row 5: Kaytranada — default -->
+  <div class="track-row default">
+    <div class="art-sm"></div>
+    <div class="t-artist">Kaytranada</div>
+    <div class="t-title">Glued</div>
+    <div class="t-bpm">100</div>
+    <div><span class="key-chip k-6b">6B</span></div>
+    <div class="energy-bars">
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar"></div>
+    </div>
+    <div><span class="t-genre">R&amp;B/Dance</span></div>
+    <div class="t-source">Spotify</div>
+  </div>
+
+  <!-- Row 6: Disclosure — default -->
+  <div class="track-row default">
+    <div class="art-sm"></div>
+    <div class="t-artist">Disclosure</div>
+    <div class="t-title">Latch</div>
+    <div class="t-bpm">122</div>
+    <div><span class="key-chip k-7a">7A</span></div>
+    <div class="energy-bars">
+      <div class="e-bar on mid"></div>
+      <div class="e-bar on mid"></div>
+      <div class="e-bar on mid"></div>
+      <div class="e-bar"></div>
+      <div class="e-bar"></div>
+    </div>
+    <div><span class="t-genre">UK Garage</span></div>
+    <div class="t-source">Spotify</div>
+  </div>
+
+  <!-- Row 7: Jamie xx — default -->
+  <div class="track-row default">
+    <div class="art-sm"></div>
+    <div class="t-artist">Jamie xx</div>
+    <div class="t-title">Gosh</div>
+    <div class="t-bpm">118</div>
+    <div><span class="key-chip k-9b">9B</span></div>
+    <div class="energy-bars">
+      <div class="e-bar on low"></div>
+      <div class="e-bar on low"></div>
+      <div class="e-bar"></div>
+      <div class="e-bar"></div>
+      <div class="e-bar"></div>
+    </div>
+    <div><span class="t-genre">Electronic</span></div>
+    <div class="t-source">Beatport</div>
+  </div>
+
+  <!-- Row 8: Bicep — default -->
+  <div class="track-row default">
+    <div class="art-sm"></div>
+    <div class="t-artist">Bicep</div>
+    <div class="t-title">Glue</div>
+    <div class="t-bpm">130</div>
+    <div><span class="key-chip k-12a">12A</span></div>
+    <div class="energy-bars">
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar on high"></div>
+      <div class="e-bar"></div>
+    </div>
+    <div><span class="t-genre">Breakbeat</span></div>
+    <div class="t-source">Beatport</div>
+  </div>
+
+</div>
+
+<!-- ============================================================
+     TOUCH TARGET NOTE
+     ============================================================ -->
+<div class="touch-note">
+  <strong>Touch targets:</strong> 40px rows (close to 44px minimum). Usable on desktop and tablet with care.
+</div>
+
+<!-- ============================================================
+     postMessage LISTENER
+     ============================================================ -->
+<script>
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'theme') {
+      document.documentElement.setAttribute('data-theme', e.data.value);
+    }
+  });
+</script>
+
+</body>
+</html>

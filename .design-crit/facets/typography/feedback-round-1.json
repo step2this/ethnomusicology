@@ -1,0 +1,12 @@
+{
+  "facet": "typography",
+  "round": 1,
+  "timestamp": "2026-03-01T03:00:00Z",
+  "options": {
+    "option-a": { "action": "cut", "comment": "" },
+    "option-b": { "action": "keep", "comment": "Like B best." },
+    "option-c": { "action": "cut", "comment": "" }
+  },
+  "overall": "Inter Tight is the winner.",
+  "decision": "lock"
+}

@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Enhanced Access — Accessibility Option B (RECOMMENDED)</title>
+<style>
+  /* ==========================================
+     DESIGN TOKENS — EMBER CRATE (LOCKED)
+     ========================================== */
+  :root {
+    --bg: #0F0D0B;
+    --surface: #141210;
+    --overlay: #1A1714;
+    --border: #1E1A16;
+    --border-med: #2A2520;
+    --text: #F0ECE4;
+    --muted: #8B8580;
+    --dim: #615B52;
+    --amber: #E8963A;
+    --copper: #C06030;
+    --focus-ring: #E8963A;
+    --row-height: 40px;
+    --art-size: 32px;
+    --mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    padding: 24px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ==========================================
+     HEADER
+     ========================================== */
+  .header { margin-bottom: 32px; }
+  .header-row { display: flex; align-items: center; gap: 12px; }
+  .option-name { font-size: 20px; font-weight: 700; }
+  .rec-badge {
+    display: inline-block;
+    font-size: 9px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #0F0D0B;
+    background: var(--amber);
+    padding: 3px 10px;
+    border-radius: 3px;
+  }
+  .option-sub {
+    font-size: 12px; color: var(--muted);
+    font-family: var(--mono);
+    margin-top: 6px;
+  }
+
+  /* ==========================================
+     AUDIT SUMMARY BANNER
+     ========================================== */
+  .audit-banner {
+    background: rgba(232,150,58,0.06);
+    border: 1px solid rgba(232,150,58,0.2);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-bottom: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .audit-banner-text { font-size: 14px; font-weight: 600; }
+  .audit-banner-text em { font-style: normal; color: var(--amber); }
+  .audit-banner-sub { font-size: 11px; color: var(--muted); margin-top: 4px; font-weight: 400; }
+  .audit-badge {
+    font-size: 10px; font-weight: 700; font-family: var(--mono);
+    color: #5CB870; background: rgba(92,184,112,0.1);
+    padding: 4px 12px; border-radius: 3px;
+  }
+
+  /* ==========================================
+     SECTION LABELS
+     ========================================== */
+  .section-label {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--dim);
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* ==========================================
+     FINDINGS TABLE
+     ========================================== */
+  .findings { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .findings th {
+    text-align: left; font-size: 9px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--dim); padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .findings td {
+    font-size: 12px; padding: 7px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  .findings tr:last-child td { border-bottom: none; }
+  .sev { font-size: 9px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.04em; padding: 2px 6px; border-radius: 3px; }
+  .sev-crit { color: #D05040; background: rgba(208,80,64,0.1); }
+  .sev-major { color: #E8C050; background: rgba(232,192,80,0.1); }
+  .sev-minor { color: #5A9EC0; background: rgba(90,158,192,0.1); }
+  .check { color: #5CB870; font-weight: 700; font-size: 14px; }
+  .wcag-ref { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+  .fix-note { font-size: 11px; color: var(--muted); }
+
+  /* ==========================================
+     ANNOTATION CALLOUTS
+     ========================================== */
+  .anno {
+    position: absolute;
+    font-size: 8px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--amber);
+    border: 1px dashed rgba(232,150,58,0.4);
+    padding: 2px 6px;
+    border-radius: 2px;
+    background: rgba(15,13,11,0.9);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 20;
+  }
+  .anno::before {
+    content: '';
+    position: absolute;
+    border: 1px dashed rgba(232,150,58,0.3);
+  }
+
+  /* ==========================================
+     DEMO LAYOUT — ICON RAIL + TABLE
+     ========================================== */
+  .demo-wrap {
+    position: relative;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: visible;
+  }
+  .demo-inner { display: flex; min-height: 480px; }
+
+  /* Icon Rail */
+  .icon-rail {
+    width: 48px; flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    align-items: center; padding-top: 12px; gap: 8px;
+    position: relative;
+  }
+  .rail-btn {
+    width: 32px; height: 32px;
+    border-radius: 4px; border: none;
+    background: transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--muted); font-size: 14px;
+    position: relative;
+  }
+  .rail-btn.active { background: rgba(232,150,58,0.08); color: var(--amber); }
+  .rail-tooltip {
+    position: absolute; left: 44px; top: 50%; transform: translateY(-50%);
+    background: var(--overlay); border: 1px solid var(--border-med);
+    color: var(--text); font-size: 11px; font-weight: 500;
+    padding: 4px 10px; border-radius: 4px;
+    white-space: nowrap; z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  }
+  .rail-tooltip::before {
+    content: ''; position: absolute; left: -4px; top: 50%;
+    transform: translateY(-50%) rotate(45deg);
+    width: 7px; height: 7px;
+    background: var(--overlay); border-left: 1px solid var(--border-med);
+    border-bottom: 1px solid var(--border-med);
+  }
+
+  /* Main content area */
+  .main-area { flex: 1; display: flex; flex-direction: column; }
+
+  /* Skip link */
+  .skip-link {
+    display: block;
+    font-size: 11px; font-weight: 600;
+    color: var(--bg); background: var(--amber);
+    padding: 6px 14px; text-decoration: none;
+    text-align: center;
+  }
+
+  /* Keyboard shortcut bar */
+  .kb-bar {
+    display: flex; align-items: center; justify-content: center;
+    gap: 16px; padding: 5px 12px;
+    background: var(--overlay); border-bottom: 1px solid var(--border);
+    font-size: 10px; color: var(--muted);
+  }
+  .kb-bar kbd {
+    font-family: var(--mono); font-size: 10px; font-weight: 600;
+    color: var(--text); background: rgba(240,236,228,0.06);
+    padding: 1px 5px; border-radius: 2px;
+    border: 1px solid var(--border-med);
+  }
+  .kb-sep { color: var(--dim); }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex; align-items: center; justify-content: space-between;
+    height: 44px; padding: 0 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toolbar-left { display: flex; align-items: center; gap: 8px; }
+  .toolbar-title { font-size: 15px; font-weight: 600; }
+  .toolbar-count {
+    font-size: 12px; font-family: var(--mono); color: var(--dim);
+  }
+  .toolbar-right { display: flex; gap: 8px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 6px 14px; border-radius: 5px;
+    font-size: 12px; font-weight: 500;
+    border: none; cursor: pointer; font-family: inherit;
+  }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-primary { background: var(--amber); color: var(--bg); font-weight: 600; }
+
+  /* Column headers */
+  .col-hdr-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 56px 64px 52px 84px 64px;
+    padding: 0 12px; align-items: center; gap: 6px;
+    height: 32px; border-bottom: 1px solid var(--border);
+  }
+  .col-hdr {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--dim);
+    display: inline-flex; align-items: center; gap: 3px;
+    cursor: pointer; padding: 3px 4px; border-radius: 3px;
+  }
+  .col-hdr:hover { background: rgba(232,150,58,0.04); }
+  .col-hdr.sorted { color: var(--text); }
+  .sort-ind { font-size: 8px; }
+  .sort-rank {
+    font-size: 7px; font-weight: 700; font-family: var(--mono);
+    width: 13px; height: 13px; border-radius: 50%;
+    background: rgba(232,150,58,0.12); color: var(--amber);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .aria-tag {
+    font-size: 8px; font-family: var(--mono); color: rgba(232,150,58,0.5);
+    font-weight: 500;
+  }
+
+  /* Track rows */
+  .track-row {
+    display: grid;
+    grid-template-columns: 40px 1fr 1fr 56px 64px 52px 84px 64px;
+    padding: 0 12px; align-items: center; gap: 6px;
+    height: var(--row-height);
+    border-bottom: 1px solid rgba(30,26,22,0.5);
+    border-left: 3px solid transparent;
+    position: relative;
+  }
+  .track-row:last-child { border-bottom: none; }
+  .track-row.focused {
+    background: rgba(232,150,58,0.05);
+    outline: 2px solid var(--focus-ring);
+    outline-offset: -2px;
+    border-left-color: var(--amber);
+  }
+  .track-row.selected {
+    background: rgba(232,150,58,0.06);
+    border-left-color: var(--amber);
+  }
+
+  /* Art placeholder */
+  .art { width: var(--art-size); height: var(--art-size); border-radius: 3px;
+    background: var(--overlay); flex-shrink: 0; }
+  .t-artist { font-size: 13px; font-weight: 600; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .t-title { font-size: 12px; color: #C8C4BC; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+  .t-bpm { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+
+  /* Camelot key chips */
+  .key-chip {
+    display: inline-flex; align-items: center; justify-content: center;
+    padding: 2px 7px; border-radius: 10px;
+    font-size: 11px; font-weight: 700; font-family: var(--mono);
+    line-height: 1;
+  }
+  .k-6a  { background: rgba(74,155,110,0.15); color: #4A9B6E; }
+  .k-11b { background: rgba(155,110,192,0.15); color: #9B6EC0; }
+  .k-2a  { background: rgba(192,122,74,0.15); color: #C07A4A; }
+  .k-8b  { background: rgba(74,139,192,0.15); color: #4A8BC0; }
+  .k-5a  { background: rgba(192,168,74,0.15); color: #C0A84A; }
+  .k-9a  { background: rgba(74,192,168,0.15); color: #4AC0A8; }
+  .k-7a  { background: rgba(110,155,74,0.15); color: #6E9B4A; }
+  .k-4b  { background: rgba(192,74,110,0.15); color: #C04A6E; }
+
+  /* Energy bars */
+  .energy-wrap { display: flex; align-items: center; gap: 5px; position: relative; }
+  .energy-bars { display: flex; gap: 2px; align-items: flex-end; }
+  .e-bar { width: 5px; height: 14px; border-radius: 1px; background: var(--border); }
+  .e-bar.on.lo { background: #4AC0A8; }
+  .e-bar.on.md { background: var(--amber); }
+  .e-bar.on.hi { background: #C06030; }
+  .e-val {
+    font-size: 10px; font-family: var(--mono); color: var(--muted);
+    display: none;
+  }
+  .track-row.focused .e-val { display: inline; }
+
+  /* Energy tooltip (shown on focused row) */
+  .e-tooltip {
+    display: none;
+    position: absolute; bottom: 100%; left: 0;
+    background: var(--overlay); border: 1px solid var(--border-med);
+    color: var(--text); font-size: 10px; font-family: var(--mono);
+    padding: 3px 8px; border-radius: 3px;
+    white-space: nowrap; z-index: 10;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .track-row.focused .e-tooltip { display: block; }
+
+  /* Genre pills */
+  .t-genre {
+    font-size: 10px; color: var(--dim);
+    padding: 2px 6px; background: var(--overlay);
+    border-radius: 9999px; white-space: nowrap;
+    display: inline-block;
+  }
+
+  /* Source badges — 10px (upgraded from 9px) */
+  .t-source {
+    font-size: 10px; font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--dim);
+  }
+
+  /* Row count footer */
+  .row-count-bar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 6px 12px; border-top: 1px solid var(--border);
+    font-size: 11px; color: var(--muted);
+  }
+  .row-count-bar span { font-family: var(--mono); font-size: 10px; }
+
+  /* ==========================================
+     ADDITIONS SECTION
+     ========================================== */
+  .additions {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px 20px;
+    margin-top: 8px;
+  }
+  .additions h3 {
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--amber); margin-bottom: 12px;
+  }
+  .additions ul { list-style: none; }
+  .additions li {
+    font-size: 12px; color: var(--muted);
+    padding: 5px 0; border-bottom: 1px solid var(--border);
+    display: flex; align-items: baseline; gap: 8px;
+  }
+  .additions li:last-child { border-bottom: none; }
+  .additions li::before {
+    content: '+'; color: #5CB870; font-weight: 700;
+    font-family: var(--mono); font-size: 13px;
+  }
+  .add-label { color: var(--text); font-weight: 600; }
+
+  /* ==========================================
+     IMPL NOTES
+     ========================================== */
+  .impl-notes {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px; padding: 16px 20px;
+  }
+  .impl-notes h3 {
+    font-size: 12px; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--dim); margin-bottom: 12px;
+  }
+  .impl-notes table { width: 100%; border-collapse: collapse; }
+  .impl-notes th {
+    text-align: left; font-size: 9px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--dim); padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .impl-notes td {
+    font-size: 11px; padding: 6px 10px;
+    border-bottom: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .impl-notes tr:last-child td { border-bottom: none; }
+  .impl-notes code {
+    font-family: var(--mono); font-size: 10px;
+    background: rgba(232,150,58,0.06); color: var(--amber);
+    padding: 1px 5px; border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     HEADER
+     ============================================================ -->
+<div class="header">
+  <div class="header-row">
+    <div class="option-name">Enhanced Access</div>
+    <div class="rec-badge">RECOMMENDED</div>
+  </div>
+  <div class="option-sub">Option B &mdash; Fixes 12/12 audit issues + keyboard QoL enhancements</div>
+</div>
+
+<!-- ============================================================
+     AUDIT SUMMARY BANNER
+     ============================================================ -->
+<div class="audit-banner">
+  <div>
+    <div class="audit-banner-text">Fixes <em>12 of 12</em> issues &mdash; WCAG AA achieved + enhanced keyboard UX</div>
+    <div class="audit-banner-sub">2 critical, 6 major, 4 minor &mdash; all remediated. Plus 4 quality-of-life additions.</div>
+  </div>
+  <div class="audit-badge">WCAG 2.1 AA</div>
+</div>
+
+<!-- ============================================================
+     AUDIT FINDINGS TABLE
+     ============================================================ -->
+<div class="section-label">Audit Findings &mdash; 12 Issues (All Addressed)</div>
+<table class="findings">
+  <thead>
+    <tr>
+      <th style="width:28px"></th>
+      <th style="width:60px">Severity</th>
+      <th>Issue</th>
+      <th style="width:80px">WCAG</th>
+      <th>Fix Applied</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-crit">Critical</span></td>
+      <td>No keyboard access to row selection</td>
+      <td class="wcag-ref">2.1.1</td>
+      <td class="fix-note">Arrow keys navigate, Enter/Space selects</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-crit">Critical</span></td>
+      <td>Slide-over lacks focus trap</td>
+      <td class="wcag-ref">2.1.2</td>
+      <td class="fix-note">Focus trap + ESC to close + scrim dismiss</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-major">Major</span></td>
+      <td>No skip link</td>
+      <td class="wcag-ref">2.4.1</td>
+      <td class="fix-note">"Skip to track catalog" link at top</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-major">Major</span></td>
+      <td>Focus indicators not defined</td>
+      <td class="wcag-ref">2.4.7</td>
+      <td class="fix-note">2px amber focus ring, 2px offset on all focusables</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-major">Major</span></td>
+      <td>Table lacks semantic markup</td>
+      <td class="wcag-ref">1.3.1</td>
+      <td class="fix-note">Semantic table with th scope, aria-sort</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-major">Major</span></td>
+      <td>Sort changes not announced</td>
+      <td class="wcag-ref">4.1.3</td>
+      <td class="fix-note">aria-live region announces sort + count</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-major">Major</span></td>
+      <td>Toasts need live region</td>
+      <td class="wcag-ref">4.1.3</td>
+      <td class="fix-note">role="status" aria-live="polite" on toast area</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-major">Major</span></td>
+      <td>Album art missing alt text</td>
+      <td class="wcag-ref">1.1.1</td>
+      <td class="fix-note">alt="Album art for [Artist] - [Title]"</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-minor">Minor</span></td>
+      <td>Energy bars &mdash; color-only info</td>
+      <td class="wcag-ref">1.4.1</td>
+      <td class="fix-note">Tooltip + text label on hover/focus (e.g., "8/10")</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-minor">Minor</span></td>
+      <td>9px source badges hard to read</td>
+      <td class="wcag-ref">1.4.12</td>
+      <td class="fix-note">Increased to 10px + 0.5px letter-spacing</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-minor">Minor</span></td>
+      <td>Icon rail buttons need labels</td>
+      <td class="wcag-ref">4.1.2</td>
+      <td class="fix-note">aria-label + visible pill tooltip on hover/focus</td>
+    </tr>
+    <tr>
+      <td class="check">&#10003;</td>
+      <td><span class="sev sev-minor">Minor</span></td>
+      <td>Scrim dismiss needs keyboard path</td>
+      <td class="wcag-ref">2.1.1</td>
+      <td class="fix-note">ESC closes slide-over (part of focus trap)</td>
+    </tr>
+  </tbody>
+</table>
+
+<!-- ============================================================
+     REMEDIATED TRACK TABLE
+     ============================================================ -->
+<div class="section-label">Remediated Track Catalog &mdash; All 12 Fixes + QoL Enhancements</div>
+<div class="demo-wrap" style="position: relative;">
+
+  <!-- Annotation: ARIA landmark — nav -->
+  <div class="anno" style="top: -18px; left: 0;">
+    &lt;nav&gt; landmark
+  </div>
+  <!-- Annotation: ARIA landmark — main -->
+  <div class="anno" style="top: -18px; left: 90px;">
+    &lt;main&gt; landmark
+  </div>
+
+  <div class="demo-inner">
+
+    <!-- ===== ICON RAIL (nav landmark) ===== -->
+    <div class="icon-rail" role="navigation" aria-label="Main navigation">
+      <button class="rail-btn active" aria-label="Catalog" style="position: relative;">
+        <!-- Catalog icon -->
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="1" y="2" width="14" height="2" rx="1" fill="currentColor"/><rect x="1" y="7" width="14" height="2" rx="1" fill="currentColor"/><rect x="1" y="12" width="14" height="2" rx="1" fill="currentColor"/></svg>
+        <!-- Tooltip shown -->
+        <div class="rail-tooltip">Catalog</div>
+      </button>
+      <button class="rail-btn" aria-label="Setlists">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="1" width="12" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/><line x1="5" y1="5" x2="11" y2="5" stroke="currentColor" stroke-width="1"/><line x1="5" y1="8" x2="11" y2="8" stroke="currentColor" stroke-width="1"/><line x1="5" y1="11" x2="9" y2="11" stroke="currentColor" stroke-width="1"/></svg>
+      </button>
+      <button class="rail-btn" aria-label="Import">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2v9M5 8l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><path d="M2 12v2h12v-2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+      </button>
+      <button class="rail-btn" aria-label="Settings">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3" stroke="currentColor" stroke-width="1" stroke-linecap="round"/></svg>
+      </button>
+
+      <!-- Annotation: icon rail tooltip -->
+      <div class="anno" style="bottom: -20px; left: 0; width: 48px; text-align: center; font-size: 7px;">
+        aria-label + tooltip
+      </div>
+    </div>
+
+    <!-- ===== MAIN CONTENT (main landmark) ===== -->
+    <div class="main-area" role="main" aria-label="Track catalog">
+
+      <!-- Skip link (visible) -->
+      <a href="#track-table" class="skip-link">Skip to track catalog</a>
+
+      <!-- Annotation: skip link -->
+      <div class="anno" style="position: absolute; top: 2px; right: -120px; z-index: 30;">
+        skip link (fix #3)
+      </div>
+
+      <!-- Keyboard shortcut bar -->
+      <div class="kb-bar">
+        <span><kbd>&#8593;&#8595;</kbd> Navigate</span>
+        <span class="kb-sep">&middot;</span>
+        <span><kbd>Enter</kbd> Select</span>
+        <span class="kb-sep">&middot;</span>
+        <span><kbd>Space</kbd> Expand</span>
+        <span class="kb-sep">&middot;</span>
+        <span><kbd>Esc</kbd> Close</span>
+      </div>
+
+      <!-- Toolbar -->
+      <div class="toolbar">
+        <div class="toolbar-left">
+          <span class="toolbar-title">Tracks</span>
+          <span class="toolbar-count">347</span>
+        </div>
+        <div class="toolbar-right">
+          <button class="btn btn-ghost">Filter</button>
+          <button class="btn btn-primary">+ Import</button>
+        </div>
+      </div>
+
+      <!-- Column headers with aria-sort -->
+      <div class="col-hdr-row" id="track-table" role="row">
+        <div></div>
+        <div class="col-hdr" role="columnheader">Artist</div>
+        <div class="col-hdr" role="columnheader">Title</div>
+        <div class="col-hdr sorted" role="columnheader" aria-sort="ascending">BPM <span class="sort-ind">&#9650;</span> <span class="sort-rank">1</span></div>
+        <div class="col-hdr sorted" role="columnheader" aria-sort="ascending">Key <span class="sort-ind">&#9650;</span> <span class="sort-rank">2</span></div>
+        <div class="col-hdr" role="columnheader">NRG</div>
+        <div class="col-hdr" role="columnheader">Genre</div>
+        <div class="col-hdr" role="columnheader">Source</div>
+      </div>
+
+      <!-- Annotation: aria-sort on headers -->
+      <div class="anno" style="position: absolute; top: 102px; right: -110px; z-index: 30;">
+        aria-sort (fix #5, #6)
+      </div>
+
+      <!-- Row 1: Fisher -->
+      <div class="track-row" role="row" tabindex="-1" aria-label="Fisher, Losing It, 124 BPM, 6A, energy 8 of 10">
+        <div class="art" role="img" aria-label="Album art for Fisher - Losing It"></div>
+        <div class="t-artist">Fisher</div>
+        <div class="t-title">Losing It</div>
+        <div class="t-bpm">124</div>
+        <div><span class="key-chip k-6a">6A</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on md"></div><div class="e-bar on md"></div><div class="e-bar on hi"></div><div class="e-bar"></div>
+          </div>
+          <span class="e-val">8</span>
+        </div>
+        <div><span class="t-genre">Tech House</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+
+      <!-- Row 2: Peggy Gou -->
+      <div class="track-row" role="row" tabindex="-1" aria-label="Peggy Gou, Starry Night, 125 BPM, 11B, energy 7 of 10">
+        <div class="art" role="img" aria-label="Album art for Peggy Gou - Starry Night"></div>
+        <div class="t-artist">Peggy Gou</div>
+        <div class="t-title">Starry Night</div>
+        <div class="t-bpm">125</div>
+        <div><span class="key-chip k-11b">11B</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on md"></div><div class="e-bar on md"></div><div class="e-bar"></div><div class="e-bar"></div>
+          </div>
+          <span class="e-val">7</span>
+        </div>
+        <div><span class="t-genre">House</span></div>
+        <div class="t-source">Beatport</div>
+      </div>
+
+      <!-- Row 3: Four Tet — FOCUSED (showing keyboard focus) -->
+      <div class="track-row focused" role="row" tabindex="0" aria-label="Four Tet, Baby, 130 BPM, 2A, energy 5 of 10" aria-selected="true">
+        <div class="art" role="img" aria-label="Album art for Four Tet - Baby"></div>
+        <div class="t-artist">Four Tet</div>
+        <div class="t-title">Baby</div>
+        <div class="t-bpm">130</div>
+        <div><span class="key-chip k-2a">2A</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on lo"></div><div class="e-bar"></div><div class="e-bar"></div><div class="e-bar"></div>
+          </div>
+          <span class="e-val" style="display:inline;">5/10</span>
+          <div class="e-tooltip" style="display:block;">Energy: 5 / 10</div>
+        </div>
+        <div><span class="t-genre">Electronic</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+
+      <!-- Annotation: focus ring -->
+      <div class="anno" style="position: absolute; top: 250px; right: -128px; z-index: 30;">
+        2px amber focus ring (fix #4)
+      </div>
+      <!-- Annotation: energy tooltip -->
+      <div class="anno" style="position: absolute; top: 218px; left: 382px; z-index: 30;">
+        energy tooltip (fix #9)
+      </div>
+      <!-- Annotation: alt text on art -->
+      <div class="anno" style="position: absolute; top: 270px; left: 56px; z-index: 30;">
+        alt text (fix #8)
+      </div>
+
+      <!-- Row 4: Floating Points -->
+      <div class="track-row" role="row" tabindex="-1" aria-label="Floating Points, Ratio, 128 BPM, 8B, energy 9 of 10">
+        <div class="art" role="img" aria-label="Album art for Floating Points - Ratio"></div>
+        <div class="t-artist">Floating Points</div>
+        <div class="t-title">Ratio</div>
+        <div class="t-bpm">128</div>
+        <div><span class="key-chip k-8b">8B</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on md"></div><div class="e-bar on md"></div><div class="e-bar on hi"></div><div class="e-bar on hi"></div>
+          </div>
+          <span class="e-val">9</span>
+        </div>
+        <div><span class="t-genre">Techno</span></div>
+        <div class="t-source">Beatport</div>
+      </div>
+
+      <!-- Row 5: Kaytranada -->
+      <div class="track-row" role="row" tabindex="-1" aria-label="Kaytranada, Glowed Up, 110 BPM, 5A, energy 5 of 10">
+        <div class="art" role="img" aria-label="Album art for Kaytranada - Glowed Up"></div>
+        <div class="t-artist">Kaytranada</div>
+        <div class="t-title">Glowed Up</div>
+        <div class="t-bpm">110</div>
+        <div><span class="key-chip k-5a">5A</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on lo"></div><div class="e-bar"></div><div class="e-bar"></div><div class="e-bar"></div>
+          </div>
+          <span class="e-val">5</span>
+        </div>
+        <div><span class="t-genre">R&amp;B/Electronic</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+
+      <!-- Row 6: Disclosure -->
+      <div class="track-row" role="row" tabindex="-1" aria-label="Disclosure, Latch, 122 BPM, 9A, energy 6 of 10">
+        <div class="art" role="img" aria-label="Album art for Disclosure - Latch"></div>
+        <div class="t-artist">Disclosure</div>
+        <div class="t-title">Latch</div>
+        <div class="t-bpm">122</div>
+        <div><span class="key-chip k-9a">9A</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on md"></div><div class="e-bar on md"></div><div class="e-bar"></div><div class="e-bar"></div>
+          </div>
+          <span class="e-val">6</span>
+        </div>
+        <div><span class="t-genre">UK Garage</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+
+      <!-- Row 7: Jamie xx -->
+      <div class="track-row" role="row" tabindex="-1" aria-label="Jamie xx, Gosh, 120 BPM, 7A, energy 8 of 10">
+        <div class="art" role="img" aria-label="Album art for Jamie xx - Gosh"></div>
+        <div class="t-artist">Jamie xx</div>
+        <div class="t-title">Gosh</div>
+        <div class="t-bpm">120</div>
+        <div><span class="key-chip k-7a">7A</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on md"></div><div class="e-bar on md"></div><div class="e-bar on hi"></div><div class="e-bar"></div>
+          </div>
+          <span class="e-val">8</span>
+        </div>
+        <div><span class="t-genre">Electronic</span></div>
+        <div class="t-source">Spotify</div>
+      </div>
+
+      <!-- Row 8: Bicep -->
+      <div class="track-row" role="row" tabindex="-1" aria-label="Bicep, Glue, 130 BPM, 4B, energy 9 of 10">
+        <div class="art" role="img" aria-label="Album art for Bicep - Glue"></div>
+        <div class="t-artist">Bicep</div>
+        <div class="t-title">Glue</div>
+        <div class="t-bpm">130</div>
+        <div><span class="key-chip k-4b">4B</span></div>
+        <div class="energy-wrap">
+          <div class="energy-bars" aria-hidden="true">
+            <div class="e-bar on lo"></div><div class="e-bar on md"></div><div class="e-bar on md"></div><div class="e-bar on hi"></div><div class="e-bar on hi"></div>
+          </div>
+          <span class="e-val">9</span>
+        </div>
+        <div><span class="t-genre">Electronica</span></div>
+        <div class="t-source">Beatport</div>
+      </div>
+
+      <!-- Row count footer (aria-live) -->
+      <div class="row-count-bar" role="status" aria-live="polite">
+        <span>Showing 19 of 347 tracks</span>
+        <span class="aria-tag">aria-live="polite"</span>
+      </div>
+
+      <!-- Annotation: row count announcement -->
+      <div class="anno" style="position: absolute; bottom: -20px; right: -128px; z-index: 30;">
+        live region (fix #6, #7)
+      </div>
+
+    </div><!-- /main-area -->
+  </div><!-- /demo-inner -->
+
+  <!-- Annotation: keyboard shortcut bar -->
+  <div class="anno" style="position: absolute; top: 28px; right: -140px; z-index: 30;">
+    keyboard shortcut hints (QoL)
+  </div>
+
+  <!-- Annotation: source badge size -->
+  <div class="anno" style="position: absolute; bottom: 80px; right: -128px; z-index: 30;">
+    source 10px + spacing (fix #10)
+  </div>
+
+</div><!-- /demo-wrap -->
+
+<!-- ============================================================
+     ADDITIONS BEYOND AUDIT
+     ============================================================ -->
+<div class="section-label">Additions Beyond Audit &mdash; Quality-of-Life Enhancements</div>
+<div class="additions">
+  <h3>What Option B adds over Option A</h3>
+  <ul>
+    <li><span class="add-label">Keyboard shortcut hints</span> &mdash; Persistent bar showing navigation keys: arrow, Enter, Space, Esc</li>
+    <li><span class="add-label">ARIA landmarks</span> &mdash; nav (icon rail), main (track table), complementary (slide-over), status (toast area)</li>
+    <li><span class="add-label">Row count announcement</span> &mdash; "19 of 347 tracks visible" via aria-live when filter/sort changes</li>
+    <li><span class="add-label">Column resize keyboard support</span> &mdash; Implementation note for future: allow keyboard-driven column width adjustment</li>
+    <li><span class="add-label">Energy text labels</span> &mdash; Numeric value (e.g., "5/10") visible on hover/focus, not just tooltip</li>
+    <li><span class="add-label">Icon rail visible tooltips</span> &mdash; Pill-style tooltip appears to the right on hover/focus, not only aria-label</li>
+    <li><span class="add-label">Source badge readability</span> &mdash; 10px + 0.5px letter-spacing (up from 9px in the base design)</li>
+  </ul>
+</div>
+
+<!-- ============================================================
+     IMPLEMENTATION NOTES
+     ============================================================ -->
+<div class="section-label">Implementation Notes</div>
+<div class="impl-notes">
+  <h3>Flutter / Semantic Widgets Required</h3>
+  <table>
+    <thead>
+      <tr><th>Fix</th><th>Flutter Implementation</th><th>Effort</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Keyboard row nav</td>
+        <td><code>FocusTraversalGroup</code> + <code>RawKeyboardListener</code> on each row, manage <code>FocusNode</code> list</td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>Focus trap (slide-over)</td>
+        <td><code>FocusTrapArea</code> widget wrapping panel content; <code>onKey</code> handler for ESC</td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>Skip link</td>
+        <td><code>Semantics(link: true)</code> at top of widget tree, <code>Scrollable.ensureVisible</code> on activation</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Focus indicators</td>
+        <td>Custom <code>FocusDecoration</code> — 2px amber border, 2px offset via <code>BoxDecoration</code></td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Semantic table</td>
+        <td><code>Semantics(table: true)</code> on <code>DataTable</code> or custom grid with <code>SemanticsFlag</code></td>
+        <td>Medium</td>
+      </tr>
+      <tr>
+        <td>Sort announcements</td>
+        <td><code>SemanticsService.announce()</code> on sort change: "Sorted by BPM ascending"</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Toast live region</td>
+        <td><code>Semantics(liveRegion: true)</code> on toast container widget</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Album art alt text</td>
+        <td><code>Semantics(label: 'Album art for ...')</code> wrapping <code>Image</code> widget</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Energy labels</td>
+        <td><code>Tooltip</code> widget + conditional <code>Text</code> shown on hover/focus state</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Source badge size</td>
+        <td>Update <code>fontSize: 10</code> and <code>letterSpacing: 0.5</code> in theme constants</td>
+        <td>Trivial</td>
+      </tr>
+      <tr>
+        <td>Icon rail tooltips</td>
+        <td><code>Tooltip</code> widget + custom <code>Overlay</code> pill positioned right of icon</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Keyboard hint bar</td>
+        <td>Static <code>Row</code> widget below toolbar, styled with muted palette</td>
+        <td>Trivial</td>
+      </tr>
+      <tr>
+        <td>ARIA landmarks</td>
+        <td><code>Semantics(namesRoute: true)</code> + <code>Semantics(container: true, label: ...)</code> on each zone</td>
+        <td>Low</td>
+      </tr>
+      <tr>
+        <td>Row count live</td>
+        <td><code>Semantics(liveRegion: true)</code> on count text, update on filter/sort</td>
+        <td>Low</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============================================================
+     postMessage LISTENER (dark-only, no-op)
+     ============================================================ -->
+<script>
+  window.addEventListener('message', (e) => {
+    if (e.data && e.data.type === 'theme') {
+      document.documentElement.setAttribute('data-theme', e.data.value);
+    }
+  });
+</script>
+
+</body>
+</html>

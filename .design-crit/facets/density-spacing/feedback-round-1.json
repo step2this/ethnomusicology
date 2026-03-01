@@ -1,0 +1,11 @@
+{
+  "round": 1,
+  "decisions": {
+    "option-a": "cut",
+    "option-b": "keep",
+    "option-c": "cut"
+  },
+  "lock": "option-b",
+  "comments": "Option B is the one. User delegated recommendation — not fussed about density, approved the defaults throughout the crit. Studio density matches every wireframe already reviewed and approved.",
+  "user_quote": "option B is the one!"
+}

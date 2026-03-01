@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Typography — Option B: Inter Tight</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  :root {
+    --bg: #111113;
+    --surface-1: #18181B;
+    --surface-2: #1E1E22;
+    --border: #2A2A30;
+    --border-subtle: #222228;
+    --text: #E8E8EC;
+    --text-dim: #8B8B92;
+    --text-muted: #5C5C63;
+    --accent: #6366F1;
+    --font-ui: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: "JetBrains Mono", "SF Mono", "Fira Code", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: 13px; line-height: 1.5; padding: 32px 24px; }
+  .container { max-width: 1100px; margin: 0 auto; }
+  h2 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  h3 { font-size: 14px; font-weight: 600; margin: 28px 0 12px; color: var(--text); }
+  .subtitle { font-size: 13px; color: var(--text-dim); margin-bottom: 28px; }
+  .label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 6px; }
+  .note { font-size: 12px; color: var(--text-dim); margin: 10px 0 0; line-height: 1.5; max-width: 720px; }
+  .divider { border: none; border-top: 1px solid var(--border-subtle); margin: 32px 0; }
+
+  /* ─── Type Scale ─── */
+  .scale { display: flex; flex-direction: column; gap: 0; margin: 16px 0; }
+  .scale-row {
+    display: grid; grid-template-columns: 140px 1fr 260px;
+    align-items: baseline; padding: 14px 0;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .scale-meta { display: flex; flex-direction: column; gap: 2px; }
+  .scale-name { font-size: 11px; font-weight: 600; color: var(--accent); }
+  .scale-specs { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); line-height: 1.4; }
+  .scale-sample { padding-right: 16px; }
+  .scale-usage { font-size: 11px; color: var(--text-muted); line-height: 1.4; }
+
+  /* ─── Weight Inventory ─── */
+  .weights { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 16px 0; }
+  .weight-card {
+    padding: 16px; background: var(--surface-1); border: 1px solid var(--border-subtle);
+  }
+  .weight-card .sample { margin-bottom: 8px; color: var(--text); }
+  .weight-card .info { font-size: 11px; color: var(--text-muted); }
+
+  /* ─── Context Demo ─── */
+  .table-demo {
+    background: var(--bg); border: 1px solid var(--border-subtle); margin: 16px 0; overflow: hidden;
+  }
+  .demo-header {
+    display: grid; grid-template-columns: 48px 2fr 2fr 80px 70px 70px 80px 60px;
+    padding: 0 12px; height: 36px; align-items: center;
+    background: var(--surface-1); border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em;
+  }
+  .demo-row {
+    display: grid; grid-template-columns: 48px 2fr 2fr 80px 70px 70px 80px 60px;
+    padding: 0 12px; height: 48px; align-items: center;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .demo-row:hover { background: var(--surface-1); }
+  .demo-row .idx { font-size: 10px; color: var(--text-muted); }
+  .demo-row .artist { font-size: 13px; font-weight: 700; color: var(--text); }
+  .demo-row .title { font-size: 12px; font-weight: 400; color: var(--text-dim); }
+  .demo-row .bpm { font-family: var(--font-mono); font-size: 13px; font-weight: 400; color: var(--text); letter-spacing: -0.02em; }
+  .demo-row .key-chip {
+    display: inline-flex; align-items: center; height: 20px; padding: 0 8px;
+    font-size: 11px; font-weight: 500; border-radius: 3px;
+    background: rgba(99,102,241,0.15); color: #A5B4FC;
+  }
+  .demo-row .energy-bar {
+    width: 5px; height: 24px; border-radius: 1px;
+    display: inline-block; vertical-align: middle;
+  }
+  .demo-row .genre { font-size: 10px; color: var(--text-muted); }
+  .demo-row .source {
+    font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted);
+  }
+  .anno {
+    display: inline-block; font-size: 9px; font-weight: 600; color: var(--accent);
+    border: 1px solid var(--accent); border-radius: 3px; padding: 1px 4px;
+    margin-left: 6px; vertical-align: middle;
+  }
+
+  /* ─── Mono specimen ─── */
+  .mono-demo { display: flex; gap: 24px; margin: 16px 0; flex-wrap: wrap; }
+  .mono-item {
+    padding: 12px 16px; background: var(--surface-1); border: 1px solid var(--border-subtle);
+  }
+  .mono-item .val { font-family: var(--font-mono); font-size: 13px; color: var(--text); margin-bottom: 4px; }
+  .mono-item .desc { font-size: 10px; color: var(--text-muted); }
+
+  /* ─── Comparison ─── */
+  .compare-box {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0;
+  }
+  .compare-side {
+    padding: 16px; background: var(--surface-1); border: 1px solid var(--border-subtle);
+  }
+  .compare-side .heading { font-size: 11px; font-weight: 600; color: var(--accent); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <h2>Inter Tight</h2>
+  <p class="subtitle">Inter for UI. JetBrains Mono for BPM/data. Purpose-built for screens at 11-16px. Tall x-height, open apertures, tabular numbers built in.</p>
+
+  <!-- ─── Type Scale ─── -->
+  <h3>Type Scale</h3>
+  <p class="label">7 levels &mdash; same discrete scale as System Native, different rendering</p>
+  <div class="scale">
+    <div class="scale-row">
+      <div class="scale-meta"><span class="scale-name">Page Title</span><span class="scale-specs">15px / 600 / 1.3<br>letter-spacing: -0.02em</span></div>
+      <div class="scale-sample" style="font-size:15px;font-weight:600;line-height:1.3;letter-spacing:-0.02em;">Track Catalog</div>
+      <div class="scale-usage">Page header, slide-over header</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><span class="scale-name">Artist</span><span class="scale-specs">13px / 700 / 1.4</span></div>
+      <div class="scale-sample" style="font-size:13px;font-weight:700;line-height:1.4;">Floating Points</div>
+      <div class="scale-usage">Artist name in track row. Bold weight.</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><span class="scale-name">Body</span><span class="scale-specs">13px / 400 / 1.5</span></div>
+      <div class="scale-sample" style="font-size:13px;font-weight:400;line-height:1.5;">Import results, detail strip metadata, error messages</div>
+      <div class="scale-usage">General body text</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><span class="scale-name">Title</span><span class="scale-specs">12px / 400 / 1.4</span></div>
+      <div class="scale-sample" style="font-size:12px;font-weight:400;line-height:1.4;color:var(--text-dim);">Crush (Elaenia Bonus Track)</div>
+      <div class="scale-usage">Track title. Regular weight, secondary color.</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><span class="scale-name">Label</span><span class="scale-specs">11px / 500 / 1.3<br>font-feature: 'tnum'</span></div>
+      <div class="scale-sample" style="font-size:11px;font-weight:500;line-height:1.3;">Camelot chip text, column headers, button labels</div>
+      <div class="scale-usage">Interactive labels. Tabular numbers enabled.</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><span class="scale-name">Caption</span><span class="scale-specs">10px / 400 / 1.3</span></div>
+      <div class="scale-sample" style="font-size:10px;font-weight:400;line-height:1.3;color:var(--text-muted);">Deep House &middot; Ninja Tune &middot; 2015</div>
+      <div class="scale-usage">Genre pill, detail strip secondary</div>
+    </div>
+    <div class="scale-row">
+      <div class="scale-meta"><span class="scale-name">Micro</span><span class="scale-specs">9px / 600 / 1.2<br>letter-spacing: 0.04em<br>text-transform: uppercase</span></div>
+      <div class="scale-sample" style="font-size:9px;font-weight:600;line-height:1.2;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);">Spotify &middot; Beatport</div>
+      <div class="scale-usage">Source badge, ambient metadata</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ─── BPM Mono ─── -->
+  <h3>Monospace: JetBrains Mono</h3>
+  <p class="label">Designed for code. Excellent number readability. Ligatures disabled for data display.</p>
+  <div class="mono-demo">
+    <div class="mono-item"><div class="val">128.00</div><div class="desc">BPM (13px/400)</div></div>
+    <div class="mono-item"><div class="val">174.50</div><div class="desc">BPM (13px/400)</div></div>
+    <div class="mono-item"><div class="val" style="font-weight:500;">03:42</div><div class="desc">Duration (10px/500)</div></div>
+    <div class="mono-item"><div class="val">2024</div><div class="desc">Year (10px/400)</div></div>
+  </div>
+  <p class="note">JetBrains Mono has increased x-height and wider letterforms than SF Mono. Numbers are more distinct from each other — the 6 and 8 are clearly different at 13px. Dotted zero distinguishes O from 0.</p>
+
+  <hr class="divider">
+
+  <!-- ─── Weight Inventory ─── -->
+  <h3>Weight Inventory</h3>
+  <p class="label">3 weights (Inter) + 2 weights (JetBrains Mono)</p>
+  <div class="weights">
+    <div class="weight-card">
+      <div class="sample" style="font-size:15px;font-weight:400;">Regular 400</div>
+      <div class="info">Body text, track titles, descriptions. The workhorse.</div>
+    </div>
+    <div class="weight-card">
+      <div class="sample" style="font-size:15px;font-weight:500;">Medium 500</div>
+      <div class="info">Labels, chip text, sort headers, button text.</div>
+    </div>
+    <div class="weight-card">
+      <div class="sample" style="font-size:15px;font-weight:700;">Bold 700</div>
+      <div class="info">Artist name, page titles. Primary emphasis.</div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ─── Inter Features ─── -->
+  <h3>Why Inter</h3>
+  <div class="compare-box">
+    <div class="compare-side">
+      <div class="heading">Tabular Numbers</div>
+      <div style="font-size:13px;line-height:1.8;font-feature-settings:'tnum';">
+        128.00<br>
+        174.50<br>
+        &nbsp;92.00<br>
+        115.00
+      </div>
+      <p class="note" style="margin-top:8px;">Inter has native tabular figures ('tnum'). Even without switching to mono, numbers in the UI align vertically. Useful for the import result panel where BPM appears in non-table contexts.</p>
+    </div>
+    <div class="compare-side">
+      <div class="heading">Small Size Clarity</div>
+      <div style="font-size:10px;line-height:1.4;color:var(--text-dim);">
+        Deep House &middot; Ninja Tune &middot; 2015<br>
+        R&B/Soul &middot; Stones Throw &middot; 2019<br>
+        Electronica &middot; Text Records &middot; 2023
+      </div>
+      <p class="note" style="margin-top:8px;">At 10px, Inter's tall x-height and open apertures keep text legible. The e, a, and s remain distinguishable where many fonts collapse.</p>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- ─── In Context ─── -->
+  <h3>In Context: Track Table</h3>
+  <div class="table-demo">
+    <div class="demo-header">
+      <span></span>
+      <span>Artist</span>
+      <span>Title</span>
+      <span>BPM</span>
+      <span>Key</span>
+      <span>Energy</span>
+      <span>Genre</span>
+      <span>Source</span>
+    </div>
+    <div class="demo-row">
+      <span class="idx">1</span>
+      <span class="artist">Floating Points</span>
+      <span class="title">Crush</span>
+      <span class="bpm">128.00</span>
+      <span><span class="key-chip">8B</span></span>
+      <span><span class="energy-bar" style="background:linear-gradient(to top,#22C55E,#86EFAC);height:18px;"></span></span>
+      <span class="genre">Deep House</span>
+      <span class="source">Spotify</span>
+    </div>
+    <div class="demo-row">
+      <span class="idx">2</span>
+      <span class="artist">Kaytranada</span>
+      <span class="title">GLOWED UP (feat. Anderson .Paak)</span>
+      <span class="bpm">115.00</span>
+      <span><span class="key-chip" style="background:rgba(251,191,36,0.15);color:#FBBF24;">4A</span></span>
+      <span><span class="energy-bar" style="background:linear-gradient(to top,#F59E0B,#FCD34D);height:22px;"></span></span>
+      <span class="genre">R&B/Soul</span>
+      <span class="source">Beatport</span>
+    </div>
+    <div class="demo-row">
+      <span class="idx">3</span>
+      <span class="artist">Four Tet</span>
+      <span class="title">Baby</span>
+      <span class="bpm">130.50</span>
+      <span><span class="key-chip" style="background:rgba(74,222,128,0.15);color:#4ADE80;">11B</span></span>
+      <span><span class="energy-bar" style="background:linear-gradient(to top,#EF4444,#FCA5A5);height:28px;"></span></span>
+      <span class="genre">Electronica</span>
+      <span class="source">Spotify</span>
+    </div>
+    <div class="demo-row">
+      <span class="idx">4</span>
+      <span class="artist">Peggy Gou</span>
+      <span class="title">Starry Night</span>
+      <span class="bpm">124.00</span>
+      <span><span class="key-chip" style="background:rgba(168,85,247,0.15);color:#C084FC;">6A</span></span>
+      <span><span class="energy-bar" style="background:linear-gradient(to top,#22C55E,#86EFAC);height:16px;"></span></span>
+      <span class="genre">House</span>
+      <span class="source">Beatport</span>
+    </div>
+  </div>
+  <p class="note">Same scale, same sizes — Inter renders slightly more open than system fonts at 10-13px. The geometric forms are cleaner. JetBrains Mono BPM column has more presence than system mono.</p>
+
+  <hr class="divider">
+
+  <h3>Load Cost</h3>
+  <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-dim);background:var(--surface-1);border:1px solid var(--border-subtle);padding:12px 16px;line-height:1.6;">
+    <span style="color:var(--accent);">Inter:</span> ~95KB (3 weights, WOFF2, Google Fonts CDN)<br>
+    <span style="color:var(--accent);">JetBrains Mono:</span> ~45KB (2 weights, WOFF2)<br>
+    <span style="color:var(--accent);">Noto Sans Arabic:</span> ~35KB (RTL support)<br>
+    <span style="color:var(--accent);">Total:</span> ~175KB &mdash; one-time load, aggressive browser caching<br><br>
+    <span style="color:var(--text-muted);">Flutter Web: loaded via google_fonts package or bundled in pubspec.yaml</span>
+  </div>
+
+</div>
+</body>
+</html>

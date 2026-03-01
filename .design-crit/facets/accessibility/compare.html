@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accessibility — Compare Options</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --surface-input: #111113;
+    --border-subtle: #1E1E22;
+    --border-focus: #6366F1;
+    --accent: #6366F1;
+    --accent-hover: #818CF8;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-warning: #FBBF24;
+    --status-error: #F87171;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  /* Banner */
+  .banner {
+    position: fixed; top: 0; left: 0; right: 0;
+    height: 48px; background: var(--surface-base);
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; z-index: 100;
+  }
+  .banner-left { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+  .banner-left span { color: var(--text-muted); }
+  .banner-left strong { color: var(--text-primary); font-weight: 500; }
+
+  /* Content */
+  .content { padding: 72px 24px 48px; max-width: 1440px; margin: 0 auto; }
+
+  /* Audit Summary */
+  .audit-summary {
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+  .audit-summary h2 {
+    font-size: 18px; font-weight: 600;
+    grid-column: 1 / -1;
+    margin-bottom: 8px;
+  }
+  .audit-stat {
+    text-align: center;
+    padding: 12px;
+    border-radius: 6px;
+    background: var(--surface-base);
+  }
+  .audit-stat .num {
+    font-size: 24px; font-weight: 700;
+  }
+  .audit-stat .label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: var(--text-muted); margin-top: 4px;
+  }
+  .stat-critical .num { color: var(--status-error); }
+  .stat-major .num { color: var(--status-warning); }
+  .stat-minor .num { color: var(--text-secondary); }
+
+  .audit-categories {
+    grid-column: 1 / -1;
+    display: flex; gap: 8px; flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .cat-pill {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    padding: 4px 12px; border-radius: 9999px;
+    border: 1px solid var(--border-subtle);
+  }
+  .cat-pill.pass { border-color: var(--status-success); color: var(--status-success); }
+  .cat-pill.issues { border-color: var(--status-warning); color: var(--status-warning); }
+
+  /* Anchor nav */
+  .anchor-nav {
+    display: flex; gap: 12px;
+    margin-bottom: 32px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .anchor-link {
+    font-size: 13px; font-weight: 500;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 16px;
+    border-radius: 9999px;
+    border: 1px solid var(--border-subtle);
+    transition: all 150ms ease-out;
+  }
+  .anchor-link:hover { border-color: var(--accent); color: var(--text-primary); }
+  .anchor-link.recommended {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(99,102,241,0.08);
+  }
+
+  /* Option cards — stacked full-width */
+  .option-card {
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    margin-bottom: 32px;
+    overflow: hidden;
+  }
+  .option-card.recommended {
+    border-color: var(--accent);
+  }
+  .option-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .option-label {
+    font-size: 18px; font-weight: 600; color: var(--accent);
+    margin-right: 12px;
+  }
+  .option-name { font-size: 15px; font-weight: 600; }
+  .option-header-left { display: flex; align-items: center; gap: 12px; }
+  .badge {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    padding: 3px 10px; border-radius: 9999px;
+  }
+  .badge-recommended { background: var(--accent); color: white; }
+  .badge-coverage {
+    background: transparent;
+    border: 1px solid var(--status-success);
+    color: var(--status-success);
+  }
+  .badge-partial {
+    background: transparent;
+    border: 1px solid var(--status-warning);
+    color: var(--status-warning);
+  }
+  .badge-exceeds {
+    background: transparent;
+    border: 1px solid var(--accent-hover);
+    color: var(--accent-hover);
+  }
+
+  /* Iframe */
+  .iframe-container {
+    position: relative;
+    background: var(--surface-base);
+    border-radius: 8px 8px 0 0;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+  }
+  .iframe-container iframe {
+    width: 100%;
+    min-height: 500px;
+    border: none;
+    display: block;
+  }
+  .open-tab {
+    position: absolute; bottom: 8px; right: 12px;
+    font-size: 11px; color: var(--text-muted);
+    text-decoration: none;
+  }
+  .open-tab:hover { color: var(--text-secondary); }
+
+  /* Rationale */
+  .rationale { padding: 24px; }
+  .rationale-section { margin-bottom: 16px; }
+  .rationale-label {
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: var(--text-muted); margin-bottom: 4px;
+  }
+  .rationale-body { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+  /* Controls */
+  .option-controls {
+    display: flex; gap: 8px; align-items: center;
+    padding: 0 24px 16px;
+  }
+  .btn-keep, .btn-cut {
+    padding: 6px 16px; border-radius: 9999px;
+    border: 1px solid var(--border-subtle);
+    background: transparent;
+    font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .btn-keep:hover { border-color: var(--status-success); color: var(--status-success); }
+  .btn-cut:hover { border-color: var(--status-error); color: var(--status-error); }
+  .btn-keep.active { background: var(--status-success); color: #0D0D0F; border-color: var(--status-success); }
+  .btn-cut.active { background: var(--status-error); color: #0D0D0F; border-color: var(--status-error); }
+
+  .option-comment {
+    width: calc(100% - 48px); margin: 0 24px 16px;
+    min-height: 60px; resize: vertical;
+    background: var(--surface-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 12px;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+  }
+  .option-comment::placeholder { color: var(--text-muted); }
+
+  /* My Take */
+  .my-take {
+    background: var(--surface-overlay);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+    padding: 24px 32px;
+    margin: 48px 0 32px;
+  }
+  .my-take-label {
+    font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--accent); margin-bottom: 8px;
+  }
+  .my-take h2 { font-size: 18px; font-weight: 600; margin-bottom: 16px; }
+  .my-take p {
+    font-size: 14px; color: var(--text-secondary);
+    line-height: 1.6; max-width: 720px;
+    margin-bottom: 12px;
+  }
+
+  /* Feedback area */
+  .feedback-area { max-width: 680px; margin-top: 32px; }
+  .instruction-text { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+  #direction-notes {
+    width: 100%; min-height: 100px; resize: vertical;
+    background: var(--surface-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 12px;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+  }
+  #direction-notes::placeholder { color: var(--text-muted); }
+  .button-row { display: flex; gap: 12px; margin-top: 16px; }
+  .btn-primary {
+    padding: 10px 20px; border-radius: 6px;
+    background: var(--accent); color: white;
+    border: none; font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: background 150ms;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost {
+    padding: 10px 20px; border-radius: 6px;
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+    font-size: 13px; font-weight: 500;
+    cursor: pointer; transition: all 150ms;
+  }
+  .btn-ghost:hover { border-color: var(--text-secondary); }
+  #delegate-context {
+    width: 100%; min-height: 80px; resize: vertical;
+    background: var(--surface-input);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: 12px; margin-top: 12px;
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 13px;
+    display: none;
+  }
+  #delegate-context::placeholder { color: var(--text-muted); }
+
+  button:focus, a:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+</style>
+</head>
+<body>
+
+<!-- Banner -->
+<div class="banner">
+  <div class="banner-left">
+    <strong>Ethnomusicology</strong>
+    <span>|</span>
+    <span>Accessibility</span>
+    <span>|</span>
+    <span>Round 1</span>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- Audit Summary -->
+  <div class="audit-summary">
+    <h2>Accessibility Audit</h2>
+    <div class="audit-stat stat-critical">
+      <div class="num">2</div>
+      <div class="label">Critical</div>
+    </div>
+    <div class="audit-stat stat-major">
+      <div class="num">6</div>
+      <div class="label">Major</div>
+    </div>
+    <div class="audit-stat stat-minor">
+      <div class="num">4</div>
+      <div class="label">Minor</div>
+    </div>
+    <div class="audit-categories">
+      <span class="cat-pill issues">Keyboard: 3 issues</span>
+      <span class="cat-pill issues">Screen Reader: 4 issues</span>
+      <span class="cat-pill issues">Touch: 1 issue</span>
+      <span class="cat-pill issues">Color: 1 issue</span>
+      <span class="cat-pill pass">Motion: pass</span>
+      <span class="cat-pill pass">Cognitive: pass</span>
+    </div>
+  </div>
+
+  <!-- Anchor nav -->
+  <nav class="anchor-nav">
+    <a href="#option-a-section" class="anchor-link">A &middot; Minimum</a>
+    <a href="#option-b-section" class="anchor-link recommended">B &middot; Enhanced (Recommended)</a>
+    <a href="#option-c-section" class="anchor-link">C &middot; Inclusive</a>
+  </nav>
+
+  <!-- Option A -->
+  <div id="option-a-section" class="option-card" data-option-id="option-a">
+    <div class="option-header">
+      <div class="option-header-left">
+        <span class="option-label">A</span>
+        <span class="option-name">Minimum Compliance</span>
+        <span class="badge badge-partial">8 of 12 fixed</span>
+      </div>
+    </div>
+    <div class="iframe-container">
+      <iframe src="option-a.html" loading="lazy"></iframe>
+      <a href="option-a.html" target="_blank" class="open-tab">Open in new tab</a>
+    </div>
+    <div class="rationale">
+      <div class="rationale-section">
+        <div class="rationale-label">Why This Option</div>
+        <div class="rationale-body">Ships WCAG AA with minimal visual disruption. Fixes critical keyboard access and focus trap issues, adds semantic table markup and live regions. The locked design is virtually unchanged — all fixes are structural (HTML/ARIA) not visual.</div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Works Well For</div>
+        <div class="rationale-body">Teams that want to ship accessible quickly. MVP-focused timelines where minor issues can be deferred to a polish sprint. Products where the visual design is locked and any visual change needs strong justification.</div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Watch Out For</div>
+        <div class="rationale-body">Defers energy bar color-independence — color-blind users can't distinguish energy levels. Icon rail has no labels for screen readers. Source badges remain at 9px. These are real gaps for some users.</div>
+      </div>
+    </div>
+    <div class="option-controls">
+      <button class="btn-keep" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+      <button class="btn-cut" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+    </div>
+    <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+  </div>
+
+  <!-- Option B -->
+  <div id="option-b-section" class="option-card recommended" data-option-id="option-b">
+    <div class="option-header">
+      <div class="option-header-left">
+        <span class="option-label">B</span>
+        <span class="option-name">Enhanced Access</span>
+        <span class="badge badge-recommended">Recommended</span>
+        <span class="badge badge-coverage">12 of 12 fixed</span>
+      </div>
+    </div>
+    <div class="iframe-container">
+      <iframe src="option-b.html" loading="lazy"></iframe>
+      <a href="option-b.html" target="_blank" class="open-tab">Open in new tab</a>
+    </div>
+    <div class="rationale">
+      <div class="rationale-section">
+        <div class="rationale-label">Why This Option</div>
+        <div class="rationale-body">Complete issue coverage plus keyboard quality-of-life additions. Energy bar tooltips solve color-independence without changing the visual design. Keyboard shortcut hints in the toolbar make the keyboard experience genuinely good, not just compliant. Icon rail gets tooltips that help ALL users.</div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Works Well For</div>
+        <div class="rationale-body">Products where keyboard users are a significant audience — and DJs during set prep ARE keyboard power users. Teams that want to ship complete accessibility without scope creep. The right balance of thoroughness and discipline.</div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Watch Out For</div>
+        <div class="rationale-body">The keyboard shortcut bar is a new visual element. It's subtle and fits the toolbar, but it wasn't in the locked design. Slightly more implementation effort than A — but the delta is small (tooltips, one shortcut bar, bumping badge font 1px).</div>
+      </div>
+    </div>
+    <div class="option-controls">
+      <button class="btn-keep" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+      <button class="btn-cut" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+    </div>
+    <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+  </div>
+
+  <!-- Option C -->
+  <div id="option-c-section" class="option-card" data-option-id="option-c">
+    <div class="option-header">
+      <div class="option-header-left">
+        <span class="option-label">C</span>
+        <span class="option-name">Inclusive by Default</span>
+        <span class="badge badge-exceeds">Exceeds AA</span>
+        <span class="badge badge-coverage">12 of 12 + 6 proactive</span>
+      </div>
+    </div>
+    <div class="iframe-container">
+      <iframe src="option-c.html" loading="lazy"></iframe>
+      <a href="option-c.html" target="_blank" class="open-tab">Open in new tab</a>
+    </div>
+    <div class="rationale">
+      <div class="rationale-section">
+        <div class="rationale-label">Why This Option</div>
+        <div class="rationale-body">Goes beyond compliance with proactive features: high contrast mode for bright environments, reduced motion support, density toggle for tablet use, command palette for keyboard power users, and screen reader descriptions with harmonic key compatibility info.</div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Works Well For</div>
+        <div class="rationale-body">Products that want accessibility to be a differentiator, not a checkbox. Teams with capacity for the extra implementation work. Apps targeting enterprise or public sector where exceeding standards is valued.</div>
+      </div>
+      <div class="rationale-section">
+        <div class="rationale-label">Watch Out For</div>
+        <div class="rationale-body">Significant implementation cost. The command palette alone is a major feature. High contrast mode requires a second color variant. Density toggle re-opens a locked decision. Some of these are product features disguised as accessibility. The user has consistently favored v1 discipline — this option may conflict with that instinct.</div>
+      </div>
+    </div>
+    <div class="option-controls">
+      <button class="btn-keep" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+      <button class="btn-cut" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+    </div>
+    <textarea class="option-comment" placeholder="What works? What doesn't?"></textarea>
+  </div>
+
+  <!-- My Take -->
+  <div class="my-take">
+    <div class="my-take-label">My Take</div>
+    <h2>Go with Enhanced Access (B)</h2>
+    <p>Option A ships accessible but defers the energy bar color-independence issue. Energy level is one of the "Flat Five" — a core data point in this product's hierarchy. Making it color-only contradicts the design's own principles. A tooltip fix is trivial.</p>
+    <p>Option C is impressive but over-scoped. A command palette, high contrast mode, and density toggle are product features, not accessibility fixes. They should be planned as features — not bundled here. The user has consistently preferred v1 discipline.</p>
+    <p>Option B hits the sweet spot: complete coverage, keyboard quality-of-life that makes the product genuinely better for DJs (who ARE keyboard power users during set prep), and minimal visual disruption. The shortcut bar is the only new visual element, and it fits naturally in the toolbar area. Implementation is moderate — mostly HTML attributes, ARIA roles, and a few tooltips.</p>
+    <p>This is a technical facet where the user has trusted designer recommendations. I recommend B with confidence.</p>
+  </div>
+
+  <!-- Feedback Area -->
+  <div class="feedback-area">
+    <p class="instruction-text">Click Save Feedback and Claude will pick it up automatically. Or just tell Claude your thoughts in the chat.</p>
+    <textarea id="direction-notes" placeholder="Overall thoughts or direction preferences..."></textarea>
+    <div class="button-row">
+      <button class="btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      <button class="btn-ghost" onclick="saveFeedbackWithDecision('skip')">Skip This Area</button>
+      <button class="btn-ghost" onclick="showDelegateContext()">Decide For Me</button>
+    </div>
+    <textarea id="delegate-context" placeholder="Any guidance? e.g., 'prioritize keyboard nav' or 'keep it minimal'"></textarea>
+  </div>
+
+</div>
+
+<script>
+const FACET_ID = 'accessibility';
+const ROUND_N = 1;
+const FEEDBACK_FILENAME = 'feedback-round-1.json';
+
+if ('Notification' in window && Notification.permission === 'default') {
+  Notification.requestPermission();
+}
+
+function toggleAction(btn, action) {
+  const card = btn.closest('[data-option-id]');
+  const keepBtn = card.querySelector('[data-action="keep"]');
+  const cutBtn = card.querySelector('[data-action="cut"]');
+  if (btn.classList.contains('active')) { btn.classList.remove('active'); return; }
+  keepBtn.classList.remove('active');
+  cutBtn.classList.remove('active');
+  btn.classList.add('active');
+}
+
+function showDelegateContext() {
+  const el = document.querySelector('#delegate-context');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+
+function collectFeedback() {
+  const options = {};
+  document.querySelectorAll('[data-option-id]').forEach(card => {
+    const id = card.dataset.optionId;
+    const keepBtn = card.querySelector('[data-action="keep"]');
+    const cutBtn = card.querySelector('[data-action="cut"]');
+    const comment = card.querySelector('textarea')?.value || '';
+    let action = null;
+    if (keepBtn?.classList.contains('active')) action = 'keep';
+    if (cutBtn?.classList.contains('active')) action = 'cut';
+    options[id] = { action, comment };
+  });
+  const overall = document.querySelector('#direction-notes')?.value || '';
+  let decision = 'refine';
+  const keptCount = Object.values(options).filter(o => o.action === 'keep').length;
+  const totalOptions = Object.keys(options).length;
+  if (keptCount === 1 && Object.values(options).filter(o => o.action === 'cut').length === totalOptions - 1) {
+    decision = 'lock';
+  }
+  return { facet: FACET_ID, round: ROUND_N, timestamp: new Date().toISOString(), options, overall, decision };
+}
+
+async function saveFeedback() {
+  const feedback = collectFeedback();
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: FEEDBACK_FILENAME,
+        types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved! Claude is processing it.' });
+      }
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+  showFallbackModal(json);
+}
+
+function saveFeedbackWithDecision(decision) {
+  const feedback = collectFeedback();
+  feedback.decision = decision;
+  if (decision === 'delegate') {
+    feedback.delegate_context = document.querySelector('#delegate-context')?.value || '';
+  }
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    window.showSaveFilePicker({
+      suggestedName: FEEDBACK_FILENAME,
+      types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }]
+    }).then(async handle => {
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') {
+        new Notification('Design Crit', { body: 'Feedback saved!' });
+      }
+    }).catch(err => {
+      if (err.name !== 'AbortError') showFallbackModal(json);
+    });
+  } else {
+    showFallbackModal(json);
+  }
+}
+
+function showBanner(message) {
+  const banner = document.createElement('div');
+  banner.textContent = message;
+  banner.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#4ADE80;color:#0D0D0F;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:200;animation:fadeIn 0.2s ease-out';
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 5000);
+}
+
+function showFallbackModal(json) {
+  const modal = document.createElement('div');
+  modal.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center"><div style="background:#1A1A1E;border:1px solid #1E1E22;border-radius:8px;padding:24px;max-width:600px;width:90%"><h3 style="color:#F0F0F2;margin:0 0 8px">Save not available in this browser</h3><p style="color:#8B8B92;font-size:13px;margin:0 0 16px">Copy this JSON and paste it into the terminal:</p><textarea style="width:100%;min-height:200px;background:#111113;color:#F0F0F2;border:1px solid #1E1E22;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;resize:vertical" readonly onclick="this.select()">${json}</textarea><button onclick="this.closest('div[style]').parentElement.remove()" style="margin-top:12px;padding:10px 20px;background:#6366F1;color:white;border:none;border-radius:6px;cursor:pointer">Close</button></div></div>`;
+  document.body.appendChild(modal);
+}
+</script>
+</body>
+</html>

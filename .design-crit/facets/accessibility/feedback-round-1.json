@@ -1,0 +1,11 @@
+{
+  "round": 1,
+  "decisions": {
+    "option-a": "cut",
+    "option-b": "keep",
+    "option-c": "cut"
+  },
+  "lock": "option-b",
+  "comments": "Option B is good. DJs are used to key commands in DJ software — many will actively seek hotkeys. Keyboard shortcuts are a feature, not just accessibility.",
+  "user_quote": "option B is good - also, DJs are used to using key commands to work quickly with DJ software, so, many of them will actively seek hotkeys"
+}

@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Design Crit — Typography — Round 1</title>
+<style>
+  :root {
+    --surface-base: #0D0D0F;
+    --surface-raised: #141416;
+    --surface-overlay: #1A1A1E;
+    --surface-input: #111113;
+    --border-subtle: #1E1E22;
+    --border-focus: #6366F1;
+    --accent: #6366F1;
+    --accent-hover: #818CF8;
+    --text-primary: #F0F0F2;
+    --text-secondary: #8B8B92;
+    --text-muted: #5C5C63;
+    --status-success: #4ADE80;
+    --status-error: #F87171;
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Cascadia Code", "Consolas", monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--surface-base); color: var(--text-primary); font-family: var(--font-ui); font-size: 13px; line-height: 1.5; }
+
+  .banner {
+    position: fixed; top: 0; left: 0; right: 0; height: 48px;
+    background: var(--surface-base); border-bottom: 1px solid var(--border-subtle);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px; z-index: 100;
+  }
+  .banner-left { display: flex; align-items: center; gap: 8px; }
+  .banner-left span { font-size: 13px; color: var(--text-muted); }
+  .banner-left .project { font-weight: 500; color: var(--text-primary); }
+  .banner-nav { display: flex; gap: 4px; }
+  .banner-nav a {
+    font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.02em;
+    padding: 6px 14px; border-radius: 9999px; text-decoration: none;
+    border: 1px solid var(--border-subtle); color: var(--text-muted);
+    transition: all 150ms ease-out;
+  }
+  .banner-nav a:hover { border-color: var(--accent); color: var(--text-primary); }
+
+  .content { max-width: 1440px; margin: 0 auto; padding: 72px 24px 48px; }
+  .option-grid { display: flex; flex-direction: column; gap: 32px; }
+
+  .option-card {
+    background: var(--surface-raised); border: 1px solid var(--border-subtle);
+    border-radius: 8px; overflow: hidden; position: relative;
+  }
+  .option-letter {
+    position: absolute; top: 12px; left: 16px; z-index: 2;
+    font-size: 18px; font-weight: 600; color: var(--accent);
+  }
+  .option-card iframe {
+    width: 100%; min-height: 600px; border: none;
+    border-radius: 8px 8px 0 0; background: var(--surface-input);
+  }
+  .open-tab {
+    display: block; text-align: right; padding: 4px 12px;
+    font-size: 11px; color: var(--text-muted); text-decoration: none;
+  }
+  .open-tab:hover { color: var(--text-primary); }
+
+  .option-body { padding: 16px; }
+  .option-name { font-size: 15px; font-weight: 600; margin-bottom: 12px; }
+  .rationale-section { margin-bottom: 16px; }
+  .rationale-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 4px;
+  }
+  .rationale-body { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+
+  .option-controls { display: flex; gap: 8px; margin: 16px 0 12px; }
+  .ctrl-btn {
+    padding: 6px 16px; border-radius: 9999px; font-size: 11px; font-weight: 500;
+    text-transform: uppercase; letter-spacing: 0.02em; cursor: pointer;
+    border: 1px solid var(--border-subtle); background: transparent;
+    color: var(--text-secondary); transition: all 150ms ease-out;
+  }
+  .ctrl-btn:hover { border-color: var(--accent); color: var(--text-primary); }
+  .ctrl-btn.active[data-action="keep"] { background: var(--status-success); color: #0D0D0F; border-color: var(--status-success); }
+  .ctrl-btn.active[data-action="cut"] { background: var(--status-error); color: #0D0D0F; border-color: var(--status-error); }
+
+  .option-card textarea {
+    width: 100%; min-height: 60px; resize: vertical;
+    background: var(--surface-input); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    padding: 10px 12px; font-family: var(--font-ui); font-size: 13px;
+  }
+  .option-card textarea::placeholder { color: var(--text-muted); }
+  .option-card textarea:focus { outline: none; border-color: var(--border-focus); }
+
+  .my-take {
+    background: var(--surface-overlay); border-left: 3px solid var(--accent);
+    border-radius: 8px; padding: 24px 32px; margin-top: 48px;
+  }
+  .my-take-label {
+    font-size: 11px; font-weight: 500; text-transform: uppercase;
+    letter-spacing: 0.04em; color: var(--accent); margin-bottom: 4px;
+  }
+  .my-take-title { font-size: 18px; font-weight: 600; margin-bottom: 12px; }
+  .my-take-body { font-size: 14px; color: var(--text-secondary); line-height: 1.6; max-width: 720px; }
+  .my-take-body strong { color: #C0C0C6; }
+
+  .feedback-area { margin-top: 32px; max-width: 680px; }
+  .instruction-text { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+  #direction-notes {
+    width: 100%; min-height: 100px; resize: vertical;
+    background: var(--surface-input); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    padding: 12px; font-family: var(--font-ui); font-size: 13px;
+  }
+  #direction-notes::placeholder { color: var(--text-muted); }
+  #direction-notes:focus { outline: none; border-color: var(--border-focus); }
+  .button-row { display: flex; gap: 12px; margin-top: 16px; }
+  .btn-primary {
+    padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    background: var(--accent); color: #fff; border: none; cursor: pointer;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-ghost {
+    padding: 10px 20px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    background: transparent; color: var(--text-secondary);
+    border: 1px solid var(--border-subtle); cursor: pointer;
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--text-primary); }
+  #delegate-context {
+    display: none; width: 100%; min-height: 80px; resize: vertical;
+    background: var(--surface-input); color: var(--text-primary);
+    border: 1px solid var(--border-subtle); border-radius: 6px;
+    padding: 12px; font-family: var(--font-ui); font-size: 13px; margin-top: 12px;
+  }
+
+  button:focus, a:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 2px; }
+  @media (max-width: 768px) {
+    .option-card iframe { min-height: 400px; }
+    .banner-nav { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="banner">
+  <div class="banner-left">
+    <span class="project">Ethnomusicology</span>
+    <span>|</span>
+    <span>Typography</span>
+    <span>|</span>
+    <span>Round 1</span>
+  </div>
+  <div class="banner-nav">
+    <a href="#option-a">A</a>
+    <a href="#option-b">B</a>
+    <a href="#option-c">C</a>
+    <a href="#my-take">My Take</a>
+  </div>
+</div>
+
+<div class="content">
+  <div class="option-grid">
+
+    <!-- Option A -->
+    <div class="option-card" data-option-id="option-a" id="option-a">
+      <span class="option-letter">A</span>
+      <iframe src="option-a.html"></iframe>
+      <a class="open-tab" href="option-a.html" target="_blank">Open in new tab</a>
+      <div class="option-body">
+        <div class="option-name">System Native</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-body">The Helvetica lineage. SF Pro on Mac (what most DJs use), Segoe UI on Windows, Roboto on Android. Paired with system monospace for BPM. Zero bytes loaded. The closest you can get to "just Helvetica" on the web.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-body">Maximum performance. Instant render. No FOUT ever. The purest tool aesthetic — the font is invisible, the data is everything. DJs on Mac get SF Pro, which is excellent at small sizes.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-body">Cross-platform inconsistency — the table looks different on Mac vs Windows vs Linux. Flutter Web's CanvasKit renderer may not always resolve to SF Pro on Mac. System monospace width varies by platform, which can affect BPM column sizing.</div>
+        </div>
+        <div class="option-controls">
+          <button class="ctrl-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="ctrl-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+    <!-- Option B -->
+    <div class="option-card" data-option-id="option-b" id="option-b">
+      <span class="option-letter">B</span>
+      <iframe src="option-b.html"></iframe>
+      <a class="open-tab" href="option-b.html" target="_blank">Open in new tab</a>
+      <div class="option-body">
+        <div class="option-name">Inter Tight</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-body">Inter was designed for screens at 11-16px — exactly the sizes this product uses. Tall x-height, open apertures, built-in tabular numbers. Paired with JetBrains Mono for BPM data. 175KB one-time load for cross-platform consistency.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-body">Dense data tables with small text (10-13px). The catalog looks identical on every OS. JetBrains Mono makes BPM numbers highly distinguishable. Inter's tabular figures align numbers even outside the mono column.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-body">175KB load on first visit. Inter is very common — if visual uniqueness matters, this won't help (but for a DJ tool, content is the differentiator). Slightly more geometric than Helvetica — clean but fractionally less warm.</div>
+        </div>
+        <div class="option-controls">
+          <button class="ctrl-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="ctrl-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+    <!-- Option C -->
+    <div class="option-card" data-option-id="option-c" id="option-c">
+      <span class="option-letter">C</span>
+      <iframe src="option-c.html"></iframe>
+      <a class="open-tab" href="option-c.html" target="_blank">Open in new tab</a>
+      <div class="option-body">
+        <div class="option-name">Roboto Default</div>
+        <div class="rationale-section">
+          <div class="rationale-label">Why This Option</div>
+          <div class="rationale-body">Flutter's built-in font. Zero load for the primary typeface. Roboto Mono matches Roboto's metrics perfectly (shared x-height, cap height, baseline). Material 3 components work out of the box with no TextTheme overrides.</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Works Well For</div>
+          <div class="rationale-body">Fastest Flutter implementation. No pubspec.yaml changes for the primary font. Roboto + Roboto Mono harmony is the best sans/mono family pairing. Only 75KB additional load (just the mono + Arabic).</div>
+        </div>
+        <div class="rationale-section">
+          <div class="rationale-label">Watch Out For</div>
+          <div class="rationale-body">Looks like "a Material app." DJ software (Rekordbox, Serato, Traktor) uses system or custom fonts — none look like Google products. Missing weight 600. Roboto is less legible than Inter at 9-10px.</div>
+        </div>
+        <div class="option-controls">
+          <button class="ctrl-btn" data-action="keep" onclick="toggleAction(this, 'keep')">Keep</button>
+          <button class="ctrl-btn" data-action="cut" onclick="toggleAction(this, 'cut')">Cut</button>
+        </div>
+        <textarea placeholder="What works? What doesn't?"></textarea>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- My Take -->
+  <div class="my-take" id="my-take">
+    <div class="my-take-label">My Take</div>
+    <div class="my-take-title">B (Inter Tight), but A is a legit alternative</div>
+    <div class="my-take-body">
+      <p>The type scale is identical across all three — it's locked by the component design. <strong>The only decision is font family.</strong></p>
+      <br>
+      <p><strong>C (Roboto)</strong> is the easy path but pushes toward "Material app" rather than "DJ tool." Cut it.</p>
+      <br>
+      <p><strong>A (System Native)</strong> is the Helvetica vibe you described loving. On your Mac it'll be SF Pro, which is beautiful. Zero load cost. The risk is Flutter Web's unpredictable system font resolution — you might not always get SF Pro through CanvasKit. And cross-platform consistency goes out the window.</p>
+      <br>
+      <p><strong>B (Inter)</strong> is purpose-built for exactly the sizes this product uses (10-15px on screen). It gives you the clean, tight sans-serif aesthetic — Helvetica-adjacent but optimized for pixel rendering. Cross-platform consistency means your catalog looks the same everywhere. JetBrains Mono is the best mono for number-heavy data. The 175KB cost is a one-time investment.</p>
+      <br>
+      <p>If you're primarily developing and using this on Mac, A is great. If you want it to look the same for every DJ regardless of OS, go with B.</p>
+    </div>
+  </div>
+
+  <!-- Feedback -->
+  <div class="feedback-area">
+    <p class="instruction-text">Click Save Feedback and Claude will pick it up automatically. Or just tell Claude your thoughts in the chat.</p>
+    <textarea id="direction-notes" placeholder="Overall thoughts or direction preferences..."></textarea>
+    <div class="button-row">
+      <button class="btn-primary" onclick="saveFeedback()">Save Feedback</button>
+      <button class="btn-ghost" onclick="saveFeedbackWithDecision('skip')">Skip This Area</button>
+      <button class="btn-ghost" onclick="showDelegateContext()">Decide For Me</button>
+    </div>
+    <textarea id="delegate-context" placeholder="Any guidance?"></textarea>
+  </div>
+</div>
+
+<script>
+const FACET_ID = 'typography';
+const ROUND_N = 1;
+const FEEDBACK_FILENAME = 'feedback-round-1.json';
+
+if ('Notification' in window && Notification.permission === 'default') { Notification.requestPermission(); }
+
+function toggleAction(btn, action) {
+  const card = btn.closest('[data-option-id]');
+  const keepBtn = card.querySelector('[data-action="keep"]');
+  const cutBtn = card.querySelector('[data-action="cut"]');
+  if (btn.classList.contains('active')) { btn.classList.remove('active'); return; }
+  keepBtn.classList.remove('active'); cutBtn.classList.remove('active');
+  btn.classList.add('active');
+}
+function showDelegateContext() {
+  const el = document.querySelector('#delegate-context');
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+function collectFeedback() {
+  const options = {};
+  document.querySelectorAll('[data-option-id]').forEach(card => {
+    const id = card.dataset.optionId;
+    const keepBtn = card.querySelector('[data-action="keep"]');
+    const cutBtn = card.querySelector('[data-action="cut"]');
+    const comment = card.querySelector('textarea')?.value || '';
+    let action = null;
+    if (keepBtn?.classList.contains('active')) action = 'keep';
+    if (cutBtn?.classList.contains('active')) action = 'cut';
+    options[id] = { action, comment };
+  });
+  const overall = document.querySelector('#direction-notes')?.value || '';
+  let decision = 'refine';
+  const keptCount = Object.values(options).filter(o => o.action === 'keep').length;
+  const totalOptions = Object.keys(options).length;
+  if (keptCount === 1 && Object.values(options).filter(o => o.action === 'cut').length === totalOptions - 1) decision = 'lock';
+  return { facet: FACET_ID, round: ROUND_N, timestamp: new Date().toISOString(), options, overall, decision };
+}
+async function saveFeedback() {
+  const feedback = collectFeedback();
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({ suggestedName: FEEDBACK_FILENAME, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] });
+      const writable = await handle.createWritable(); await writable.write(json); await writable.close();
+      showBanner('Feedback saved! Claude is picking it up automatically.');
+      if (Notification.permission === 'granted') new Notification('Design Crit', { body: 'Feedback saved!' });
+      return;
+    } catch (err) { if (err.name === 'AbortError') return; }
+  }
+  showFallbackModal(json);
+}
+function saveFeedbackWithDecision(decision) {
+  const feedback = collectFeedback(); feedback.decision = decision;
+  if (decision === 'delegate') feedback.delegate_context = document.querySelector('#delegate-context')?.value || '';
+  const json = JSON.stringify(feedback, null, 2);
+  if ('showSaveFilePicker' in window) {
+    window.showSaveFilePicker({ suggestedName: FEEDBACK_FILENAME, types: [{ description: 'JSON', accept: { 'application/json': ['.json'] } }] })
+    .then(async h => { const w = await h.createWritable(); await w.write(json); await w.close(); showBanner('Feedback saved!'); })
+    .catch(e => { if (e.name !== 'AbortError') showFallbackModal(json); });
+  } else showFallbackModal(json);
+}
+function showBanner(msg) {
+  const b = document.createElement('div'); b.textContent = msg;
+  b.style.cssText = 'position:fixed;top:56px;left:50%;transform:translateX(-50%);background:#4ADE80;color:#0D0D0F;padding:12px 24px;border-radius:8px;font-size:14px;font-weight:600;z-index:200';
+  document.body.appendChild(b); setTimeout(() => b.remove(), 5000);
+}
+function showFallbackModal(json) {
+  const m = document.createElement('div');
+  m.innerHTML = `<div style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:300;display:flex;align-items:center;justify-content:center"><div style="background:#1A1A1E;border:1px solid #1E1E22;border-radius:8px;padding:24px;max-width:600px;width:90%"><h3 style="color:#F0F0F2;margin:0 0 8px">Save not available</h3><p style="color:#8B8B92;font-size:13px;margin:0 0 16px">Copy this JSON and paste it in the terminal:</p><textarea style="width:100%;min-height:200px;background:#111113;color:#F0F0F2;border:1px solid #1E1E22;border-radius:6px;padding:12px;font-family:monospace;font-size:12px;resize:vertical" readonly onclick="this.select()">${json}</textarea><button onclick="this.closest('div[style]').parentElement.remove()" style="margin-top:12px;padding:10px 20px;background:#6366F1;color:white;border:none;border-radius:6px;cursor:pointer">Close</button></div></div>`;
+  document.body.appendChild(m);
+}
+</script>
+</body>
+</html>

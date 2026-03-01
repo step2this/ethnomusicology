@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember-crate">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option A: Pro Dense — Density &amp; Spacing</title>
+<style>
+  :root {
+    /* Ember Crate (warm dark) */
+    --surface-base: #0F0D0B;
+    --surface-raised: #171412;
+    --surface-sunken: #0A0907;
+    --surface-overlay: #1E1A17;
+    --border-subtle: #252018;
+    --border-medium: #3A3428;
+    --text-primary: #F0ECE4;
+    --text-secondary: #918A7E;
+    --text-tertiary: #615B52;
+    --brand-primary: #E8963A;
+    --brand-secondary: #C06030;
+    --brand-accent: #F0C060;
+    --brand-primary-hover: #F0A848;
+    --status-success: #5CB870;
+    --status-warning: #E8C050;
+    --status-error: #D05040;
+    --status-info: #5A9EC0;
+    --interactive-hover: rgba(232,150,58,0.04);
+    --interactive-selected: rgba(232,150,58,0.06);
+    --selection-border: #E8963A;
+
+    /* Spacing scale (2px base) */
+    --sp-xxs: 2px;
+    --sp-xs: 4px;
+    --sp-sm: 6px;
+    --sp-md: 8px;
+    --sp-lg: 12px;
+    --sp-xl: 16px;
+    --sp-2xl: 24px;
+
+    /* Typography */
+    --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    --font-mono: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+
+  *, *::before, *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: var(--sp-2xl) var(--sp-xl);
+  }
+
+  /* ── Header ────────────────────────────────────── */
+  .header {
+    margin-bottom: var(--sp-2xl);
+  }
+
+  .header-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--brand-primary);
+    margin-bottom: var(--sp-xs);
+  }
+
+  .header-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: var(--sp-xs);
+  }
+
+  .header-metrics {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+  }
+
+  .header-metrics span {
+    color: var(--text-tertiary);
+  }
+
+  /* ── Spacing Scale ─────────────────────────────── */
+  .spacing-section {
+    margin-bottom: var(--sp-2xl);
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    margin-bottom: var(--sp-md);
+  }
+
+  .spacing-scale {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--sp-lg);
+  }
+
+  .spacing-token {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-xs);
+  }
+
+  .spacing-bar {
+    background: var(--brand-primary);
+    opacity: 0.5;
+    border-radius: 1px;
+    width: 24px;
+  }
+
+  .spacing-value {
+    font-size: 9px;
+    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+
+  .spacing-name {
+    font-size: 8px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary);
+  }
+
+  /* ── Track Table ───────────────────────────────── */
+  .table-container {
+    background: var(--surface-base);
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: var(--sp-xl);
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    height: 36px;
+    padding: 0 10px;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border-subtle);
+    gap: var(--sp-md);
+  }
+
+  .toolbar-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .toolbar-count {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    font-weight: 400;
+    color: var(--text-tertiary);
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  .toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-xs);
+    height: 24px;
+    padding: 0 8px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    font-family: var(--font-ui);
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.1s ease;
+  }
+
+  .toolbar-btn:hover {
+    color: var(--text-primary);
+    border-color: var(--brand-primary);
+    background: var(--interactive-hover);
+  }
+
+  .toolbar-btn--primary {
+    color: var(--brand-primary);
+    border-color: var(--brand-primary);
+  }
+
+  .toolbar-btn--primary:hover {
+    background: rgba(232,150,58,0.08);
+    color: var(--brand-primary-hover);
+  }
+
+  .toolbar-btn svg {
+    width: 11px;
+    height: 11px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Column headers */
+  .col-headers {
+    display: grid;
+    grid-template-columns: 24px 1fr 1fr 48px 56px 36px 64px 52px;
+    column-gap: 4px;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--border-subtle);
+    user-select: none;
+  }
+
+  .col-header {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .col-header:hover {
+    color: var(--text-secondary);
+  }
+
+  .col-header--active {
+    color: var(--text-secondary);
+  }
+
+  .sort-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 13px;
+    height: 13px;
+    font-size: 8px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--brand-primary);
+    background: rgba(232,150,58,0.12);
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  .sort-arrow {
+    font-size: 8px;
+    color: var(--brand-primary);
+    flex-shrink: 0;
+  }
+
+  /* Track rows */
+  .track-row {
+    display: grid;
+    grid-template-columns: 24px 1fr 1fr 48px 56px 36px 64px 52px;
+    column-gap: 4px;
+    align-items: center;
+    height: 32px;
+    padding: 4px 10px;
+    border-bottom: 1px solid var(--border-subtle);
+    cursor: pointer;
+    transition: background 0.08s ease;
+  }
+
+  .track-row:last-of-type {
+    border-bottom: none;
+  }
+
+  .track-row:hover,
+  .track-row--hover {
+    background: var(--interactive-hover);
+  }
+
+  .track-row--selected {
+    background: var(--interactive-selected);
+    border-left: 3px solid var(--selection-border);
+    padding-left: 7px; /* 10px - 3px border */
+  }
+
+  .track-row--selected + .detail-strip {
+    display: grid;
+  }
+
+  /* Art */
+  .art {
+    width: 24px;
+    height: 24px;
+    border-radius: 2px;
+    background: var(--border-subtle);
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .art::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 2px;
+  }
+
+  /* Art color placeholders — unique per artist */
+  .art--fisher     { background: linear-gradient(135deg, #2A4060, #1A2840); }
+  .art--peggy      { background: linear-gradient(135deg, #4A2060, #2A1040); }
+  .art--fourtet    { background: linear-gradient(135deg, #204A30, #102A1A); }
+  .art--floating   { background: linear-gradient(135deg, #5A3020, #3A1A10); }
+  .art--kaytranada { background: linear-gradient(135deg, #4A4020, #2A2410); }
+  .art--disclosure { background: linear-gradient(135deg, #204050, #102830); }
+  .art--jamie      { background: linear-gradient(135deg, #303060, #1A1A40); }
+  .art--bicep      { background: linear-gradient(135deg, #504020, #302410); }
+
+  /* Artist */
+  .cell-artist {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  /* Title */
+  .cell-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: #C8C4BC;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+
+  /* BPM */
+  .cell-bpm {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--text-primary);
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* Camelot Key Chip */
+  .key-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    border-radius: 3px;
+    white-space: nowrap;
+    line-height: 1;
+    height: 18px;
+  }
+
+  .key-chip--8A  { background: rgba(80,148,220,0.12); color: #5094DC; }
+  .key-chip--11B { background: rgba(180,48,160,0.15); color: #B430A0; }
+  .key-chip--5A  { background: rgba(80,200,100,0.12); color: #50C864; }
+  .key-chip--2B  { background: rgba(220,110,40,0.15); color: #DC6E28; }
+  .key-chip--6B  { background: rgba(40,176,148,0.15); color: #28B094; }
+  .key-chip--7A  { background: rgba(48,192,216,0.12); color: #30C0D8; }
+  .key-chip--9B  { background: rgba(96,96,200,0.15); color: #6060C8; }
+  .key-chip--12A { background: rgba(220,80,100,0.12); color: #DC5064; }
+
+  /* Energy bars */
+  .energy-bars {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    height: 100%;
+  }
+
+  .energy-bar {
+    width: 4px;
+    height: 10px;
+    border-radius: 1px;
+    background: var(--border-subtle);
+  }
+
+  .energy-bar--filled-low  { background: #5A9EC0; }
+  .energy-bar--filled-mid  { background: #E8963A; }
+  .energy-bar--filled-high { background: #D05040; }
+
+  /* Genre pill */
+  .genre-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 5px;
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    background: var(--surface-overlay);
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+    line-height: 1.3;
+  }
+
+  /* Source */
+  .cell-source {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Detail strip */
+  .detail-strip {
+    display: none;
+    grid-template-columns: auto auto auto auto 1fr;
+    align-items: center;
+    gap: var(--sp-md);
+    padding: 4px 10px 4px 36px;
+    background: rgba(232,150,58,0.03);
+    border-left: 3px solid var(--brand-primary);
+    border-bottom: 1px solid var(--border-subtle);
+    min-height: 28px;
+  }
+
+  .detail-strip--visible {
+    display: grid;
+  }
+
+  .detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sp-xxs);
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: rgba(232,150,58,0.06);
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .detail-chip-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--text-tertiary);
+    margin-right: 1px;
+  }
+
+  /* ── Annotation ────────────────────────────────── */
+  .annotation {
+    margin-top: var(--sp-xl);
+    padding: var(--sp-md) var(--sp-lg);
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+  }
+
+  .annotation strong {
+    color: var(--status-warning);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── Header ──────────────────────────────────── -->
+  <header class="header">
+    <div class="header-label">MAXIMUM DENSITY</div>
+    <h1 class="header-title">Pro Dense</h1>
+    <div class="header-metrics">32px rows <span>&middot;</span> 25 tracks visible <span>&middot;</span> 2px base unit</div>
+  </header>
+
+  <!-- ── Spacing Scale ───────────────────────────── -->
+  <section class="spacing-section">
+    <div class="section-label">Spacing Scale</div>
+    <div class="spacing-scale">
+      <div class="spacing-token">
+        <div class="spacing-bar" style="height: 2px;"></div>
+        <div class="spacing-value">2px</div>
+        <div class="spacing-name">xxs</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-bar" style="height: 4px;"></div>
+        <div class="spacing-value">4px</div>
+        <div class="spacing-name">xs</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-bar" style="height: 6px;"></div>
+        <div class="spacing-value">6px</div>
+        <div class="spacing-name">sm</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-bar" style="height: 8px;"></div>
+        <div class="spacing-value">8px</div>
+        <div class="spacing-name">md</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-bar" style="height: 12px;"></div>
+        <div class="spacing-value">12px</div>
+        <div class="spacing-name">lg</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-bar" style="height: 16px;"></div>
+        <div class="spacing-value">16px</div>
+        <div class="spacing-name">xl</div>
+      </div>
+      <div class="spacing-token">
+        <div class="spacing-bar" style="height: 24px;"></div>
+        <div class="spacing-value">24px</div>
+        <div class="spacing-name">2xl</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Track Table ─────────────────────────────── -->
+  <section class="table-container">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <span class="toolbar-title">Tracks</span>
+      <span class="toolbar-count">247</span>
+      <div class="toolbar-spacer"></div>
+      <button class="toolbar-btn" type="button">
+        <svg viewBox="0 0 16 16"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+        Filter
+      </button>
+      <button class="toolbar-btn toolbar-btn--primary" type="button">
+        <svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>
+        Import
+      </button>
+    </div>
+
+    <!-- Column Headers -->
+    <div class="col-headers">
+      <div class="col-header"></div><!-- art -->
+      <div class="col-header">Artist</div>
+      <div class="col-header">Title</div>
+      <div class="col-header col-header--active" style="justify-content: flex-end;">
+        BPM<span class="sort-arrow">&uarr;</span><span class="sort-badge">1</span>
+      </div>
+      <div class="col-header col-header--active">
+        Key<span class="sort-arrow">&uarr;</span><span class="sort-badge">2</span>
+      </div>
+      <div class="col-header">Nrg</div>
+      <div class="col-header">Genre</div>
+      <div class="col-header">Src</div>
+    </div>
+
+    <!-- Row 1: Fisher -->
+    <div class="track-row">
+      <div class="art art--fisher"></div>
+      <div class="cell-artist">Fisher</div>
+      <div class="cell-title">Losing It</div>
+      <div class="cell-bpm">128</div>
+      <div><span class="key-chip key-chip--8A">8A</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">Tech House</span></div>
+      <div class="cell-source">Spotify</div>
+    </div>
+
+    <!-- Row 2: Peggy Gou (HOVER) -->
+    <div class="track-row track-row--hover">
+      <div class="art art--peggy"></div>
+      <div class="cell-artist">Peggy Gou</div>
+      <div class="cell-title">Starry Night</div>
+      <div class="cell-bpm">122</div>
+      <div><span class="key-chip key-chip--11B">11B</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">Deep House</span></div>
+      <div class="cell-source">Beatport</div>
+    </div>
+
+    <!-- Row 3: Four Tet (SELECTED) -->
+    <div class="track-row track-row--selected">
+      <div class="art art--fourtet"></div>
+      <div class="cell-artist">Four Tet</div>
+      <div class="cell-title">Baby</div>
+      <div class="cell-bpm">130</div>
+      <div><span class="key-chip key-chip--5A">5A</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-low"></div>
+        <div class="energy-bar energy-bar--filled-low"></div>
+        <div class="energy-bar"></div>
+        <div class="energy-bar"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">Electronic</span></div>
+      <div class="cell-source">Spotify</div>
+    </div>
+
+    <!-- Detail strip for Four Tet -->
+    <div class="detail-strip detail-strip--visible">
+      <div class="detail-chip"><span class="detail-chip-label">Label</span> Text Records</div>
+      <div class="detail-chip"><span class="detail-chip-label">Year</span> 2020</div>
+      <div class="detail-chip"><span class="detail-chip-label">Album</span> Sixteen Oceans</div>
+      <div class="detail-chip"><span class="detail-chip-label">Dur</span> 4:32</div>
+      <div></div>
+    </div>
+
+    <!-- Row 4: Floating Points -->
+    <div class="track-row">
+      <div class="art art--floating"></div>
+      <div class="cell-artist">Floating Points</div>
+      <div class="cell-title">Ratio</div>
+      <div class="cell-bpm">133</div>
+      <div><span class="key-chip key-chip--2B">2B</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">Electronica</span></div>
+      <div class="cell-source">Beatport</div>
+    </div>
+
+    <!-- Row 5: Kaytranada -->
+    <div class="track-row">
+      <div class="art art--kaytranada"></div>
+      <div class="cell-artist">Kaytranada</div>
+      <div class="cell-title">Glued</div>
+      <div class="cell-bpm">100</div>
+      <div><span class="key-chip key-chip--6B">6B</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">R&amp;B/Dance</span></div>
+      <div class="cell-source">Spotify</div>
+    </div>
+
+    <!-- Row 6: Disclosure -->
+    <div class="track-row">
+      <div class="art art--disclosure"></div>
+      <div class="cell-artist">Disclosure</div>
+      <div class="cell-title">Latch</div>
+      <div class="cell-bpm">122</div>
+      <div><span class="key-chip key-chip--7A">7A</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar energy-bar--filled-mid"></div>
+        <div class="energy-bar"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">UK Garage</span></div>
+      <div class="cell-source">Spotify</div>
+    </div>
+
+    <!-- Row 7: Jamie xx -->
+    <div class="track-row">
+      <div class="art art--jamie"></div>
+      <div class="cell-artist">Jamie xx</div>
+      <div class="cell-title">Gosh</div>
+      <div class="cell-bpm">118</div>
+      <div><span class="key-chip key-chip--9B">9B</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-low"></div>
+        <div class="energy-bar energy-bar--filled-low"></div>
+        <div class="energy-bar"></div>
+        <div class="energy-bar"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">Electronic</span></div>
+      <div class="cell-source">Beatport</div>
+    </div>
+
+    <!-- Row 8: Bicep -->
+    <div class="track-row">
+      <div class="art art--bicep"></div>
+      <div class="cell-artist">Bicep</div>
+      <div class="cell-title">Glue</div>
+      <div class="cell-bpm">130</div>
+      <div><span class="key-chip key-chip--12A">12A</span></div>
+      <div class="energy-bars">
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar energy-bar--filled-high"></div>
+        <div class="energy-bar"></div>
+      </div>
+      <div><span class="genre-pill">Breakbeat</span></div>
+      <div class="cell-source">Beatport</div>
+    </div>
+
+  </section>
+
+  <!-- ── Touch Target Annotation ─────────────────── -->
+  <div class="annotation">
+    <strong>Touch targets:</strong> 32px rows are below the 44px minimum recommended for touch interfaces. This density level is designed for desktop use with a mouse/trackpad. Not recommended for touch devices.
+  </div>
+
+</div>
+
+<script>
+  // PostMessage listener for theme switching
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'theme') {
+      document.documentElement.setAttribute('data-theme', e.data.value);
+    }
+  });
+</script>
+</body>
+</html>

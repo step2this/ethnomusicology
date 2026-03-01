@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Density & Spacing — Option C: Session</title>
+<style>
+  :root {
+    /* Ember Crate — warm dark (locked) */
+    --surface-base: #0F0D0B;
+    --surface-raised: #171412;
+    --surface-sunken: #0A0907;
+    --surface-overlay: #1E1A17;
+    --border-subtle: #252018;
+    --border-medium: #3A3428;
+    --text-primary: #F0ECE4;
+    --text-secondary: #918A7E;
+    --text-tertiary: #615B52;
+    --brand-primary: #E8963A;
+    --brand-secondary: #C06030;
+    --brand-accent: #F0C060;
+    --brand-primary-hover: #F0A848;
+    --status-success: #5CB870;
+    --status-warning: #E8C050;
+    --status-error: #D05040;
+    --status-info: #5A9EC0;
+    --interactive-hover: rgba(232,150,58,0.04);
+    --interactive-selected: rgba(232,150,58,0.06);
+    --selection-border: #E8963A;
+
+    /* Spacing scale — Session (4px base, generous) */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --sp-7: 48px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: "Inter Tight", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: var(--sp-5);
+    line-height: 1.5;
+  }
+
+  /* ─── Page Header ─── */
+  .option-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--sp-4);
+    margin-bottom: var(--sp-2);
+  }
+  .option-name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .option-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--brand-primary);
+    padding: 3px 10px;
+    border: 1px solid rgba(232,150,58,0.25);
+    border-radius: 4px;
+  }
+  .option-subtitle {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: var(--sp-6);
+    line-height: 1.6;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+
+  /* ─── Section Labels ─── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+    margin: var(--sp-6) 0 var(--sp-4);
+    padding-bottom: var(--sp-2);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+  .section-label:first-of-type { margin-top: 0; }
+
+  /* ─── Specimen Container ─── */
+  .specimen {
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    padding: var(--sp-4);
+    margin-bottom: var(--sp-4);
+  }
+  .specimen-note {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-top: var(--sp-3);
+    line-height: 1.5;
+  }
+
+  /* ─── Spacing Scale Visualization ─── */
+  .spacing-scale {
+    display: flex;
+    align-items: flex-end;
+    gap: var(--sp-3);
+    padding: var(--sp-4) 0;
+  }
+  .sp-token {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-1);
+  }
+  .sp-bar {
+    background: var(--brand-primary);
+    opacity: 0.35;
+    border-radius: 2px;
+    width: 32px;
+  }
+  .sp-bar.active {
+    opacity: 1;
+  }
+  .sp-value {
+    font-size: 10px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-weight: 600;
+    color: var(--text-secondary);
+  }
+  .sp-name {
+    font-size: 9px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── Track Table Container ─── */
+  .table-frame {
+    background: var(--surface-sunken);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+
+  /* ─── Toolbar ─── */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sp-3) var(--sp-4);
+    height: 52px;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--surface-raised);
+  }
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+  }
+  .page-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .track-count {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+  .toolbar-right {
+    display: flex;
+    gap: var(--sp-2);
+  }
+
+  /* ─── Buttons (Wire Lift — flat, no shadows) ─── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    gap: 6px;
+  }
+  .btn-primary {
+    background: var(--brand-primary);
+    color: var(--surface-base);
+  }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border-medium);
+    color: var(--text-secondary);
+  }
+
+  /* ─── Column Headers ─── */
+  .col-header-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 64px 80px 56px 88px 72px;
+    padding: var(--sp-2) var(--sp-4);
+    border-bottom: 1px solid var(--border-subtle);
+    align-items: center;
+    gap: var(--sp-2);
+  }
+  .col-header {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .col-header.active {
+    color: var(--text-primary);
+  }
+  .sort-arrow {
+    font-size: 8px;
+  }
+  .sort-priority {
+    font-size: 8px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: rgba(232,150,58,0.2);
+    color: var(--brand-primary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+
+  /* ─── Track Rows — 48px height (Session density) ─── */
+  .track-row {
+    display: grid;
+    grid-template-columns: 44px 1fr 1fr 64px 80px 56px 88px 72px;
+    padding: 12px 16px;
+    height: 48px;
+    border-bottom: 1px solid rgba(37,32,24,0.5);
+    align-items: center;
+    gap: 8px;
+    border-left: 3px solid transparent;
+    transition: background 120ms ease-out;
+  }
+  .track-row.hover {
+    background: var(--interactive-hover);
+  }
+  .track-row.selected {
+    background: var(--interactive-selected);
+    border-left-color: var(--selection-border);
+  }
+
+  /* ─── Art Thumbnail — 36x36 (Session) ─── */
+  .art {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    background: var(--surface-overlay);
+  }
+
+  /* ─── Typography: Inter Tight (locked) ─── */
+  .artist {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .title {
+    font-size: 12px;
+    font-weight: 400;
+    color: #C8C4BC;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .bpm {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  /* ─── Camelot Chip — Session: padding 3px 10px, font-size 11px ─── */
+  .key-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    line-height: 1;
+  }
+  /* Warm-shifted Ember palette Camelot colors */
+  .key-chip.k-8a  { background: rgba(80,148,220,0.12); color: #5094DC; }
+  .key-chip.k-11b { background: rgba(180,48,160,0.15); color: #B430A0; }
+  .key-chip.k-5a  { background: rgba(80,200,100,0.12); color: #50C864; }
+  .key-chip.k-2b  { background: rgba(220,110,40,0.15); color: #DC6E28; }
+  .key-chip.k-6b  { background: rgba(40,176,148,0.15); color: #28B094; }
+  .key-chip.k-7a  { background: rgba(48,192,216,0.12); color: #30C0D8; }
+  .key-chip.k-9b  { background: rgba(96,96,200,0.15); color: #6060C8; }
+  .key-chip.k-12a { background: rgba(220,80,100,0.12); color: #DC5064; }
+
+  /* ─── Energy Bars — 6px wide, 16px tall, 2px gap ─── */
+  .energy {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .energy-bar {
+    width: 6px;
+    height: 16px;
+    border-radius: 1px;
+    background: var(--border-subtle);
+  }
+  .energy-bar.filled.low   { background: var(--status-info); }
+  .energy-bar.filled.mid   { background: var(--brand-primary); }
+  .energy-bar.filled.high  { background: var(--status-error); }
+
+  /* ─── Genre Pill — Session: padding 3px 8px, font-size 10px ─── */
+  .genre {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    padding: 3px 8px;
+    background: var(--surface-overlay);
+    border-radius: 9999px;
+    display: inline-block;
+    white-space: nowrap;
+  }
+
+  /* ─── Source Badge — 9px uppercase ─── */
+  .source-badge {
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+  }
+
+  /* ─── Detail Strip — Session: padding 12px 16px 12px 56px ─── */
+  .detail-strip {
+    padding: 12px 16px 12px 56px;
+    background: var(--interactive-selected);
+    border-left: 3px solid var(--selection-border);
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+  .detail-label {
+    color: var(--text-tertiary);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .detail-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    background: var(--surface-overlay);
+    border-radius: 4px;
+    font-size: 10px;
+    color: var(--text-secondary);
+  }
+
+  /* ─── Dimension Annotations ─── */
+  .dim {
+    font-size: 9px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: rgba(232,150,58,0.5);
+    font-weight: 500;
+  }
+
+  /* ─── Touch Target Note ─── */
+  .touch-note {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-3) var(--sp-4);
+    margin-top: var(--sp-4);
+    background: rgba(232,150,58,0.04);
+    border: 1px solid rgba(232,150,58,0.12);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .touch-note strong {
+    color: #C8C4BC;
+  }
+
+  /* ─── Measurement Overlay ─── */
+  .measure {
+    position: relative;
+  }
+  .measure-line {
+    position: absolute;
+    border-left: 1px dashed rgba(232,150,58,0.3);
+  }
+  .measure-label {
+    position: absolute;
+    font-size: 9px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: rgba(232,150,58,0.6);
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ─── Spacing Grid Overlay (annotation) ─── */
+  .spacing-annotation {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    margin-top: var(--sp-2);
+  }
+  .spacing-block {
+    height: 6px;
+    background: rgba(232,150,58,0.15);
+    border-radius: 1px;
+  }
+  .spacing-block.active {
+    background: rgba(232,150,58,0.4);
+  }
+
+  /* ─── Row Height Comparison ─── */
+  .row-compare {
+    display: flex;
+    gap: var(--sp-4);
+    align-items: flex-end;
+    margin: var(--sp-4) 0;
+  }
+  .row-compare-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-1);
+  }
+  .row-compare-bar {
+    width: 48px;
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-subtle);
+    border-radius: 3px;
+    position: relative;
+  }
+  .row-compare-bar.current {
+    border-color: var(--brand-primary);
+    background: rgba(232,150,58,0.08);
+  }
+  .row-compare-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary);
+  }
+  .row-compare-label.current {
+    color: var(--brand-primary);
+  }
+  .row-compare-dim {
+    font-size: 10px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ HEADER ============ -->
+<div class="option-header">
+  <div class="option-name">Session</div>
+  <div class="option-badge">Relaxed Density</div>
+</div>
+<div class="option-subtitle">48px rows &middot; 16 tracks visible &middot; 4px base unit</div>
+
+
+<!-- ============ SPACING SCALE ============ -->
+<div class="section-label">Spacing Scale (7 tokens, 4px base, generous application)</div>
+<div class="specimen">
+  <div class="spacing-scale">
+    <div class="sp-token">
+      <div class="sp-bar" style="height:4px;"></div>
+      <div class="sp-value">4px</div>
+      <div class="sp-name">sp-1</div>
+    </div>
+    <div class="sp-token">
+      <div class="sp-bar" style="height:8px;"></div>
+      <div class="sp-value">8px</div>
+      <div class="sp-name">sp-2</div>
+    </div>
+    <div class="sp-token">
+      <div class="sp-bar active" style="height:12px;"></div>
+      <div class="sp-value">12px</div>
+      <div class="sp-name">sp-3</div>
+    </div>
+    <div class="sp-token">
+      <div class="sp-bar active" style="height:16px;"></div>
+      <div class="sp-value">16px</div>
+      <div class="sp-name">sp-4</div>
+    </div>
+    <div class="sp-token">
+      <div class="sp-bar active" style="height:24px;"></div>
+      <div class="sp-value">24px</div>
+      <div class="sp-name">sp-5</div>
+    </div>
+    <div class="sp-token">
+      <div class="sp-bar" style="height:32px;"></div>
+      <div class="sp-value">32px</div>
+      <div class="sp-name">sp-6</div>
+    </div>
+    <div class="sp-token">
+      <div class="sp-bar" style="height:48px;"></div>
+      <div class="sp-value">48px</div>
+      <div class="sp-name">sp-7</div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    Same 7 tokens as tighter options, but Session applies them more generously: sp-3 (12px) for row padding, sp-4 (16px) for horizontal padding, sp-2 (8px) for column gaps. The extra breathing room shifts the feel from "pro tool" to "well-organized library."
+  </div>
+</div>
+
+
+<!-- ============ TRACK TABLE (HERO) ============ -->
+<div class="section-label">Track Table (Hero) &mdash; 48px rows, 8-column grid</div>
+
+<div class="table-frame">
+  <!-- Toolbar — 52px -->
+  <div class="toolbar">
+    <div class="toolbar-left">
+      <span class="page-title">Tracks</span>
+      <span class="track-count">247</span>
+    </div>
+    <div class="toolbar-right">
+      <button class="btn btn-secondary">Filter</button>
+      <button class="btn btn-primary">+ Import</button>
+    </div>
+  </div>
+
+  <!-- Column Headers -->
+  <div class="col-header-row">
+    <div class="col-header"></div>
+    <div class="col-header">Artist</div>
+    <div class="col-header">Title</div>
+    <div class="col-header active">BPM <span class="sort-arrow">&#9650;</span> <span class="sort-priority">1</span></div>
+    <div class="col-header active">Key <span class="sort-arrow">&#9650;</span> <span class="sort-priority">2</span></div>
+    <div class="col-header">NRG</div>
+    <div class="col-header">Genre</div>
+    <div class="col-header">Source</div>
+  </div>
+
+  <!-- Row 1: Fisher — Losing It -->
+  <div class="track-row">
+    <div><div class="art"></div></div>
+    <div class="artist">Fisher</div>
+    <div class="title">Losing It</div>
+    <div class="bpm">128</div>
+    <div><span class="key-chip k-8a">8A</span></div>
+    <div class="energy">
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">Tech House</span></div>
+    <div class="source-badge">Spotify</div>
+  </div>
+
+  <!-- Row 2: Peggy Gou — Starry Night (HOVER) -->
+  <div class="track-row hover">
+    <div><div class="art"></div></div>
+    <div class="artist">Peggy Gou</div>
+    <div class="title">Starry Night</div>
+    <div class="bpm">122</div>
+    <div><span class="key-chip k-11b">11B</span></div>
+    <div class="energy">
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">Deep House</span></div>
+    <div class="source-badge">Beatport</div>
+  </div>
+
+  <!-- Row 3: Four Tet — Baby (SELECTED + detail strip) -->
+  <div class="track-row selected">
+    <div><div class="art"></div></div>
+    <div class="artist">Four Tet</div>
+    <div class="title">Baby</div>
+    <div class="bpm">130</div>
+    <div><span class="key-chip k-5a">5A</span></div>
+    <div class="energy">
+      <div class="energy-bar filled low"></div>
+      <div class="energy-bar filled low"></div>
+      <div class="energy-bar"></div>
+      <div class="energy-bar"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">Electronic</span></div>
+    <div class="source-badge">Spotify</div>
+  </div>
+  <div class="detail-strip">
+    <div>
+      <div class="detail-label">Label</div>
+      <div class="detail-chip">Text Records</div>
+    </div>
+    <div>
+      <div class="detail-label">Year</div>
+      <div class="detail-chip">2020</div>
+    </div>
+    <div>
+      <div class="detail-label">Album</div>
+      <div class="detail-chip">Sixteen Oceans</div>
+    </div>
+    <div>
+      <div class="detail-label">Duration</div>
+      <div class="detail-chip">4:32</div>
+    </div>
+  </div>
+
+  <!-- Row 4: Floating Points — Ratio -->
+  <div class="track-row">
+    <div><div class="art"></div></div>
+    <div class="artist">Floating Points</div>
+    <div class="title">Ratio</div>
+    <div class="bpm">133</div>
+    <div><span class="key-chip k-2b">2B</span></div>
+    <div class="energy">
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">Electronica</span></div>
+    <div class="source-badge">Beatport</div>
+  </div>
+
+  <!-- Row 5: Kaytranada — Glued -->
+  <div class="track-row">
+    <div><div class="art"></div></div>
+    <div class="artist">Kaytranada</div>
+    <div class="title">Glued</div>
+    <div class="bpm">100</div>
+    <div><span class="key-chip k-6b">6B</span></div>
+    <div class="energy">
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">R&amp;B/Dance</span></div>
+    <div class="source-badge">Spotify</div>
+  </div>
+
+  <!-- Row 6: Disclosure — Latch -->
+  <div class="track-row">
+    <div><div class="art"></div></div>
+    <div class="artist">Disclosure</div>
+    <div class="title">Latch</div>
+    <div class="bpm">122</div>
+    <div><span class="key-chip k-7a">7A</span></div>
+    <div class="energy">
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar filled mid"></div>
+      <div class="energy-bar"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">UK Garage</span></div>
+    <div class="source-badge">Spotify</div>
+  </div>
+
+  <!-- Row 7: Jamie xx — Gosh -->
+  <div class="track-row">
+    <div><div class="art"></div></div>
+    <div class="artist">Jamie xx</div>
+    <div class="title">Gosh</div>
+    <div class="bpm">118</div>
+    <div><span class="key-chip k-9b">9B</span></div>
+    <div class="energy">
+      <div class="energy-bar filled low"></div>
+      <div class="energy-bar filled low"></div>
+      <div class="energy-bar"></div>
+      <div class="energy-bar"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">Electronic</span></div>
+    <div class="source-badge">Beatport</div>
+  </div>
+
+  <!-- Row 8: Bicep — Glue -->
+  <div class="track-row">
+    <div><div class="art"></div></div>
+    <div class="artist">Bicep</div>
+    <div class="title">Glue</div>
+    <div class="bpm">130</div>
+    <div><span class="key-chip k-12a">12A</span></div>
+    <div class="energy">
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar filled high"></div>
+      <div class="energy-bar"></div>
+    </div>
+    <div><span class="genre">Breakbeat</span></div>
+    <div class="source-badge">Beatport</div>
+  </div>
+</div>
+
+<!-- Annotations below table -->
+<div style="display:flex; gap:24px; margin-top:12px; flex-wrap:wrap;">
+  <div class="dim">Row height: 48px</div>
+  <div class="dim">Padding: 12px 16px</div>
+  <div class="dim">Art: 36x36, 4px radius</div>
+  <div class="dim">Column gap: 8px</div>
+  <div class="dim">Toolbar: 52px</div>
+  <div class="dim">Grid: 44px 1fr 1fr 64px 80px 56px 88px 72px</div>
+</div>
+
+
+<!-- ============ TOUCH TARGET NOTE ============ -->
+<div class="touch-note">
+  <strong>Touch targets:</strong> 48px rows meet Material 3 minimum (48dp). Full touch compatibility. Comfortable for extended sessions.
+</div>
+
+
+<!-- ============ COMPONENT SIZING AT THIS DENSITY ============ -->
+<div class="section-label">Component Sizing at Session Density</div>
+
+<div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+  <!-- Camelot Chips -->
+  <div class="specimen">
+    <div style="font-size:11px; font-weight:500; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:12px;">Camelot Chips (Session)</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+      <span class="key-chip k-8a">8A</span>
+      <span class="key-chip k-11b">11B</span>
+      <span class="key-chip k-5a">5A</span>
+      <span class="key-chip k-2b">2B</span>
+      <span class="key-chip k-6b">6B</span>
+      <span class="key-chip k-7a">7A</span>
+      <span class="key-chip k-9b">9B</span>
+      <span class="key-chip k-12a">12A</span>
+    </div>
+    <div class="specimen-note">padding: 3px 10px, font-size: 11px, ~22px height. Wider than tighter options for easy scanning.</div>
+  </div>
+
+  <!-- Energy Bars -->
+  <div class="specimen">
+    <div style="font-size:11px; font-weight:500; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:12px;">Energy Bars (Session)</div>
+    <div style="display:flex; gap:24px; align-items:center;">
+      <div style="text-align:center;">
+        <div class="energy">
+          <div class="energy-bar filled low"></div>
+          <div class="energy-bar"></div>
+          <div class="energy-bar"></div>
+          <div class="energy-bar"></div>
+          <div class="energy-bar"></div>
+        </div>
+        <div style="font-size:9px; color:var(--text-tertiary); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em;">1/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy">
+          <div class="energy-bar filled low"></div>
+          <div class="energy-bar filled low"></div>
+          <div class="energy-bar"></div>
+          <div class="energy-bar"></div>
+          <div class="energy-bar"></div>
+        </div>
+        <div style="font-size:9px; color:var(--text-tertiary); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em;">2/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy">
+          <div class="energy-bar filled mid"></div>
+          <div class="energy-bar filled mid"></div>
+          <div class="energy-bar filled mid"></div>
+          <div class="energy-bar"></div>
+          <div class="energy-bar"></div>
+        </div>
+        <div style="font-size:9px; color:var(--text-tertiary); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em;">3/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy">
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar"></div>
+        </div>
+        <div style="font-size:9px; color:var(--text-tertiary); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em;">4/5</div>
+      </div>
+      <div style="text-align:center;">
+        <div class="energy">
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar filled high"></div>
+          <div class="energy-bar filled high"></div>
+        </div>
+        <div style="font-size:9px; color:var(--text-tertiary); margin-top:6px; text-transform:uppercase; letter-spacing:0.04em;">5/5</div>
+      </div>
+    </div>
+    <div class="specimen-note">6px wide, 16px tall, 2px gap. Colors: 1-2 = info (#5A9EC0), 3 = brand (#E8963A), 4-5 = error (#D05040). Unfilled: #252018.</div>
+  </div>
+
+  <!-- Genre Pills -->
+  <div class="specimen">
+    <div style="font-size:11px; font-weight:500; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:12px;">Genre Pills (Session)</div>
+    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+      <span class="genre">Tech House</span>
+      <span class="genre">Deep House</span>
+      <span class="genre">Electronic</span>
+      <span class="genre">Electronica</span>
+      <span class="genre">R&amp;B/Dance</span>
+      <span class="genre">UK Garage</span>
+      <span class="genre">Breakbeat</span>
+    </div>
+    <div class="specimen-note">padding: 3px 8px, font-size: 10px. Full-radius pill. Background: surface-overlay.</div>
+  </div>
+
+  <!-- Detail Strip -->
+  <div class="specimen">
+    <div style="font-size:11px; font-weight:500; color:var(--text-tertiary); text-transform:uppercase; letter-spacing:0.02em; margin-bottom:12px;">Detail Strip (Session)</div>
+    <div class="detail-strip" style="border-radius:4px;">
+      <div>
+        <div class="detail-label">Label</div>
+        <div class="detail-chip">Text Records</div>
+      </div>
+      <div>
+        <div class="detail-label">Year</div>
+        <div class="detail-chip">2020</div>
+      </div>
+      <div>
+        <div class="detail-label">Album</div>
+        <div class="detail-chip">Sixteen Oceans</div>
+      </div>
+      <div>
+        <div class="detail-label">Duration</div>
+        <div class="detail-chip">4:32</div>
+      </div>
+    </div>
+    <div class="specimen-note">padding: 12px 16px 12px 56px. Expands below selected row. Indent aligns with track text (past art column).</div>
+  </div>
+</div>
+
+
+<!-- ============ ROW STATE LEGEND ============ -->
+<div class="section-label">Row States</div>
+<div class="specimen">
+  <div style="display:flex; flex-direction:column; gap:0;">
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 0;">
+      <span class="dim" style="width:64px;">default</span>
+      <div style="flex:1; height:48px; background:transparent; border:1px dashed var(--border-subtle); border-radius:4px; display:flex; align-items:center; padding:0 16px;">
+        <span style="font-size:12px; color:var(--text-secondary);">Transparent background, 3px transparent left border</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 0;">
+      <span class="dim" style="width:64px;">hover</span>
+      <div style="flex:1; height:48px; background:var(--interactive-hover); border:1px dashed var(--border-subtle); border-radius:4px; display:flex; align-items:center; padding:0 16px;">
+        <span style="font-size:12px; color:var(--text-secondary);">rgba(232,150,58,0.04) background tint</span>
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; gap:12px; padding:8px 0;">
+      <span class="dim" style="width:64px;">selected</span>
+      <div style="flex:1; height:48px; background:var(--interactive-selected); border-left:3px solid var(--selection-border); border-radius:4px; display:flex; align-items:center; padding:0 16px;">
+        <span style="font-size:12px; color:var(--text-secondary);">rgba(232,150,58,0.06) bg + #E8963A left border</span>
+      </div>
+    </div>
+  </div>
+  <div class="specimen-note">
+    Wire Lift elevation: flat, no shadows. State differentiation through background tint and border color only. Selected state gets the brand-primary left border accent and detail strip expansion.
+  </div>
+</div>
+
+
+<!-- ============ DIMENSION SUMMARY ============ -->
+<div class="section-label">Session Density Summary</div>
+<div class="specimen">
+  <div style="display:grid; grid-template-columns:180px 1fr; gap:8px 16px; font-size:12px;">
+    <span style="color:var(--text-tertiary); font-weight:500;">Row height</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">48px</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Row padding</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">12px 16px</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Art thumbnail</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">36x36, 4px radius</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Column gap</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">8px</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Grid columns</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">44px 1fr 1fr 64px 80px 56px 88px 72px</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Toolbar height</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">52px</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Camelot chip</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">padding 3px 10px, 11px, ~22px height</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Energy bars</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">6px wide, 16px tall, 2px gap</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Genre pill</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">padding 3px 8px, 10px</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Detail strip</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">padding 12px 16px 12px 56px</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Spacing scale</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">4 / 8 / 12 / 16 / 24 / 32 / 48</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Visible in 900px</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">~16 rows</span>
+
+    <span style="color:var(--text-tertiary); font-weight:500;">Elevation</span>
+    <span style="font-family:'SF Mono','Fira Code',monospace; color:var(--text-primary);">Wire Lift (flat, no shadows)</span>
+  </div>
+</div>
+
+<script>
+  // PostMessage listener for theme switching from parent frame
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'theme') {
+      document.documentElement.setAttribute('data-theme', e.data.value);
+    }
+  });
+</script>
+
+</body>
+</html>

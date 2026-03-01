@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember-crate">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option A: Minimum Compliance &mdash; Accessibility</title>
+<style>
+  :root {
+    --base: #0F0D0B; --content: #141210; --raised: #1A1714; --overlay: #201C18;
+    --bdr: #1E1A16; --bdr2: #3A3428; --t1: #F0ECE4; --t2: #8B8580; --t3: #615B52;
+    --amber: #E8963A; --copper: #C06030; --ok: #5CB870; --err: #D05040; --info: #5A9EC0;
+    --hover: rgba(232,150,58,0.04); --sel: rgba(232,150,58,0.06);
+    --ui: 'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+    --mono: 'JetBrains Mono','SF Mono','Fira Code',monospace;
+  }
+  *,*::before,*::after { margin:0; padding:0; box-sizing:border-box; }
+  body { background:var(--base); color:var(--t1); font:13px/1.4 var(--ui); -webkit-font-smoothing:antialiased; }
+  .page { max-width:960px; margin:0 auto; padding:24px 16px; }
+  .header { margin-bottom:24px; }
+  .header-label { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:1.2px; color:var(--amber); margin-bottom:4px; }
+  .header-title { font-size:20px; font-weight:700; margin-bottom:4px; }
+  .header-sub { font-size:12px; color:var(--t2); line-height:1.5; }
+  .audit-banner { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:12px 16px; background:var(--content); border:1px solid var(--bdr); border-left:3px solid var(--amber); border-radius:4px; margin-bottom:20px; }
+  .audit-stat { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; }
+  .audit-dot { width:8px; height:8px; border-radius:50%; }
+  .audit-dot--c { background:var(--err); } .audit-dot--m { background:var(--amber); } .audit-dot--n { background:var(--t2); }
+  .audit-verdict { margin-left:auto; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--ok); }
+  .slbl { font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.8px; color:var(--t3); margin-bottom:8px; }
+  .ft-wrap { background:var(--content); border:1px solid var(--bdr); border-radius:4px; overflow:hidden; margin-bottom:24px; }
+  .ft { width:100%; border-collapse:collapse; font-size:11px; }
+  .ft th { text-align:left; padding:8px 10px; font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--t3); background:var(--base); border-bottom:1px solid var(--bdr); }
+  .ft td { padding:6px 10px; border-bottom:1px solid var(--bdr); vertical-align:top; line-height:1.4; }
+  .ft tr:last-child td { border-bottom:none; }
+  .ft .desc { color:#C8C4BC; font-size:10px; }
+  .sev { display:inline-block; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; }
+  .sev--c { background:rgba(208,80,64,.15); color:#D05040; }
+  .sev--m { background:rgba(232,150,58,.12); color:#E8963A; }
+  .sev--n { background:rgba(139,133,128,.12); color:#8B8580; }
+  .fxs { font-size:12px; text-align:center; }
+  .fxy { color:var(--ok); } .fxn { color:var(--t3); }
+  .wcag { font-family:var(--mono); font-size:9px; color:var(--t2); white-space:nowrap; }
+  .def { display:inline-block; padding:1px 5px; border-radius:2px; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; background:rgba(139,133,128,.1); color:var(--t3); }
+  .wf-section { margin-bottom:24px; }
+  .wf-wrap { background:var(--base); border:1px solid var(--bdr); border-radius:4px; overflow:hidden; position:relative; }
+  .skip-ind { display:flex; align-items:center; gap:8px; padding:4px 12px; background:rgba(232,150,58,.06); border-bottom:1px solid var(--bdr); }
+  .skip-box { display:inline-flex; align-items:center; gap:4px; padding:2px 8px; border:1px dashed var(--amber); border-radius:3px; font-size:10px; color:var(--amber); font-weight:500; }
+  .skip-box kbd, .kh kbd { font-family:var(--mono); font-size:9px; font-weight:700; padding:0 3px; background:rgba(232,150,58,.12); border-radius:2px; }
+  .app { display:flex; min-height:400px; }
+  .rail { width:48px; flex-shrink:0; background:var(--content); border-right:1px solid var(--bdr); display:flex; flex-direction:column; align-items:center; padding:8px 0; gap:4px; }
+  .ri { width:32px; height:32px; border-radius:4px; display:flex; align-items:center; justify-content:center; color:var(--t3); cursor:pointer; }
+  .ri:hover { background:var(--hover); color:var(--t2); }
+  .ri--on { color:var(--amber); background:rgba(232,150,58,.08); }
+  .ri svg { width:16px; height:16px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .main { flex:1; min-width:0; }
+  .tb { display:flex; align-items:center; height:40px; padding:0 12px; background:var(--content); border-bottom:1px solid var(--bdr); gap:8px; }
+  .tb-t { font-size:15px; font-weight:700; } .tb-c { font-family:var(--mono); font-size:13px; color:var(--t3); }
+  .tb-s { flex:1; }
+  .tb-btn { display:inline-flex; align-items:center; gap:4px; height:26px; padding:0 10px; font-size:11px; font-weight:600; font-family:var(--ui); color:var(--t2); background:transparent; border:1px solid var(--bdr2); border-radius:3px; cursor:pointer; }
+  .tb-btn svg { width:12px; height:12px; stroke:currentColor; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .tb-btn--p { color:var(--amber); border-color:var(--amber); }
+  .kh { display:inline-flex; align-items:center; gap:2px; font-size:9px; font-family:var(--mono); font-weight:500; color:var(--t3); opacity:.6; }
+  .kh kbd { border:1px solid var(--bdr2); background:var(--overlay); }
+  .tt { width:100%; border-collapse:collapse; }
+  .tt thead th { padding:0 6px; height:32px; font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.5px; color:var(--t3); background:var(--base); border-bottom:1px solid var(--bdr); text-align:left; white-space:nowrap; cursor:pointer; user-select:none; vertical-align:middle; }
+  .tt thead th:hover { color:var(--t2); }
+  .thi { display:flex; align-items:center; gap:3px; }
+  .th-bpm .thi { justify-content:flex-end; }
+  .th-on { color:var(--t2); }
+  .sa { font-size:8px; color:var(--amber); } .sb { display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; font-size:9px; font-weight:700; font-family:var(--mono); color:var(--amber); background:rgba(232,150,58,.12); border-radius:2px; }
+  .asl { font-size:8px; font-weight:500; font-family:var(--mono); color:var(--info); opacity:.7; margin-left:2px; }
+  .tt tbody td { padding:0 6px; height:40px; border-bottom:1px solid var(--bdr); vertical-align:middle; }
+  .tt tbody tr { cursor:pointer; transition:background .08s; }
+  .tt tbody tr:last-child td { border-bottom:none; }
+  .tt tbody tr:hover { background:var(--hover); }
+  .tt tbody tr.rf { outline:2px solid var(--amber); outline-offset:-2px; background:var(--sel); position:relative; }
+  .fl { display:inline-flex; align-items:center; position:absolute; right:-1px; top:50%; transform:translateY(-50%); padding:2px 6px; background:var(--amber); border-radius:2px 0 0 2px; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--base); z-index:5; }
+  .td-a { width:44px; }
+  .art { width:32px; height:32px; border-radius:2px; position:relative; overflow:hidden; }
+  .art::after { content:''; position:absolute; inset:0; border:1px solid rgba(255,255,255,.04); border-radius:2px; }
+  .art--1 { background:linear-gradient(135deg,#2A4060,#1A2840); }
+  .art--2 { background:linear-gradient(135deg,#4A2060,#2A1040); }
+  .art--3 { background:linear-gradient(135deg,#204A30,#102A1A); }
+  .art--4 { background:linear-gradient(135deg,#5A3020,#3A1A10); }
+  .art--5 { background:linear-gradient(135deg,#4A4020,#2A2410); }
+  .art--6 { background:linear-gradient(135deg,#204050,#102830); }
+  .art--7 { background:linear-gradient(135deg,#303060,#1A1A40); }
+  .art--8 { background:linear-gradient(135deg,#504020,#302410); }
+  .ca { font-size:13px; font-weight:500; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .ct { font-size:13px; color:#C8C4BC; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cb { font-size:13px; font-weight:700; font-family:var(--mono); text-align:right; white-space:nowrap; }
+  .td-b { width:52px; }
+  .kc { display:inline-flex; align-items:center; justify-content:center; padding:2px 6px; font-size:10px; font-weight:700; font-family:var(--mono); border-radius:10px; white-space:nowrap; line-height:1; height:20px; }
+  .kc-6A { background:rgba(74,155,110,.15); color:#4A9B6E; }
+  .kc-11B { background:rgba(155,110,192,.15); color:#9B6EC0; }
+  .kc-2A { background:rgba(192,122,74,.15); color:#C07A4A; }
+  .kc-8B { background:rgba(74,139,192,.15); color:#4A8BC0; }
+  .kc-5A { background:rgba(192,168,74,.15); color:#C0A84A; }
+  .kc-9A { background:rgba(74,192,168,.15); color:#4AC0A8; }
+  .kc-7A { background:rgba(110,155,74,.15); color:#6E9B4A; }
+  .kc-4B { background:rgba(192,74,110,.15); color:#C04A6E; }
+  .td-k { width:56px; }
+  .eb { display:flex; align-items:center; gap:1px; }
+  .e { width:5px; height:14px; border-radius:1px; background:var(--bdr); }
+  .e-l { background:#5A9EC0; } .e-m { background:#E8963A; } .e-h { background:#D05040; }
+  .td-e { width:40px; }
+  .gp { display:inline-flex; align-items:center; padding:2px 6px; font-size:10px; font-weight:500; color:var(--t2); background:var(--overlay); border-radius:999px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cs { font-size:9px; font-weight:600; text-transform:uppercase; letter-spacing:.3px; color:var(--t3); }
+  .td-s { width:56px; }
+  .toast { position:relative; margin-top:12px; padding:8px 12px; background:var(--raised); border:1px solid var(--bdr); border-radius:4px; display:flex; align-items:center; gap:8px; box-shadow:0 1px 3px rgba(0,0,0,.3); }
+  .toast-i { color:var(--ok); font-size:14px; } .toast-t { font-size:12px; }
+  .toast-a { margin-left:auto; font-size:8px; font-family:var(--mono); color:var(--info); opacity:.7; white-space:nowrap; }
+  .notes { background:var(--content); border:1px solid var(--bdr); border-radius:4px; padding:12px 16px; margin-bottom:24px; }
+  .notes ul { list-style:none; padding:0; }
+  .notes li { position:relative; padding:4px 0 4px 16px; font-size:11px; line-height:1.5; color:#C8C4BC; }
+  .notes li::before { content:''; position:absolute; left:0; top:11px; width:6px; height:6px; border-radius:50%; background:var(--amber); opacity:.5; }
+  .notes code { font-family:var(--mono); font-size:10px; padding:1px 4px; background:rgba(232,150,58,.08); border-radius:2px; color:var(--amber); }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="header">
+    <div class="header-label">MINIMUM COMPLIANCE</div>
+    <h1 class="header-title">Option A: WCAG AA Remediation</h1>
+    <div class="header-sub">Fixes all critical and major issues only. Minimal visual disruption to the locked design.</div>
+  </header>
+
+  <!-- Audit Summary -->
+  <div class="audit-banner">
+    <div class="audit-stat"><span class="audit-dot audit-dot--c"></span> 2 Critical</div>
+    <div class="audit-stat"><span class="audit-dot audit-dot--m"></span> 6 Major</div>
+    <div class="audit-stat"><span class="audit-dot audit-dot--n"></span> 4 Minor</div>
+    <div class="audit-stat" style="color:var(--t2)">|</div>
+    <div class="audit-stat" style="color:var(--ok)">8 fixed</div>
+    <div class="audit-stat" style="color:var(--t3)">4 deferred</div>
+    <div class="audit-verdict">WCAG AA Achieved</div>
+  </div>
+
+  <!-- Audit Findings -->
+  <div class="slbl">Audit Findings</div>
+  <div class="ft-wrap">
+    <table class="ft">
+      <thead><tr><th style="width:28px">#</th><th style="width:68px">Severity</th><th>Issue</th><th style="width:64px">WCAG</th><th style="width:48px;text-align:center">Fix</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td><span class="sev sev--c">Critical</span></td><td>No keyboard access to row selection<br><span class="desc">Track rows are click-only. Keyboard users cannot select or expand detail strip.</span></td><td><span class="wcag">2.1.1</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>2</td><td><span class="sev sev--c">Critical</span></td><td>Slide-over panel lacks focus trap<br><span class="desc">Keyboard focus escapes to table behind scrim. No ESC handler.</span></td><td><span class="wcag">2.1.2</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>3</td><td><span class="sev sev--m">Major</span></td><td>No skip link<br><span class="desc">No way to skip the 48px icon rail to reach the main track table.</span></td><td><span class="wcag">2.4.1</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>4</td><td><span class="sev sev--m">Major</span></td><td>Focus indicators not defined<br><span class="desc">No visible focus ring for any component. Need 2px rings against dark surfaces.</span></td><td><span class="wcag">2.4.7</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>5</td><td><span class="sev sev--m">Major</span></td><td>Table lacks semantic markup<br><span class="desc">Needs <code>&lt;table&gt;</code> with <code>&lt;th scope="col"&gt;</code> and <code>aria-sort</code> on sortable headers.</span></td><td><span class="wcag">1.3.1</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>6</td><td><span class="sev sev--m">Major</span></td><td>Sort state changes not announced<br><span class="desc">Screen readers get no announcement when sort changes. Needs <code>aria-sort</code> + <code>aria-live</code>.</span></td><td><span class="wcag">4.1.3</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>7</td><td><span class="sev sev--m">Major</span></td><td>Toast notifications need live region<br><span class="desc">Import success/error toasts need <code>aria-live="polite"</code> and <code>role="status"</code>.</span></td><td><span class="wcag">4.1.3</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>8</td><td><span class="sev sev--m">Major</span></td><td>Album art missing alt text<br><span class="desc">32x32 thumbnails need <code>alt="[Album] by [Artist]"</code>.</span></td><td><span class="wcag">1.1.1</span></td><td class="fxs fxy">&#10003;</td></tr>
+        <tr><td>9</td><td><span class="sev sev--n">Minor</span></td><td>Energy bars convey info by color alone <span class="def">deferred</span><br><span class="desc">Teal/amber/red gradient has no text alternative for color-blind users.</span></td><td><span class="wcag">1.4.1</span></td><td class="fxs fxn">&mdash;</td></tr>
+        <tr><td>10</td><td><span class="sev sev--n">Minor</span></td><td>9px source badges may be hard to read <span class="def">deferred</span><br><span class="desc">"SPOTIFY" / "BEATPORT" at 9px stresses readability despite passing contrast.</span></td><td><span class="wcag">1.4.12</span></td><td class="fxs fxn">&mdash;</td></tr>
+        <tr><td>11</td><td><span class="sev sev--n">Minor</span></td><td>Icon rail buttons need labels <span class="def">deferred</span><br><span class="desc">Icon-only nav needs <code>aria-label</code> and visible tooltip on hover/focus.</span></td><td><span class="wcag">4.1.2</span></td><td class="fxs fxn">&mdash;</td></tr>
+        <tr><td>12</td><td><span class="sev sev--n">Minor</span></td><td>Slide-over scrim dismiss needs keyboard path <span class="def">deferred</span><br><span class="desc">Click-on-scrim to close needs ESC key alternative.</span></td><td><span class="wcag">2.1.1</span></td><td class="fxs fxn">&mdash;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Remediated Wireframe -->
+  <div class="slbl">Remediated Wireframe</div>
+  <div class="wf-section">
+    <div class="wf-wrap">
+      <!-- Skip link indicator (Fix #3) -->
+      <div class="skip-ind">
+        <div class="skip-box"><kbd>Tab</kbd> Skip to track catalog</div>
+        <span style="font-size:9px;color:var(--t3)">Hidden until focused &mdash; FIX #3</span>
+      </div>
+      <div class="app">
+        <!-- Icon rail -->
+        <nav class="rail">
+          <div class="ri ri--on"><svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg></div>
+          <div class="ri"><svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5"/><path d="M11.5 11.5L14 14"/></svg></div>
+          <div class="ri"><svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h12M2 12h12"/></svg></div>
+        </nav>
+        <!-- Main content -->
+        <div class="main">
+          <div class="tb">
+            <span class="tb-t">Tracks</span><span class="tb-c">247</span><div class="tb-s"></div>
+            <div class="kh"><kbd>&uarr;</kbd><kbd>&darr;</kbd> navigate <kbd>Enter</kbd> select</div>
+            <button class="tb-btn" type="button"><svg viewBox="0 0 16 16"><path d="M2 4h12M4 8h8M6 12h4"/></svg>Filter</button>
+            <button class="tb-btn tb-btn--p" type="button"><svg viewBox="0 0 16 16"><path d="M8 3v10M3 8h10"/></svg>Import</button>
+          </div>
+          <!-- Semantic table (Fix #5, #6) -->
+          <table class="tt" role="grid" aria-label="Track catalog">
+            <thead><tr>
+              <th class="td-a" scope="col"><span class="thi">&nbsp;</span></th>
+              <th scope="col"><span class="thi">Artist</span></th>
+              <th scope="col"><span class="thi">Title</span></th>
+              <th scope="col" class="th-bpm th-on" aria-sort="ascending"><span class="thi" style="justify-content:flex-end">BPM<span class="sa">&uarr;</span><span class="sb">1</span><span class="asl">aria-sort</span></span></th>
+              <th scope="col" class="td-k th-on" aria-sort="ascending"><span class="thi">Key<span class="sa">&uarr;</span><span class="sb">2</span></span></th>
+              <th scope="col" class="td-e"><span class="thi">Nrg</span></th>
+              <th scope="col"><span class="thi">Genre</span></th>
+              <th scope="col" class="td-s"><span class="thi">Src</span></th>
+            </tr></thead>
+            <tbody>
+              <tr tabindex="0"><td class="td-a"><div class="art art--1" role="img" aria-label="Losing It by Fisher"></div></td><td class="ca">Fisher</td><td class="ct">Losing It</td><td class="cb">124</td><td><span class="kc kc-6A">6A</span></td><td><div class="eb"><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e"></div></div></td><td><span class="gp">Tech House</span></td><td class="cs">Spotify</td></tr>
+              <tr tabindex="0"><td class="td-a"><div class="art art--2" role="img" aria-label="Starry Night by Peggy Gou"></div></td><td class="ca">Peggy Gou</td><td class="ct">Starry Night</td><td class="cb">125</td><td><span class="kc kc-11B">11B</span></td><td><div class="eb"><div class="e e-m"></div><div class="e e-m"></div><div class="e e-m"></div><div class="e e-m"></div><div class="e"></div></div></td><td><span class="gp">House</span></td><td class="cs">Beatport</td></tr>
+              <!-- Row 3: Four Tet (FOCUSED — Fix #1, #4) -->
+              <tr tabindex="0" class="rf" style="position:relative"><td class="td-a"><div class="art art--3" role="img" aria-label="Baby by Four Tet"></div></td><td class="ca">Four Tet</td><td class="ct">Baby</td><td class="cb">130</td><td><span class="kc kc-2A">2A</span></td><td><div class="eb"><div class="e e-m"></div><div class="e e-m"></div><div class="e e-m"></div><div class="e"></div><div class="e"></div></div></td><td><span class="gp">Electronic</span></td><td class="cs" style="position:relative">Spotify<span class="fl">FOCUS</span></td></tr>
+              <tr tabindex="0"><td class="td-a"><div class="art art--4" role="img" aria-label="Ratio by Floating Points"></div></td><td class="ca">Floating Points</td><td class="ct">Ratio</td><td class="cb">128</td><td><span class="kc kc-8B">8B</span></td><td><div class="eb"><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e"></div></div></td><td><span class="gp">Techno</span></td><td class="cs">Beatport</td></tr>
+              <tr tabindex="0"><td class="td-a"><div class="art art--5" role="img" aria-label="Glowed Up by Kaytranada"></div></td><td class="ca">Kaytranada</td><td class="ct">Glowed Up</td><td class="cb">110</td><td><span class="kc kc-5A">5A</span></td><td><div class="eb"><div class="e e-m"></div><div class="e e-m"></div><div class="e e-m"></div><div class="e"></div><div class="e"></div></div></td><td><span class="gp">R&amp;B/Electronic</span></td><td class="cs">Spotify</td></tr>
+              <tr tabindex="0"><td class="td-a"><div class="art art--6" role="img" aria-label="Latch by Disclosure"></div></td><td class="ca">Disclosure</td><td class="ct">Latch</td><td class="cb">122</td><td><span class="kc kc-9A">9A</span></td><td><div class="eb"><div class="e e-m"></div><div class="e e-m"></div><div class="e e-m"></div><div class="e e-m"></div><div class="e"></div></div></td><td><span class="gp">UK Garage</span></td><td class="cs">Spotify</td></tr>
+              <tr tabindex="0"><td class="td-a"><div class="art art--7" role="img" aria-label="Gosh by Jamie xx"></div></td><td class="ca">Jamie xx</td><td class="ct">Gosh</td><td class="cb">120</td><td><span class="kc kc-7A">7A</span></td><td><div class="eb"><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e"></div></div></td><td><span class="gp">Electronic</span></td><td class="cs">Beatport</td></tr>
+              <tr tabindex="0"><td class="td-a"><div class="art art--8" role="img" aria-label="Glue by Bicep"></div></td><td class="ca">Bicep</td><td class="ct">Glue</td><td class="cb">130</td><td><span class="kc kc-4B">4B</span></td><td><div class="eb"><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e e-h"></div><div class="e"></div></div></td><td><span class="gp">Electronica</span></td><td class="cs">Beatport</td></tr>
+            </tbody>
+          </table>
+          <!-- Sort announcement live region (Fix #6) -->
+          <div aria-live="polite" role="status" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">Sorted by BPM ascending, then Key ascending</div>
+          <!-- Toast with live region (Fix #7) -->
+          <div class="toast" role="status" aria-live="polite">
+            <span class="toast-i">&#10003;</span>
+            <span class="toast-t">24 tracks imported from Spotify</span>
+            <span class="toast-a">role="status" aria-live="polite"</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Implementation Notes -->
+  <div class="slbl">Implementation Notes</div>
+  <div class="notes">
+    <ul>
+      <li>Add <code>tabindex="0"</code> to all <code>&lt;tr&gt;</code> rows. <code>Enter</code>/<code>Space</code> selects row, <code>&uarr;</code>/<code>&darr;</code> navigates between rows.</li>
+      <li>Slide-over panel: trap focus with <code>Tab</code> cycling within panel contents. <code>ESC</code> closes and returns focus to triggering row.</li>
+      <li>Add visually-hidden skip link before icon rail: <code>&lt;a href="#track-table" class="sr-only sr-only-focusable"&gt;Skip to track catalog&lt;/a&gt;</code></li>
+      <li>Focus ring: <code>outline: 2px solid #E8963A; outline-offset: 2px</code> on all interactive elements. Visible against <code>#0F0D0B</code> and <code>#141210</code>.</li>
+      <li>Convert track list from <code>&lt;div&gt;</code> grid to semantic <code>&lt;table role="grid"&gt;</code> with <code>&lt;th scope="col"&gt;</code> for each column.</li>
+      <li>Add <code>aria-sort="ascending|descending|none"</code> to sortable <code>&lt;th&gt;</code> elements. Update dynamically on sort change.</li>
+      <li>Wrap sort status in <code>aria-live="polite"</code> off-screen region. Update text on each sort action.</li>
+      <li>Toast container: add <code>role="status"</code> and <code>aria-live="polite"</code>. Screen readers announce on insert.</li>
+      <li>Album art: add <code>role="img"</code> and <code>aria-label="[Track] by [Artist]"</code> to each thumbnail element.</li>
+    </ul>
+  </div>
+
+  <!-- Deferred -->
+  <div class="slbl">Deferred to Option B/C</div>
+  <div class="notes">
+    <ul>
+      <li style="opacity:.6">Energy bars: add numeric text alternative or pattern fill for color-blind users (WCAG 1.4.1)</li>
+      <li style="opacity:.6">Source badges: increase from 9px or add title tooltip for readability (WCAG 1.4.12)</li>
+      <li style="opacity:.6">Icon rail: add <code>aria-label</code> to each button and visible tooltip on hover/focus (WCAG 4.1.2)</li>
+      <li style="opacity:.6">Scrim dismiss: add <code>ESC</code> key handler to close slide-over from scrim click target (WCAG 2.1.1)</li>
+    </ul>
+  </div>
+</div>
+<script>
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'theme') {
+      // Accessibility wireframe is dark-only (matches Ember Crate)
+    }
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="ember-crate">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option C: Inclusive by Default — Accessibility</title>
+<style>
+  :root {
+    --base:#0F0D0B; --raised:#141210; --sunken:#0A0907; --overlay:#1E1A16;
+    --brd:#1E1A16; --brd2:#3A3428; --tx1:#F0ECE4; --tx2:#8B8580; --tx3:#615B52;
+    --amber:#E8963A; --copper:#C06030; --accent:#F0C060;
+    --ok:#5CB870; --err:#D05040; --info:#5A9EC0;
+    --hover:rgba(232,150,58,0.04); --sel:rgba(232,150,58,0.08);
+    --ui:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:"JetBrains Mono","SF Mono","Fira Code",monospace;
+  }
+  *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+  body{background:var(--base);color:var(--tx1);font:13px/1.5 var(--ui);-webkit-font-smoothing:antialiased}
+  .pg{max-width:980px;margin:0 auto;padding:24px 20px}
+  .hdr-label{font:600 9px/1 var(--ui);text-transform:uppercase;letter-spacing:1.2px;color:var(--amber);margin-bottom:4px}
+  .hdr-title{font-size:22px;font-weight:700;margin-bottom:6px}
+  .hdr-desc{font-size:13px;color:var(--tx2);line-height:1.6;max-width:720px;margin-bottom:24px}
+  .banner{display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:6px;margin-bottom:24px;background:rgba(92,184,112,0.08);border:1px solid rgba(92,184,112,0.25)}
+  .banner-icon{font-size:20px;flex-shrink:0}
+  .banner-text{font-size:13px;color:var(--ok);font-weight:500}
+  .banner-sub{font-size:11px;color:var(--tx2);margin-top:2px;font-weight:400}
+  .sl{font:600 10px/1 var(--ui);text-transform:uppercase;letter-spacing:.8px;color:var(--tx3);margin:28px 0 12px;padding-bottom:6px;border-bottom:1px solid var(--brd)}
+  .sp{background:var(--sunken);border:1px solid var(--brd);border-radius:6px;padding:16px;margin-bottom:12px}
+  .sp-label{font:500 10px/1 var(--ui);text-transform:uppercase;letter-spacing:.3px;color:var(--tx3);margin-bottom:10px}
+  .sp-note{font-size:11px;color:var(--tx3);margin-top:8px;line-height:1.5}
+  /* Findings table */
+  .ft{width:100%;border-collapse:collapse;font-size:12px}
+  .ft th{text-align:left;font:600 9px/1 var(--ui);text-transform:uppercase;letter-spacing:.6px;color:var(--tx3);padding:6px 8px;border-bottom:1px solid var(--brd2)}
+  .ft td{padding:7px 8px;border-bottom:1px solid var(--brd);color:var(--tx2);vertical-align:top}
+  .ft td:first-child{color:var(--tx1);font-weight:500;white-space:nowrap}
+  .sv-c{color:var(--err);font:600 10px/1 var(--ui);text-transform:uppercase}
+  .sv-m{color:var(--amber);font:600 10px/1 var(--ui);text-transform:uppercase}
+  .sv-n{color:var(--tx2);font:600 10px/1 var(--ui);text-transform:uppercase}
+  .sv-p{color:var(--ok);font:600 10px/1 var(--ui);text-transform:uppercase}
+  .chk{color:var(--ok);font-weight:700}
+  .pb{display:inline-block;font:700 9px/1 var(--ui);padding:1px 6px;border-radius:9999px;margin-left:4px;background:rgba(92,184,112,0.15);color:var(--ok)}
+  /* Toolbar */
+  .tb{display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--raised);border:1px solid var(--brd);border-radius:6px;margin-bottom:16px;flex-wrap:wrap}
+  .tb-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:4px;font:500 11px var(--ui);border:1px solid var(--brd);background:0;color:var(--tx2);cursor:pointer}
+  .tb-btn.on{background:rgba(232,150,58,0.1);border-color:var(--amber);color:var(--amber)}
+  .tb-dot{width:8px;height:8px;border-radius:50%;background:var(--tx3)}
+  .tb-btn.on .tb-dot{background:var(--amber)}
+  .tb-sep{width:1px;height:20px;background:var(--brd)}
+  .tb-density{display:inline-flex;border-radius:4px;overflow:hidden;border:1px solid var(--brd)}
+  .d-opt{padding:5px 10px;font:500 10px var(--ui);background:0;border:0;color:var(--tx2);cursor:pointer}
+  .d-opt.on{background:rgba(232,150,58,0.1);color:var(--amber)}
+  .tb-kbd{padding:5px 10px;border-radius:4px;font:11px var(--mono);border:1px solid var(--brd);color:var(--tx3)}
+  /* Skip link */
+  .skip{display:inline-block;padding:6px 14px;border-radius:4px;background:var(--amber);color:#0F0D0B;font:600 12px var(--ui);text-decoration:none}
+  .aria-tag{display:inline-block;padding:2px 8px;border-radius:3px;background:rgba(90,158,192,0.12);border:1px dashed rgba(90,158,192,0.3);font:10px var(--mono);color:var(--info)}
+  /* Track table */
+  .tt-wrap{background:var(--sunken);border:1px solid var(--brd);border-radius:6px;overflow:hidden}
+  .tt{width:100%;border-collapse:collapse}
+  .tt thead th{font:600 10px/1 var(--ui);text-transform:uppercase;letter-spacing:.4px;color:var(--tx3);text-align:left;padding:8px 10px;border-bottom:1px solid var(--brd2);background:var(--raised)}
+  .tt .si{font-size:8px;margin-left:2px}
+  .tt .sb{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;font:700 8px var(--mono);background:rgba(232,150,58,0.2);color:var(--amber);margin-left:3px}
+  .tt tbody tr{border-bottom:1px solid var(--brd)}
+  .tt tbody tr:last-child{border-bottom:0}
+  .tt tbody tr:hover{background:var(--hover)}
+  .tt tbody tr.foc{background:var(--sel);outline:2px solid var(--amber);outline-offset:-2px;border-radius:2px}
+  .tt tbody td{padding:0 10px;height:40px;vertical-align:middle;font-size:12px}
+  .art{width:32px;height:32px;border-radius:3px;background:var(--overlay)}
+  .ta{font-weight:600;color:var(--tx1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tt-t{font-size:11px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bpm{font:600 12px var(--mono);color:var(--tx1)}
+  .src{font:500 10px/1 var(--ui);text-transform:uppercase;letter-spacing:.3px;color:var(--tx3);padding:2px 6px;border:1px solid var(--brd);border-radius:3px}
+  /* Camelot */
+  .ck{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:20px;border-radius:3px;padding:0 4px;font:700 10px var(--mono)}
+  .c6a{background:rgba(74,155,110,.25);color:#6EC09B} .c11b{background:rgba(155,110,192,.25);color:#B994D6}
+  .c2a{background:rgba(192,122,74,.25);color:#D09A6E} .c8b{background:rgba(74,139,192,.25);color:#6EAED0}
+  .c5a{background:rgba(192,168,74,.25);color:#D0C06E} .c9a{background:rgba(74,192,168,.25);color:#6ED0B8}
+  .c7a{background:rgba(110,155,74,.25);color:#8EC06E} .c4b{background:rgba(192,74,110,.25);color:#D06E8E}
+  /* Energy */
+  .ew{display:flex;align-items:center;gap:6px}
+  .eb{width:48px;height:5px;border-radius:3px;background:var(--overlay);overflow:hidden}
+  .ef{height:100%;border-radius:3px}
+  .ef-l{background:#4A9E8B}.ef-m{background:#E8963A}.ef-h{background:#C06030}.ef-v{background:#D05040}
+  .el{font:9px var(--mono);color:var(--tx3);min-width:10px}
+  .gp{display:inline-block;padding:2px 7px;border-radius:9999px;font-size:10px;color:var(--tx2);background:var(--overlay);white-space:nowrap}
+  /* Annotation */
+  .ann{font:500 10px/1.4 var(--ui);color:var(--amber);display:flex;align-items:center;gap:4px;margin:6px 0}
+  .ann-line{width:20px;height:1px;background:var(--amber)}
+  /* Icon rail */
+  .rail{display:flex;flex-direction:column;gap:2px;width:48px;background:var(--raised);border-right:1px solid var(--brd);padding:8px 0;align-items:center}
+  .ri{width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--tx3);font-size:16px;cursor:pointer;position:relative}
+  .ri.on{color:var(--amber)}
+  .ri-tip{position:absolute;left:44px;top:50%;transform:translateY(-50%);background:var(--overlay);border:1px solid var(--brd2);padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;color:var(--tx1);z-index:10}
+  /* Kbd bar */
+  .kb{display:flex;gap:16px;padding:6px 12px;background:var(--raised);border-top:1px solid var(--brd);font-size:10px;color:var(--tx3)}
+  .kb kbd{display:inline-block;padding:1px 5px;border-radius:3px;background:var(--overlay);border:1px solid var(--brd);font:9px var(--mono);color:var(--tx2);margin:0 2px}
+  /* Row count */
+  .rcf{display:flex;align-items:center;justify-content:space-between;padding:6px 12px;font-size:10px;color:var(--tx3);background:var(--raised);border-top:1px solid var(--brd)}
+  /* HC split */
+  .hcs{display:flex;border:1px solid var(--brd2);border-radius:6px;overflow:hidden;margin-bottom:12px}
+  .hcs-l,.hcs-r{flex:1;padding:12px}
+  .hcs-l{background:var(--base)} .hcs-r{background:#000;border-left:2px dashed var(--brd2)}
+  .hcs-label{font:600 9px/1 var(--ui);text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px}
+  .hcs-l .hcs-label{color:var(--tx3)} .hcs-r .hcs-label{color:#888}
+  .hcr{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:11px}
+  .hcs-l .hcr{color:var(--tx1)} .hcs-r .hcr{color:#FFF}
+  .hc-fn{outline:2px solid var(--amber);outline-offset:2px;border-radius:2px}
+  .hc-fh{outline:3px solid #FFD700;outline-offset:2px;border-radius:2px}
+  .hc-cn{display:inline-block;padding:1px 5px;border-radius:3px;font:700 10px var(--mono)}
+  .hc-ch{display:inline-block;padding:1px 5px;border-radius:3px;font:700 10px var(--mono);border:1px solid}
+  /* Command palette */
+  .cp{background:var(--overlay);border:1px solid var(--brd2);border-radius:8px;max-width:420px;margin:0 auto;overflow:hidden}
+  .cp-in{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--brd)}
+  .cp-ico{color:var(--tx3);font-size:14px}
+  .cp input{flex:1;background:0;border:0;outline:0;color:var(--tx1);font:13px var(--ui)}
+  .cp-r{padding:4px 0}
+  .cp-i{display:flex;align-items:center;gap:10px;padding:8px 14px;font-size:12px;color:var(--tx2);cursor:pointer}
+  .cp-i.on{background:var(--sel);color:var(--tx1)}
+  .cp-s{margin-left:auto;font:10px var(--mono);color:var(--tx3)}
+  /* Feature grid */
+  .fg{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:700px){.fg{grid-template-columns:1fr}}
+  .fc{padding:14px;border-radius:6px;background:var(--raised);border:1px solid var(--brd)}
+  .fc-t{font:600 12px/1.3 var(--ui);color:var(--tx1);margin-bottom:4px;display:flex;align-items:center;gap:6px}
+  .fc-d{font-size:11px;color:var(--tx2);line-height:1.5}
+  .aaa{display:inline-block;font:700 8px/1 var(--ui);padding:1px 5px;border-radius:3px;background:rgba(92,184,112,0.15);color:var(--ok);letter-spacing:.3px}
+  /* Effort */
+  .eff{padding:14px 18px;border-radius:6px;margin-top:24px;background:rgba(232,150,58,0.06);border:1px solid rgba(232,150,58,0.2)}
+  .eff-t{font:600 12px/1 var(--ui);color:var(--amber);margin-bottom:6px}
+  .eff-b{font-size:12px;color:var(--tx2);line-height:1.6}
+  .eff-b strong{color:var(--tx1)}
+</style>
+</head>
+<body>
+<div class="pg">
+
+<div class="hdr-label">Accessibility &middot; Option C</div>
+<div class="hdr-title">Inclusive by Default</div>
+<div class="hdr-desc">
+  Fixes all 12 audit issues AND proactively adds 6 advanced accessibility features
+  not flagged in the audit. Goes beyond WCAG AA toward AAA in key areas. This is the
+  most ambitious option -- honest about implementation cost.
+</div>
+
+<!-- ── Banner ──────────────────────────────────── -->
+<div class="banner">
+  <div class="banner-icon">&#10003;</div>
+  <div>
+    <div class="banner-text">Fixes 12 of 12 issues + 6 proactive features. Exceeds WCAG AA.</div>
+    <div class="banner-sub">2 Critical, 6 Major, 4 Minor resolved. 6 additions target WCAG AAA (1.4.6) and power-user ergonomics.</div>
+  </div>
+</div>
+
+<!-- ── Findings ────────────────────────────────── -->
+<div class="sl">Audit Findings + Proactive Additions (18 items)</div>
+<div class="sp">
+<table class="ft">
+<thead><tr><th>#</th><th>Issue</th><th>WCAG</th><th>Severity</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>1</td><td>No keyboard row selection</td><td>2.1.1</td><td><span class="sv-c">Critical</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>2</td><td>Slide-over no focus trap</td><td>2.1.2</td><td><span class="sv-c">Critical</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>3</td><td>No skip link</td><td>2.4.1</td><td><span class="sv-m">Major</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>4</td><td>No focus indicators</td><td>2.4.7</td><td><span class="sv-m">Major</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>5</td><td>No table semantics</td><td>1.3.1</td><td><span class="sv-m">Major</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>6</td><td>Sort not announced</td><td>4.1.3</td><td><span class="sv-m">Major</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>7</td><td>Toasts no live region</td><td>4.1.3</td><td><span class="sv-m">Major</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>8</td><td>No alt text on artwork</td><td>1.1.1</td><td><span class="sv-m">Major</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>9</td><td>Energy color-only encoding</td><td>1.4.1</td><td><span class="sv-n">Minor</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>10</td><td>9px source badges too small</td><td>1.4.12</td><td><span class="sv-n">Minor</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>11</td><td>No icon rail labels</td><td>4.1.2</td><td><span class="sv-n">Minor</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr><td>12</td><td>No scrim ESC to close</td><td>2.1.1</td><td><span class="sv-n">Minor</span></td><td><span class="chk">&#10003; Fixed</span></td></tr>
+<tr style="border-top:2px solid var(--brd2)"><td>+1</td><td>High Contrast Mode toggle</td><td>1.4.6</td><td><span class="sv-p">Proactive</span><span class="pb">AAA</span></td><td><span class="chk">&#10003; Added</span></td></tr>
+<tr><td>+2</td><td>Reduced Motion Mode</td><td>2.3.3</td><td><span class="sv-p">Proactive</span><span class="pb">AAA</span></td><td><span class="chk">&#10003; Added</span></td></tr>
+<tr><td>+3</td><td>Screen reader optimized row labels</td><td>1.3.1</td><td><span class="sv-p">Proactive</span></td><td><span class="chk">&#10003; Added</span></td></tr>
+<tr><td>+4</td><td>Density toggle (Studio / Comfortable)</td><td>2.5.5</td><td><span class="sv-p">Proactive</span></td><td><span class="chk">&#10003; Added</span></td></tr>
+<tr><td>+5</td><td>Keyboard Command Palette (Ctrl+K)</td><td>2.1.1</td><td><span class="sv-p">Proactive</span></td><td><span class="chk">&#10003; Added</span></td></tr>
+<tr><td>+6</td><td>Focus-visible only (no mouse rings)</td><td>2.4.7</td><td><span class="sv-p">Proactive</span></td><td><span class="chk">&#10003; Added</span></td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- ── Toolbar ─────────────────────────────────── -->
+<div class="sl">Accessibility Toolbar</div>
+<div class="sp">
+<div class="sp-label">Toolbar with toggle controls</div>
+<div class="tb">
+  <button class="tb-btn" aria-pressed="false" title="Toggle High Contrast (WCAG AAA)"><span class="tb-dot"></span> High Contrast</button>
+  <button class="tb-btn" aria-pressed="false" title="Toggle Reduced Motion"><span class="tb-dot"></span> Reduced Motion</button>
+  <div class="tb-sep"></div>
+  <div class="tb-density" role="radiogroup" aria-label="Row density">
+    <button class="d-opt on" role="radio" aria-checked="true">Studio</button>
+    <button class="d-opt" role="radio" aria-checked="false">Comfortable</button>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="tb-kbd" title="Open command palette">&#8984;K</div>
+</div>
+<div class="sp-note">High Contrast and Reduced Motion are toggle buttons (aria-pressed). Density is a radio group: 40px (Studio) vs 48px (Comfortable). Command palette shortcut always visible.</div>
+</div>
+
+<!-- ── Skip Link + Landmarks ───────────────────── -->
+<div class="sl">Skip Link + ARIA Landmarks</div>
+<div class="sp">
+<div style="margin-bottom:10px"><a class="skip" href="#track-table">Skip to track catalog</a></div>
+<div style="font-size:11px;color:var(--tx3);margin-bottom:10px">Hidden off-screen by default. Visible on keyboard Tab focus. Jumps past icon rail and toolbar.</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap">
+  <span class="aria-tag">role="navigation"</span>
+  <span class="aria-tag">role="main"</span>
+  <span class="aria-tag">role="table" aria-label="Track catalog"</span>
+  <span class="aria-tag">role="dialog" aria-modal="true"</span>
+  <span class="aria-tag">aria-live="polite"</span>
+</div>
+</div>
+
+<!-- ── Track Table ─────────────────────────────── -->
+<div class="sl">Remediated Track Table (all 12 fixes + proactive features)</div>
+<div style="display:flex;gap:0">
+  <!-- Icon rail with tooltips -->
+  <div class="rail" role="navigation" aria-label="Main navigation">
+    <div class="ri on" role="button" aria-label="Track catalog" tabindex="0">&#9776;<div class="ri-tip">Catalog</div></div>
+    <div class="ri" role="button" aria-label="Import tracks" tabindex="0">&#43;</div>
+    <div class="ri" role="button" aria-label="Setlist builder" tabindex="0">&#9835;</div>
+    <div class="ri" role="button" aria-label="Settings" tabindex="0">&#9881;</div>
+  </div>
+  <div style="flex:1;display:flex;flex-direction:column">
+    <div class="kb" role="toolbar" aria-label="Keyboard shortcuts">
+      <span><kbd>&#8593;</kbd><kbd>&#8595;</kbd> Navigate</span>
+      <span><kbd>Enter</kbd> Select</span>
+      <span><kbd>Esc</kbd> Deselect</span>
+      <span><kbd>Ctrl</kbd>+<kbd>K</kbd> Commands</span>
+    </div>
+    <div class="tt-wrap" id="track-table">
+    <table class="tt" role="table" aria-label="Track catalog, 8 tracks">
+    <thead><tr>
+      <th style="width:42px" scope="col"><span class="aria-tag" style="padding:0 3px;font-size:8px">Art</span></th>
+      <th scope="col">Artist / Title</th>
+      <th style="width:56px" scope="col" aria-sort="ascending">BPM <span class="si">&#9650;</span><span class="sb">1</span></th>
+      <th style="width:52px" scope="col" aria-sort="ascending">Key <span class="si">&#9650;</span><span class="sb">2</span></th>
+      <th style="width:72px" scope="col">Energy</th>
+      <th style="width:100px" scope="col">Genre</th>
+      <th style="width:70px" scope="col">Source</th>
+    </tr></thead>
+    <tbody role="rowgroup">
+      <tr role="row" tabindex="0" aria-label="Fisher, Losing It, 124 BPM, key 6A compatible with 5A and 7A, high energy, Tech House, from Spotify">
+        <td><div class="art" role="img" aria-label="Fisher album artwork"></div></td>
+        <td><div class="ta">Fisher</div><div class="tt-t">Losing It</div></td>
+        <td><span class="bpm">124</span></td>
+        <td><span class="ck c6a" title="6A - compatible with 5A, 7A, 6B">6A</span></td>
+        <td><div class="ew" title="Energy: 8/10 (High)"><div class="eb"><div class="ef ef-h" style="width:80%"></div></div><span class="el">8</span></div></td>
+        <td><span class="gp">Tech House</span></td>
+        <td><span class="src">Spotify</span></td>
+      </tr>
+      <tr role="row" tabindex="-1" aria-label="Peggy Gou, Starry Night, 125 BPM, key 11B compatible with 10B and 12B, medium-high energy, House, from Beatport">
+        <td><div class="art" role="img" aria-label="Peggy Gou album artwork"></div></td>
+        <td><div class="ta">Peggy Gou</div><div class="tt-t">Starry Night</div></td>
+        <td><span class="bpm">125</span></td>
+        <td><span class="ck c11b" title="11B - compatible with 10B, 12B, 11A">11B</span></td>
+        <td><div class="ew" title="Energy: 7/10 (Med-High)"><div class="eb"><div class="ef ef-m" style="width:70%"></div></div><span class="el">7</span></div></td>
+        <td><span class="gp">House</span></td>
+        <td><span class="src">Beatport</span></td>
+      </tr>
+      <tr role="row" tabindex="-1" class="foc" aria-label="Four Tet, Baby, 130 BPM, key 2A compatible with 1A and 3A, medium energy, Electronic, from Spotify" aria-current="true">
+        <td><div class="art" role="img" aria-label="Four Tet album artwork"></div></td>
+        <td><div class="ta">Four Tet</div><div class="tt-t">Baby</div></td>
+        <td><span class="bpm">130</span></td>
+        <td><span class="ck c2a" title="2A - compatible with 1A, 3A, 2B">2A</span></td>
+        <td><div class="ew" title="Energy: 5/10 (Medium)"><div class="eb"><div class="ef ef-l" style="width:50%"></div></div><span class="el">5</span></div></td>
+        <td><span class="gp">Electronic</span></td>
+        <td><span class="src">Spotify</span></td>
+      </tr>
+      <tr role="row" tabindex="-1" aria-label="Floating Points, Ratio, 128 BPM, key 8B compatible with 7B and 9B, high energy, Techno, from Beatport">
+        <td><div class="art" role="img" aria-label="Floating Points album artwork"></div></td>
+        <td><div class="ta">Floating Points</div><div class="tt-t">Ratio</div></td>
+        <td><span class="bpm">128</span></td>
+        <td><span class="ck c8b" title="8B - compatible with 7B, 9B, 8A">8B</span></td>
+        <td><div class="ew" title="Energy: 9/10 (High)"><div class="eb"><div class="ef ef-v" style="width:90%"></div></div><span class="el">9</span></div></td>
+        <td><span class="gp">Techno</span></td>
+        <td><span class="src">Beatport</span></td>
+      </tr>
+      <tr role="row" tabindex="-1" aria-label="Kaytranada, Glowed Up, 110 BPM, key 5A compatible with 4A and 6A, medium energy, R&amp;B Electronic, from Spotify">
+        <td><div class="art" role="img" aria-label="Kaytranada album artwork"></div></td>
+        <td><div class="ta">Kaytranada</div><div class="tt-t">Glowed Up</div></td>
+        <td><span class="bpm">110</span></td>
+        <td><span class="ck c5a" title="5A - compatible with 4A, 6A, 5B">5A</span></td>
+        <td><div class="ew" title="Energy: 5/10 (Medium)"><div class="eb"><div class="ef ef-l" style="width:50%"></div></div><span class="el">5</span></div></td>
+        <td><span class="gp">R&amp;B/Electronic</span></td>
+        <td><span class="src">Spotify</span></td>
+      </tr>
+      <tr role="row" tabindex="-1" aria-label="Disclosure, Latch, 122 BPM, key 9A compatible with 8A and 10A, medium-high energy, UK Garage, from Spotify">
+        <td><div class="art" role="img" aria-label="Disclosure album artwork"></div></td>
+        <td><div class="ta">Disclosure</div><div class="tt-t">Latch</div></td>
+        <td><span class="bpm">122</span></td>
+        <td><span class="ck c9a" title="9A - compatible with 8A, 10A, 9B">9A</span></td>
+        <td><div class="ew" title="Energy: 6/10 (Med-High)"><div class="eb"><div class="ef ef-m" style="width:60%"></div></div><span class="el">6</span></div></td>
+        <td><span class="gp">UK Garage</span></td>
+        <td><span class="src">Spotify</span></td>
+      </tr>
+      <tr role="row" tabindex="-1" aria-label="Jamie xx, Gosh, 120 BPM, key 7A compatible with 6A and 8A, high energy, Electronic, from Spotify">
+        <td><div class="art" role="img" aria-label="Jamie xx album artwork"></div></td>
+        <td><div class="ta">Jamie xx</div><div class="tt-t">Gosh</div></td>
+        <td><span class="bpm">120</span></td>
+        <td><span class="ck c7a" title="7A - compatible with 6A, 8A, 7B">7A</span></td>
+        <td><div class="ew" title="Energy: 8/10 (High)"><div class="eb"><div class="ef ef-h" style="width:80%"></div></div><span class="el">8</span></div></td>
+        <td><span class="gp">Electronic</span></td>
+        <td><span class="src">Spotify</span></td>
+      </tr>
+      <tr role="row" tabindex="-1" aria-label="Bicep, Glue, 130 BPM, key 4B compatible with 3B and 5B, high energy, Electronica, from Beatport">
+        <td><div class="art" role="img" aria-label="Bicep album artwork"></div></td>
+        <td><div class="ta">Bicep</div><div class="tt-t">Glue</div></td>
+        <td><span class="bpm">130</span></td>
+        <td><span class="ck c4b" title="4B - compatible with 3B, 5B, 4A">4B</span></td>
+        <td><div class="ew" title="Energy: 9/10 (High)"><div class="eb"><div class="ef ef-v" style="width:90%"></div></div><span class="el">9</span></div></td>
+        <td><span class="gp">Electronica</span></td>
+        <td><span class="src">Beatport</span></td>
+      </tr>
+    </tbody>
+    </table>
+    <div class="rcf" aria-live="polite">
+      <span>Track 3 of 8 selected &mdash; Four Tet, Baby</span>
+      <span>8 tracks total</span>
+    </div>
+    </div>
+    <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap">
+      <span class="aria-tag">aria-live="polite": "Sorted by BPM ascending, then Key ascending"</span>
+      <span class="aria-tag">aria-live="assertive": "24 tracks imported successfully"</span>
+    </div>
+  </div>
+</div>
+<div class="ann"><span class="ann-line"></span>Focus ring (2px amber) on Four Tet row -- uses :focus-visible so mouse clicks do not trigger. Arrow keys announce "Track 3 of 8. Four Tet, Baby."</div>
+
+<!-- ── High Contrast Split ─────────────────────── -->
+<div class="sl">High Contrast Mode Preview (Normal vs. AAA)</div>
+<div class="sp">
+<div class="hcs">
+  <div class="hcs-l">
+    <div class="hcs-label">Ember Crate (default)</div>
+    <div class="hcr"><div class="art" style="width:24px;height:24px;border-radius:2px"></div><span style="font-weight:600;font-size:12px">Fisher</span><span style="font-size:11px;color:var(--tx2)">Losing It</span><span class="hc-cn c6a" style="margin-left:auto">6A</span></div>
+    <div class="hcr hc-fn" style="padding:2px 4px"><div class="art" style="width:24px;height:24px;border-radius:2px"></div><span style="font-weight:600;font-size:12px">Four Tet</span><span style="font-size:11px;color:var(--tx2)">Baby</span><span class="hc-cn c2a" style="margin-left:auto">2A</span></div>
+    <div class="hcr"><div class="art" style="width:24px;height:24px;border-radius:2px"></div><span style="font-weight:600;font-size:12px">Bicep</span><span style="font-size:11px;color:var(--tx2)">Glue</span><span class="hc-cn c4b" style="margin-left:auto">4B</span></div>
+  </div>
+  <div class="hcs-r">
+    <div class="hcs-label">High Contrast (AAA)</div>
+    <div class="hcr"><div style="width:24px;height:24px;border-radius:2px;background:#222"></div><span style="font-weight:600;font-size:12px;color:#FFF">Fisher</span><span style="font-size:11px;color:#CCC">Losing It</span><span class="hc-ch" style="margin-left:auto;background:rgba(100,210,140,.35);color:#7FFFAA;border-color:#7FFFAA">6A</span></div>
+    <div class="hcr hc-fh" style="padding:2px 4px"><div style="width:24px;height:24px;border-radius:2px;background:#222"></div><span style="font-weight:600;font-size:12px;color:#FFF">Four Tet</span><span style="font-size:11px;color:#CCC">Baby</span><span class="hc-ch" style="margin-left:auto;background:rgba(220,150,100,.35);color:#FFB87A;border-color:#FFB87A">2A</span></div>
+    <div class="hcr"><div style="width:24px;height:24px;border-radius:2px;background:#222"></div><span style="font-weight:600;font-size:12px;color:#FFF">Bicep</span><span style="font-size:11px;color:#CCC">Glue</span><span class="hc-ch" style="margin-left:auto;background:rgba(220,100,150,.35);color:#FF8EAF;border-color:#FF8EAF">4B</span></div>
+  </div>
+</div>
+<div class="sp-note">Left: standard Ember Crate (2px amber focus ring, ~5:1 contrast). Right: high contrast (#000 bg, #FFF text, 3px gold focus ring, brighter Camelot chips with border). Exceeds 7:1 on all text (WCAG AAA 1.4.6). Persisted in localStorage.</div>
+</div>
+
+<!-- ── Command Palette ─────────────────────────── -->
+<div class="sl">Command Palette (Ctrl+K / Cmd+K)</div>
+<div class="sp">
+<div class="cp" role="dialog" aria-label="Command palette" aria-modal="true">
+  <div class="cp-in"><span class="cp-ico">&#128269;</span><input type="text" value="sort bpm" placeholder="Type a command or search tracks..." readonly aria-label="Command input"></div>
+  <div class="cp-r">
+    <div class="cp-i on"><span>Sort by BPM (ascending)</span><span class="cp-s">Enter</span></div>
+    <div class="cp-i"><span>Sort by BPM (descending)</span></div>
+    <div class="cp-i"><span>Filter: BPM range...</span></div>
+  </div>
+</div>
+<div class="sp-note">Fuzzy-search command palette. Search tracks, apply sorts, filter by key/BPM, jump to sections. Arrow keys to navigate, Enter to execute, Esc to close. Focus-trapped while open.</div>
+</div>
+
+<!-- ── Proactive Features ──────────────────────── -->
+<div class="sl">Proactive Additions (beyond audit scope)</div>
+<div class="fg">
+  <div class="fc">
+    <div class="fc-t">High Contrast Mode <span class="aaa">AAA 1.4.6</span></div>
+    <div class="fc-d">Toolbar toggle: #000 background, #FFF text, 3px gold focus rings, brighter Camelot chips with border reinforcement. All text exceeds 7:1 contrast. Persisted in localStorage; respects OS high-contrast preference on first visit.</div>
+  </div>
+  <div class="fc">
+    <div class="fc-t">Reduced Motion Mode <span class="aaa">AAA 2.3.3</span></div>
+    <div class="fc-d">Respects prefers-reduced-motion automatically; manual toolbar override. Slide-over opens instantly, skeleton loaders show static placeholder, all transitions 0ms.</div>
+  </div>
+  <div class="fc">
+    <div class="fc-t">Screen Reader Track Descriptions</div>
+    <div class="fc-d">Each row has a comprehensive aria-label: "Fisher, Losing It, 124 BPM, key 6A compatible with 5A and 7A, high energy, Tech House, from Spotify." Includes harmonic mixing context (compatible keys).</div>
+  </div>
+  <div class="fc">
+    <div class="fc-t">Density Toggle (Studio / Comfortable)</div>
+    <div class="fc-d">Studio: 40px rows. Comfortable: 48px rows (Material 3's 48dp touch target minimum). Better for tablet use and motor impairments. All accessibility fixes apply in both modes.</div>
+  </div>
+  <div class="fc">
+    <div class="fc-t">Keyboard Command Palette</div>
+    <div class="fc-d">Ctrl+K / Cmd+K opens fuzzy-search overlay. Search tracks by name, apply sorts, filter by key/BPM. Power-user feature doubling as a fully keyboard-driven alternative to mouse interaction.</div>
+  </div>
+  <div class="fc">
+    <div class="fc-t">Focus-Visible Only</div>
+    <div class="fc-d">:focus-visible instead of :focus on all elements. Mouse users never see focus rings; keyboard users always see the 2px amber ring (3px gold in high contrast). Eliminates "why is there a ring" from mouse users.</div>
+  </div>
+</div>
+
+<div class="sp" style="margin-top:12px">
+<div class="sp-label">Row position announcement (arrow key navigation)</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+  <kbd style="display:inline-block;padding:2px 8px;border-radius:3px;background:var(--overlay);border:1px solid var(--brd);font:10px var(--mono);color:var(--tx2)">&#8595;</kbd>
+  <span class="aria-tag">aria-live="polite": "Track 3 of 8. Four Tet, Baby."</span>
+</div>
+<div class="sp-note">Live region announces position and identity when navigating with arrow keys. Gives screen reader users the same spatial awareness sighted users get from scrollbar position and row highlighting.</div>
+</div>
+
+<!-- ── Effort ──────────────────────────────────── -->
+<div class="sl">Implementation Effort</div>
+<div class="eff">
+  <div class="eff-t">Highest effort of three options -- honest assessment</div>
+  <div class="eff-b">
+    <strong>Fixes (shared with Option B):</strong> ~3-4 days. Keyboard nav, focus trap, ARIA roles, live regions, skip link, alt text, energy labels, badge sizing, icon tooltips, scrim ESC.<br><br>
+    <strong>Proactive additions:</strong> ~3-5 additional days. High Contrast needs a second color token set and theme-switching logic. Reduced Motion needs a motion preference service. Command palette is a standalone widget (input, fuzzy search, result list, keyboard nav). Density toggle requires row-height tokens and layout recalculation. Focus-visible needs cross-browser testing (Safari inconsistencies).<br><br>
+    <strong>Total: ~6-9 days.</strong> Roughly 2x the effort of Option B. The proactive features are genuinely valuable but may be over-engineered for MVP. Consider: will the first 100 users need High Contrast mode? If not, ship Option B now and promote to C in a later sprint. The screen reader labels and focus-visible changes are low-cost and could be cherry-picked into B.
+  </div>
+</div>
+
+</div>
+<script>
+window.addEventListener('message', function(e) { /* dark-only, reserved for parent frame */ });
+</script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "facet": "color-system",
+  "round": 1,
+  "timestamp": "2026-03-01T15:45:00Z",
+  "options": {
+    "option-a": { "action": "cut", "comment": "" },
+    "option-b": { "action": "cut", "comment": "" },
+    "option-c": { "action": "cut", "comment": "" },
+    "option-d": { "action": "keep", "comment": "Awesome — like a Roland 808. Subtle 808 references could be fun, not too much since it's played out." }
+  },
+  "overall": "Option D is awesome. The warm amber/copper palette evokes the Roland TR-808 drum machine. Wants subtle 808 riffs as a design reference point — not heavy-handed, but a nod.",
+  "decision": "lock"
+}

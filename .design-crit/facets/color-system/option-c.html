@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Option C — Neon Deck</title>
+<style>
+  :root {
+    /* Surfaces — slightly blue-tinted blacks */
+    --surface-base: #08080E;
+    --surface-raised: #10101A;
+    --surface-sunken: #050508;
+    --surface-overlay: #181824;
+    /* Borders */
+    --border-subtle: #1A1A2E;
+    --border-medium: #2A2A44;
+    /* Text — slightly cool */
+    --text-primary: #E8E8F0;
+    --text-secondary: #7878A0;
+    --text-tertiary: #4A4A6A;
+    --text-inverse: #08080E;
+    /* Brand — Neon triad (cyan/magenta/yellow) */
+    --brand-primary: #00E5FF;
+    --brand-secondary: #FF0080;
+    --brand-tertiary: #FFE100;
+    --brand-primary-hover: #33ECFF;
+    /* Status */
+    --status-success: #00FF88;
+    --status-success-bg: rgba(0,255,136,0.10);
+    --status-warning: #FFE100;
+    --status-warning-bg: rgba(255,225,0,0.10);
+    --status-error: #FF3366;
+    --status-error-bg: rgba(255,51,102,0.10);
+    --status-info: #00E5FF;
+    --status-info-bg: rgba(0,229,255,0.10);
+    /* Interactive */
+    --interactive-hover: rgba(0,229,255,0.04);
+    --interactive-selected: rgba(0,229,255,0.08);
+    --interactive-focus: #00E5FF;
+    --row-hover: rgba(0,229,255,0.03);
+    --row-selected: rgba(0,229,255,0.06);
+    --selection-border: #00E5FF;
+
+    /* Radius tokens */
+    --radius-none: 0px;
+    --radius-sm: 3px;
+    --radius-md: 6px;
+    --radius-full: 9999px;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* ------------------------------------------------
+     1. OPTION HEADER
+  ------------------------------------------------ */
+  .option-header {
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .option-header h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    letter-spacing: -0.5px;
+  }
+
+  .option-header h1 .label {
+    color: var(--text-tertiary);
+    font-weight: 400;
+    font-size: 14px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .option-header h1 .name {
+    color: var(--brand-primary);
+    text-shadow: 0 0 10px rgba(0,229,255,0.3);
+  }
+
+  .option-header .subtitle {
+    font-size: 15px;
+    color: var(--text-secondary);
+    max-width: 680px;
+    line-height: 1.6;
+  }
+
+  /* ------------------------------------------------
+     2. COLOR SWATCHES
+  ------------------------------------------------ */
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-tertiary);
+    margin-bottom: 16px;
+  }
+
+  .swatches-section {
+    margin-bottom: 48px;
+  }
+
+  .swatch-groups {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 32px;
+  }
+
+  .swatch-group {
+    min-width: 180px;
+  }
+
+  .swatch-group-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .swatch-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .swatch-color {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+  }
+
+  .swatch-color.neon {
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  .swatch-hex {
+    font-size: 9px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+  }
+
+  .swatch-name {
+    font-size: 8px;
+    color: var(--text-tertiary);
+    text-align: center;
+    max-width: 48px;
+    line-height: 1.2;
+  }
+
+  /* ------------------------------------------------
+     3. TRACK CATALOG TABLE (HERO)
+  ------------------------------------------------ */
+  .table-section {
+    margin-bottom: 48px;
+  }
+
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 0 4px;
+  }
+
+  .toolbar-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .toolbar-count {
+    font-size: 13px;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: var(--text-secondary);
+  }
+
+  .toolbar-spacer {
+    flex: 1;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: var(--radius-md);
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-family: inherit;
+  }
+
+  .btn-primary {
+    background: var(--brand-primary);
+    color: var(--text-inverse);
+    font-weight: 600;
+    text-shadow: none;
+    box-shadow: 0 0 12px rgba(0,229,255,0.25);
+  }
+
+  .btn-primary:hover {
+    background: var(--brand-primary-hover);
+    box-shadow: 0 0 20px rgba(0,229,255,0.4);
+  }
+
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-medium);
+  }
+
+  .btn-secondary:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+    background: var(--interactive-hover);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+  }
+
+  .btn-ghost:hover {
+    color: var(--text-primary);
+    background: var(--interactive-hover);
+  }
+
+  .track-table {
+    width: 100%;
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    background: var(--surface-raised);
+  }
+
+  .table-header {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 56px 72px 48px 80px 64px;
+    gap: 0;
+    padding: 0 12px;
+    height: 36px;
+    align-items: center;
+    background: var(--surface-sunken);
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .col-header {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    user-select: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 0.15s ease;
+  }
+
+  .col-header:hover {
+    color: var(--text-secondary);
+  }
+
+  .col-header.active {
+    color: var(--text-primary);
+  }
+
+  .col-header .sort-arrow {
+    font-size: 10px;
+    color: var(--brand-primary);
+    text-shadow: 0 0 6px rgba(0,229,255,0.4);
+  }
+
+  .col-header .priority-badge {
+    font-size: 8px;
+    padding: 1px 4px;
+    border-radius: var(--radius-full);
+    background: rgba(0,229,255,0.10);
+    color: var(--brand-primary);
+    font-weight: 700;
+    text-shadow: 0 0 4px rgba(0,229,255,0.3);
+  }
+
+  .track-row {
+    display: grid;
+    grid-template-columns: 36px 1fr 1fr 56px 72px 48px 80px 64px;
+    gap: 0;
+    padding: 0 12px;
+    height: 44px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-subtle);
+    transition: background 0.12s ease;
+    position: relative;
+  }
+
+  .track-row:last-child {
+    border-bottom: none;
+  }
+
+  .track-row.is-hover {
+    background: var(--row-hover);
+    box-shadow: inset 0 0 30px rgba(0,229,255,0.02);
+  }
+
+  .track-row.is-selected {
+    background: var(--row-selected);
+    border-left: 3px solid var(--selection-border);
+    padding-left: 9px;
+    box-shadow: inset 0 0 40px rgba(0,229,255,0.03);
+  }
+
+  .art-placeholder {
+    width: 32px;
+    height: 32px;
+    background: var(--border-subtle);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .art-placeholder svg {
+    width: 14px;
+    height: 14px;
+    color: var(--text-tertiary);
+    opacity: 0.5;
+  }
+
+  .track-info {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .track-artist {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .track-bpm {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    color: var(--text-primary);
+  }
+
+  /* Camelot Key Chips — Neon */
+  .key-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 700;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    letter-spacing: 0.3px;
+    text-shadow: 0 0 8px currentColor;
+  }
+
+  /* All 24 Camelot key colors */
+  .key-1A  { background: rgba(255,51,51,0.12);  color: #FF4444; }
+  .key-1B  { background: rgba(255,0,0,0.15);    color: #FF0000; }
+  .key-2A  { background: rgba(255,136,0,0.12);  color: #FF8800; }
+  .key-2B  { background: rgba(255,102,0,0.15);  color: #FF6600; }
+  .key-3A  { background: rgba(255,225,0,0.12);  color: #FFE100; }
+  .key-3B  { background: rgba(255,200,0,0.15);  color: #FFC800; }
+  .key-4A  { background: rgba(136,255,0,0.12);  color: #88FF00; }
+  .key-4B  { background: rgba(102,255,0,0.15);  color: #66FF00; }
+  .key-5A  { background: rgba(0,255,136,0.12);  color: #00FF88; }
+  .key-5B  { background: rgba(0,255,68,0.15);   color: #00FF44; }
+  .key-6A  { background: rgba(0,255,221,0.12);  color: #00FFDD; }
+  .key-6B  { background: rgba(0,255,187,0.15);  color: #00FFBB; }
+  .key-7A  { background: rgba(0,229,255,0.12);  color: #00E5FF; }
+  .key-7B  { background: rgba(0,187,255,0.15);  color: #00BBFF; }
+  .key-8A  { background: rgba(51,136,255,0.12); color: #3388FF; }
+  .key-8B  { background: rgba(0,102,255,0.15);  color: #0066FF; }
+  .key-9A  { background: rgba(102,102,255,0.12); color: #6666FF; }
+  .key-9B  { background: rgba(68,68,255,0.15);  color: #4444FF; }
+  .key-10A { background: rgba(170,85,255,0.12); color: #AA55FF; }
+  .key-10B { background: rgba(136,0,255,0.15);  color: #8800FF; }
+  .key-11A { background: rgba(255,0,170,0.12);  color: #FF00AA; }
+  .key-11B { background: rgba(255,0,128,0.15);  color: #FF0080; }
+  .key-12A { background: rgba(255,51,102,0.12); color: #FF3366; }
+  .key-12B { background: rgba(255,0,68,0.15);   color: #FF0044; }
+
+  .genre-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 500;
+    background: var(--surface-sunken);
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
+  .source-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+  }
+
+  /* Energy Bars — LED-style */
+  .energy-bar {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+  }
+
+  .energy-segment {
+    width: 6px;
+    height: 14px;
+    border-radius: 1px;
+    background: var(--border-subtle);
+    transition: background 0.15s ease;
+  }
+
+  /* 1-2 segments: neon green */
+  .energy-segment.active.level-low {
+    background: #00FF88;
+    box-shadow: 0 0 4px rgba(0,255,136,0.5);
+  }
+
+  /* 3 segments: neon yellow */
+  .energy-segment.active.level-mid {
+    background: #FFE100;
+    box-shadow: 0 0 4px rgba(255,225,0,0.5);
+  }
+
+  /* 4-5 segments: neon pink */
+  .energy-segment.active.level-high {
+    background: #FF3366;
+    box-shadow: 0 0 4px rgba(255,51,102,0.5);
+  }
+
+  /* Detail strip for selected row */
+  .detail-strip {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 0;
+    padding: 8px 12px 12px;
+    background: rgba(0,229,255,0.04);
+    border-left: 3px solid var(--selection-border);
+    margin-left: -12px;
+    margin-right: -12px;
+    padding-left: 21px;
+    border-top: 1px solid var(--border-subtle);
+  }
+
+  .detail-strip-content {
+    grid-column: 2;
+    display: flex;
+    gap: 24px;
+    font-size: 12px;
+  }
+
+  .detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .detail-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+  }
+
+  .detail-value {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  }
+
+  .detail-value.cyan {
+    color: var(--brand-primary);
+    text-shadow: 0 0 6px rgba(0,229,255,0.3);
+  }
+
+  .selected-row-wrapper {
+    border-bottom: 1px solid var(--border-subtle);
+  }
+
+  .selected-row-wrapper .track-row {
+    border-bottom: none;
+  }
+
+  /* ------------------------------------------------
+     4. CAMELOT WHEEL
+  ------------------------------------------------ */
+  .camelot-section {
+    margin-bottom: 48px;
+  }
+
+  .camelot-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+  }
+
+  .camelot-key {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 4px;
+    border-radius: var(--radius-sm);
+    font-size: 12px;
+    font-weight: 700;
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    letter-spacing: 0.3px;
+    text-shadow: 0 0 8px currentColor;
+    text-align: center;
+  }
+
+  .camelot-row-label {
+    display: flex;
+    align-items: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding-right: 8px;
+  }
+
+  .camelot-row-container {
+    display: grid;
+    grid-template-columns: 32px repeat(12, 1fr);
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  /* ------------------------------------------------
+     5. COMPONENT STRIP
+  ------------------------------------------------ */
+  .component-section {
+    margin-bottom: 48px;
+  }
+
+  .component-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+
+  .component-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+
+  .toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .toast-success {
+    background: var(--status-success-bg);
+    color: var(--status-success);
+    border: 1px solid rgba(0,255,136,0.20);
+    text-shadow: 0 0 8px rgba(0,255,136,0.3);
+  }
+
+  .toast-success .toast-icon {
+    color: var(--status-success);
+  }
+
+  .toast-error {
+    background: var(--status-error-bg);
+    color: var(--status-error);
+    border: 1px solid rgba(255,51,102,0.20);
+    text-shadow: 0 0 8px rgba(255,51,102,0.3);
+  }
+
+  .toast-error .toast-icon {
+    color: var(--status-error);
+  }
+
+  /* ------------------------------------------------
+     6. CONTRAST NOTES
+  ------------------------------------------------ */
+  .contrast-section {
+    padding: 20px;
+    background: var(--surface-raised);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 48px;
+  }
+
+  .contrast-section p {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 4px;
+  }
+
+  .contrast-section p:last-child {
+    margin-bottom: 0;
+  }
+
+  .contrast-section code {
+    font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+    font-size: 12px;
+    padding: 1px 5px;
+    border-radius: var(--radius-sm);
+    background: var(--surface-sunken);
+    color: var(--text-primary);
+  }
+
+  .contrast-section .ratio {
+    color: var(--status-success);
+    font-weight: 600;
+    text-shadow: 0 0 6px rgba(0,255,136,0.2);
+  }
+
+  .contrast-section .warning {
+    color: var(--status-warning);
+    text-shadow: 0 0 6px rgba(255,225,0,0.2);
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================
+     1. OPTION HEADER
+============================================= -->
+<header class="option-header">
+  <h1>
+    <span class="label">Option C</span>
+    <span class="name">Neon Deck</span>
+  </h1>
+  <p class="subtitle">Electric triad. Dark void. Cyan + magenta + electric yellow on blue-black. A Mondrian riff for the club &mdash; geometric primaries, neon intensity.</p>
+</header>
+
+<!-- ============================================
+     2. COLOR SWATCHES
+============================================= -->
+<section class="swatches-section">
+  <h2 class="section-title">Color Tokens</h2>
+  <div class="swatch-groups">
+
+    <!-- Brand -->
+    <div class="swatch-group">
+      <div class="swatch-group-label">Brand</div>
+      <div class="swatch-list">
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#00E5FF; color:#00E5FF;"></div>
+          <div class="swatch-hex">#00E5FF</div>
+          <div class="swatch-name">Primary</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#FF0080; color:#FF0080;"></div>
+          <div class="swatch-hex">#FF0080</div>
+          <div class="swatch-name">Secondary</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#FFE100; color:#FFE100;"></div>
+          <div class="swatch-hex">#FFE100</div>
+          <div class="swatch-name">Tertiary</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#33ECFF; color:#33ECFF;"></div>
+          <div class="swatch-hex">#33ECFF</div>
+          <div class="swatch-name">Primary Hover</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Surface -->
+    <div class="swatch-group">
+      <div class="swatch-group-label">Surface</div>
+      <div class="swatch-list">
+        <div class="swatch">
+          <div class="swatch-color" style="background:#08080E;"></div>
+          <div class="swatch-hex">#08080E</div>
+          <div class="swatch-name">Base</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#10101A;"></div>
+          <div class="swatch-hex">#10101A</div>
+          <div class="swatch-name">Raised</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#050508;"></div>
+          <div class="swatch-hex">#050508</div>
+          <div class="swatch-name">Sunken</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#181824;"></div>
+          <div class="swatch-hex">#181824</div>
+          <div class="swatch-name">Overlay</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Text -->
+    <div class="swatch-group">
+      <div class="swatch-group-label">Text</div>
+      <div class="swatch-list">
+        <div class="swatch">
+          <div class="swatch-color" style="background:#E8E8F0;"></div>
+          <div class="swatch-hex">#E8E8F0</div>
+          <div class="swatch-name">Primary</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#7878A0;"></div>
+          <div class="swatch-hex">#7878A0</div>
+          <div class="swatch-name">Secondary</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#4A4A6A;"></div>
+          <div class="swatch-hex">#4A4A6A</div>
+          <div class="swatch-name">Tertiary</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:#08080E;"></div>
+          <div class="swatch-hex">#08080E</div>
+          <div class="swatch-name">Inverse</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status -->
+    <div class="swatch-group">
+      <div class="swatch-group-label">Status</div>
+      <div class="swatch-list">
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#00FF88; color:#00FF88;"></div>
+          <div class="swatch-hex">#00FF88</div>
+          <div class="swatch-name">Success</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#FFE100; color:#FFE100;"></div>
+          <div class="swatch-hex">#FFE100</div>
+          <div class="swatch-name">Warning</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#FF3366; color:#FF3366;"></div>
+          <div class="swatch-hex">#FF3366</div>
+          <div class="swatch-name">Error</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#00E5FF; color:#00E5FF;"></div>
+          <div class="swatch-hex">#00E5FF</div>
+          <div class="swatch-name">Info</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Interactive -->
+    <div class="swatch-group">
+      <div class="swatch-group-label">Interactive</div>
+      <div class="swatch-list">
+        <div class="swatch">
+          <div class="swatch-color" style="background:rgba(0,229,255,0.04); border:1px solid var(--border-medium);"></div>
+          <div class="swatch-hex">0.04</div>
+          <div class="swatch-name">Hover</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:rgba(0,229,255,0.08); border:1px solid var(--border-medium);"></div>
+          <div class="swatch-hex">0.08</div>
+          <div class="swatch-name">Selected</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color neon" style="background:#00E5FF; color:#00E5FF;"></div>
+          <div class="swatch-hex">#00E5FF</div>
+          <div class="swatch-name">Focus</div>
+        </div>
+        <div class="swatch">
+          <div class="swatch-color" style="background:rgba(0,229,255,0.03); border:1px solid var(--border-medium);"></div>
+          <div class="swatch-hex">0.03</div>
+          <div class="swatch-name">Row Hover</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================
+     3. TRACK CATALOG TABLE (HERO)
+============================================= -->
+<section class="table-section">
+  <h2 class="section-title">Track Catalog</h2>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-title">Tracks</span>
+    <span class="toolbar-count">247 tracks</span>
+    <span class="toolbar-spacer"></span>
+    <button class="btn btn-secondary">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+      Filter
+    </button>
+    <button class="btn btn-primary">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+      Import
+    </button>
+  </div>
+
+  <!-- Table -->
+  <div class="track-table">
+
+    <!-- Column Headers -->
+    <div class="table-header">
+      <div class="col-header"></div>
+      <div class="col-header active">Title <span class="sort-arrow">&#9650;</span> <span class="priority-badge">1</span></div>
+      <div class="col-header">Genre</div>
+      <div class="col-header">BPM</div>
+      <div class="col-header">Key</div>
+      <div class="col-header">NRG</div>
+      <div class="col-header">Source</div>
+      <div class="col-header">Energy</div>
+    </div>
+
+    <!-- Row 1: Default -->
+    <div class="track-row">
+      <div class="art-placeholder">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM8 13a5 5 0 01-4-2c0-1.33 2.67-2.07 4-2.07S12 9.67 12 11a5 5 0 01-4 2z"/></svg>
+      </div>
+      <div class="track-info">
+        <span class="track-artist">Fisher</span>
+        <span class="track-title">Losing It</span>
+      </div>
+      <div><span class="genre-pill">Tech House</span></div>
+      <div class="track-bpm">128</div>
+      <div><span class="key-chip key-8A">8A</span></div>
+      <div class="source-label">Spotify</div>
+      <div>
+        <div class="energy-bar">
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment"></div>
+        </div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Row 2: Hover state -->
+    <div class="track-row is-hover">
+      <div class="art-placeholder">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM8 13a5 5 0 01-4-2c0-1.33 2.67-2.07 4-2.07S12 9.67 12 11a5 5 0 01-4 2z"/></svg>
+      </div>
+      <div class="track-info">
+        <span class="track-artist">Peggy Gou</span>
+        <span class="track-title">Starry Night</span>
+      </div>
+      <div><span class="genre-pill">Deep House</span></div>
+      <div class="track-bpm">122</div>
+      <div><span class="key-chip key-11B">11B</span></div>
+      <div class="source-label">Beatport</div>
+      <div>
+        <div class="energy-bar">
+          <div class="energy-segment active level-mid"></div>
+          <div class="energy-segment active level-mid"></div>
+          <div class="energy-segment active level-mid"></div>
+          <div class="energy-segment"></div>
+          <div class="energy-segment"></div>
+        </div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Row 3: Selected + detail strip -->
+    <div class="selected-row-wrapper">
+      <div class="track-row is-selected">
+        <div class="art-placeholder">
+          <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM8 13a5 5 0 01-4-2c0-1.33 2.67-2.07 4-2.07S12 9.67 12 11a5 5 0 01-4 2z"/></svg>
+        </div>
+        <div class="track-info">
+          <span class="track-artist">Four Tet</span>
+          <span class="track-title">Baby</span>
+        </div>
+        <div><span class="genre-pill">Electronic</span></div>
+        <div class="track-bpm">130</div>
+        <div><span class="key-chip key-5A">5A</span></div>
+        <div class="source-label">Spotify</div>
+        <div>
+          <div class="energy-bar">
+            <div class="energy-segment active level-low"></div>
+            <div class="energy-segment active level-low"></div>
+            <div class="energy-segment"></div>
+            <div class="energy-segment"></div>
+            <div class="energy-segment"></div>
+          </div>
+        </div>
+        <div></div>
+      </div>
+      <!-- Detail strip -->
+      <div class="detail-strip">
+        <div></div>
+        <div class="detail-strip-content">
+          <div class="detail-item">
+            <span class="detail-label">Duration</span>
+            <span class="detail-value">6:32</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Added</span>
+            <span class="detail-value">Feb 14, 2026</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Harmonic Match</span>
+            <span class="detail-value cyan">4A / 5B / 12A</span>
+          </div>
+          <div class="detail-item">
+            <span class="detail-label">Camelot</span>
+            <span class="detail-value cyan">5A</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 4: Default -->
+    <div class="track-row">
+      <div class="art-placeholder">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM8 13a5 5 0 01-4-2c0-1.33 2.67-2.07 4-2.07S12 9.67 12 11a5 5 0 01-4 2z"/></svg>
+      </div>
+      <div class="track-info">
+        <span class="track-artist">Floating Points</span>
+        <span class="track-title">Ratio</span>
+      </div>
+      <div><span class="genre-pill">Electronica</span></div>
+      <div class="track-bpm">133</div>
+      <div><span class="key-chip key-2B">2B</span></div>
+      <div class="source-label">Beatport</div>
+      <div>
+        <div class="energy-bar">
+          <div class="energy-segment active level-mid"></div>
+          <div class="energy-segment active level-mid"></div>
+          <div class="energy-segment active level-mid"></div>
+          <div class="energy-segment"></div>
+          <div class="energy-segment"></div>
+        </div>
+      </div>
+      <div></div>
+    </div>
+
+    <!-- Row 5: Default -->
+    <div class="track-row">
+      <div class="art-placeholder">
+        <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm0 2.5a1.5 1.5 0 110 3 1.5 1.5 0 010-3zM8 13a5 5 0 01-4-2c0-1.33 2.67-2.07 4-2.07S12 9.67 12 11a5 5 0 01-4 2z"/></svg>
+      </div>
+      <div class="track-info">
+        <span class="track-artist">Kaytranada</span>
+        <span class="track-title">Glued</span>
+      </div>
+      <div><span class="genre-pill">R&B/Dance</span></div>
+      <div class="track-bpm">100</div>
+      <div><span class="key-chip key-6B">6B</span></div>
+      <div class="source-label">Spotify</div>
+      <div>
+        <div class="energy-bar">
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment active level-high"></div>
+          <div class="energy-segment"></div>
+        </div>
+      </div>
+      <div></div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ============================================
+     4. CAMELOT WHEEL — ALL 24 KEYS
+============================================= -->
+<section class="camelot-section">
+  <h2 class="section-title">Camelot Key Chips &mdash; All 24 Keys</h2>
+
+  <!-- Row A (Minor) -->
+  <div class="camelot-row-container">
+    <div class="camelot-row-label">A</div>
+    <div class="camelot-key key-1A">1A</div>
+    <div class="camelot-key key-2A">2A</div>
+    <div class="camelot-key key-3A">3A</div>
+    <div class="camelot-key key-4A">4A</div>
+    <div class="camelot-key key-5A">5A</div>
+    <div class="camelot-key key-6A">6A</div>
+    <div class="camelot-key key-7A">7A</div>
+    <div class="camelot-key key-8A">8A</div>
+    <div class="camelot-key key-9A">9A</div>
+    <div class="camelot-key key-10A">10A</div>
+    <div class="camelot-key key-11A">11A</div>
+    <div class="camelot-key key-12A">12A</div>
+  </div>
+
+  <!-- Row B (Major) -->
+  <div class="camelot-row-container">
+    <div class="camelot-row-label">B</div>
+    <div class="camelot-key key-1B">1B</div>
+    <div class="camelot-key key-2B">2B</div>
+    <div class="camelot-key key-3B">3B</div>
+    <div class="camelot-key key-4B">4B</div>
+    <div class="camelot-key key-5B">5B</div>
+    <div class="camelot-key key-6B">6B</div>
+    <div class="camelot-key key-7B">7B</div>
+    <div class="camelot-key key-8B">8B</div>
+    <div class="camelot-key key-9B">9B</div>
+    <div class="camelot-key key-10B">10B</div>
+    <div class="camelot-key key-11B">11B</div>
+    <div class="camelot-key key-12B">12B</div>
+  </div>
+</section>
+
+<!-- ============================================
+     5. COMPONENT STRIP
+============================================= -->
+<section class="component-section">
+  <h2 class="section-title">Components</h2>
+
+  <!-- Buttons -->
+  <div>
+    <div class="component-group-label">Buttons</div>
+    <div class="component-row">
+      <button class="btn btn-primary">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+        Import Tracks
+      </button>
+      <button class="btn btn-secondary">
+        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 4h12M4 8h8M6 12h4"/></svg>
+        Filter
+      </button>
+      <button class="btn btn-ghost">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Toasts -->
+  <div>
+    <div class="component-group-label">Toasts</div>
+    <div class="component-row">
+      <div class="toast toast-success">
+        <span class="toast-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8.5l3 3 7-7"/></svg>
+        </span>
+        23 tracks imported from Spotify
+      </div>
+      <div class="toast toast-error">
+        <span class="toast-icon">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 10.5v.5"/></svg>
+        </span>
+        Beatport connection failed
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     6. CONTRAST NOTES
+============================================= -->
+<section class="contrast-section">
+  <h2 class="section-title" style="margin-bottom: 12px;">Contrast &amp; Accessibility</h2>
+  <p><code>text-primary</code> <code>#E8E8F0</code> on <code>surface-base</code> <code>#08080E</code> = <span class="ratio">17.2:1 (AAA)</span></p>
+  <p><code>brand-primary</code> <code>#00E5FF</code> on <code>surface-base</code> <code>#08080E</code> = <span class="ratio">11.8:1 (AAA)</span></p>
+  <p><span class="warning">Neon Camelot chips are ultra-vivid &mdash; some may need desaturation for accessibility on lighter surfaces or for users with color sensitivities.</span></p>
+</section>
+
+<script>
+  // PostMessage listener for theme switching
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'theme') {
+      document.documentElement.setAttribute('data-theme', e.data.value);
+    }
+  });
+</script>
+
+</body>
+</html>
