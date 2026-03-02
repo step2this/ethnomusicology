@@ -26,7 +26,7 @@ test.describe('SPA Routing', () => {
     // Flutter should bootstrap and GoRouter handles /tracks route
     // Either the app title or track data should be visible
     await expect(
-      page.getByText('Salamic Vibes').or(page.getByText('Nour El Ain'))
+      page.getByRole('heading', { name: 'Salamic Vibes' }).or(page.getByText('Nour El Ain'))
     ).toBeVisible({ timeout: 15000 });
   });
 
