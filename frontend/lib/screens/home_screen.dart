@@ -18,6 +18,12 @@ class HomeScreen extends StatelessWidget {
             const Text('Welcome to Salamic Vibes'),
             const SizedBox(height: 24),
             FilledButton.icon(
+              onPressed: () => context.go('/tracks'),
+              icon: const Icon(Icons.library_music),
+              label: const Text('Track Catalog'),
+            ),
+            const SizedBox(height: 12),
+            OutlinedButton.icon(
               onPressed: () => context.go('/import/spotify'),
               icon: const Icon(Icons.download),
               label: const Text('Import from Spotify'),
