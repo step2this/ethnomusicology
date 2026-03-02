@@ -175,9 +175,9 @@ cd frontend && flutter test                # Run tests
   - SP-001 (Beatport): Complete — OAuth2 w/ public client_id, BPM/key native but raw format, rate limits unknown
   - SP-002 (Flutter Audio): Complete — CORS high risk, crossfade manual (2 players), `audioplayers` preferred
   - SP-003 (essentia): Complete — 1-2 GB container, async queue required, key is raw notation
-  - ST-001 (Track Catalog API): Created, API contract written, reviewed. Ready for `/task-decompose`
+  - ST-001 (Track Catalog API): **Implemented** — GET /api/tracks with pagination, sorting, null handling, nested error format. Branch: `feature/st-001-track-catalog`
   - ST-002, ST-003: Not yet created
-- **Next**: Fix ST-001 review findings → `/task-decompose ST-001` → implement ST-001
-- **Test count**: 49 backend tests, 1 frontend test — all passing
-- **Known debt**: `backend/src/error.rs` returns flat `{"error": "msg"}` — must migrate to nested format per OpenAPI. Migration 003 (DJ metadata columns) not yet created.
+- **Next**: `/verify-uc ST-001` → merge to main → create ST-002/ST-003
+- **Test count**: 66 backend tests (58 lib + 2 main + 6 integration), 5 frontend tests — all passing
+- **Known debt**: Migration 003 adds DJ metadata columns but they're all NULL until import or analysis populates them. `lib.rs` created for integration test support.
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`
