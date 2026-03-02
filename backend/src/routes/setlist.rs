@@ -1,0 +1,408 @@
+use axum::extract::{Path, State};
+use axum::http::HeaderMap;
+use axum::routing::{get, post};
+use axum::{Json, Router};
+use serde::Deserialize;
+use sqlx::SqlitePool;
+use std::sync::Arc;
+
+use crate::api::claude::ClaudeClientTrait;
+use crate::services::setlist::{self, SetlistError, SetlistResponse};
+
+// ---------------------------------------------------------------------------
+// State (M1: renamed from SetlistState to SetlistRouteState)
+// ---------------------------------------------------------------------------
+
+pub struct SetlistRouteState {
+    pub pool: SqlitePool,
+    pub claude: Arc<dyn ClaudeClientTrait>,
+}
+
+// ---------------------------------------------------------------------------
+// Request types
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+pub struct GenerateRequest {
+    pub prompt: String,
+    pub track_count: Option<u32>,
+}
+
+// ---------------------------------------------------------------------------
+// Handlers
+// ---------------------------------------------------------------------------
+
+async fn generate_setlist_handler(
+    State(state): State<Arc<SetlistRouteState>>,
+    headers: HeaderMap,
+    Json(req): Json<GenerateRequest>,
+) -> Result<(axum::http::StatusCode, Json<SetlistResponse>), SetlistError> {
+    let user_id = headers
+        .get("X-User-Id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("dev-user");
+
+    let response = setlist::generate_setlist(
+        &state.pool,
+        state.claude.as_ref(),
+        user_id,
+        &req.prompt,
+        req.track_count,
+    )
+    .await?;
+
+    Ok((axum::http::StatusCode::CREATED, Json(response)))
+}
+
+/// L1: Route handler now delegates entirely to service function.
+async fn arrange_setlist_handler(
+    State(state): State<Arc<SetlistRouteState>>,
+    Path(id): Path<String>,
+) -> Result<Json<SetlistResponse>, SetlistError> {
+    let response = setlist::arrange_setlist(&state.pool, &id).await?;
+    Ok(Json(response))
+}
+
+async fn get_setlist_handler(
+    State(state): State<Arc<SetlistRouteState>>,
+    Path(id): Path<String>,
+) -> Result<Json<SetlistResponse>, SetlistError> {
+    let response = setlist::get_setlist(&state.pool, &id).await?;
+    Ok(Json(response))
+}
+
+// ---------------------------------------------------------------------------
+// Router
+// ---------------------------------------------------------------------------
+
+pub fn setlist_router(state: Arc<SetlistRouteState>) -> Router {
+    Router::new()
+        .route("/setlists/generate", post(generate_setlist_handler))
+        .route("/setlists/{id}/arrange", post(arrange_setlist_handler))
+        .route("/setlists/{id}", get(get_setlist_handler))
+        .with_state(state)
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::services::setlist::test_utils::MockClaude;
+    use axum::body::Body;
+    use axum::http::Request;
+    use tower::ServiceExt;
+
+    fn valid_llm_json() -> String {
+        r#"{
+            "tracks": [
+                {
+                    "position": 1,
+                    "title": "Test Track",
+                    "artist": "Test Artist",
+                    "bpm": 128.0,
+                    "key": "C minor",
+                    "camelot": "5A",
+                    "energy": 5,
+                    "transition_note": "Blend in",
+                    "source": "suggestion",
+                    "track_id": null
+                }
+            ],
+            "notes": "Test set"
+        }"#
+        .to_string()
+    }
+
+    async fn setup_app(claude_response: &str) -> (Router, sqlx::SqlitePool) {
+        let pool = crate::db::create_test_pool().await;
+
+        // Seed a track so catalog is not empty
+        sqlx::query("INSERT INTO tracks (id, title, source, bpm, camelot_key, energy) VALUES (?, ?, ?, ?, ?, ?)")
+            .bind("t1")
+            .bind("Seed Track")
+            .bind("spotify")
+            .bind(128.0)
+            .bind("8A")
+            .bind(5.0)
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let state = Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: claude_response.to_string(),
+            }),
+        });
+
+        (setlist_router(state), pool)
+    }
+
+    async fn post_json(
+        app: Router,
+        uri: &str,
+        body: serde_json::Value,
+    ) -> (u16, serde_json::Value) {
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(uri)
+                    .header("content-type", "application/json")
+                    .body(Body::from(serde_json::to_vec(&body).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status().as_u16();
+        let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+        (status, json)
+    }
+
+    async fn get_json(app: Router, uri: &str) -> (u16, serde_json::Value) {
+        let response = app
+            .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        let status = response.status().as_u16();
+        let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+        (status, json)
+    }
+
+    #[tokio::test]
+    async fn test_generate_returns_201() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "chill house vibes"
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 201);
+        assert!(json["id"].is_string());
+        assert_eq!(json["prompt"], "chill house vibes");
+        assert!(json["tracks"].is_array());
+    }
+
+    #[tokio::test]
+    async fn test_generate_empty_prompt_returns_400() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": ""
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 400);
+        assert_eq!(json["error"]["code"], "INVALID_REQUEST");
+    }
+
+    #[tokio::test]
+    async fn test_generate_no_catalog_returns_400() {
+        let pool = crate::db::create_test_pool().await;
+        let state = Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        });
+        let app = setlist_router(state);
+
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "test"
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 400);
+        assert_eq!(json["error"]["code"], "EMPTY_CATALOG");
+    }
+
+    #[tokio::test]
+    async fn test_arrange_returns_200() {
+        let (_app, pool) = setup_app(&valid_llm_json()).await;
+
+        // First generate a setlist
+        let (status, gen_json) = post_json(
+            setlist_router(Arc::new(SetlistRouteState {
+                pool: pool.clone(),
+                claude: Arc::new(MockClaude {
+                    response: valid_llm_json(),
+                }),
+            })),
+            "/setlists/generate",
+            serde_json::json!({ "prompt": "test" }),
+        )
+        .await;
+        assert_eq!(status, 201);
+        let setlist_id = gen_json["id"].as_str().unwrap();
+
+        // Now arrange it
+        let arrange_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (status, json) = post_json(
+            arrange_app,
+            &format!("/setlists/{setlist_id}/arrange"),
+            serde_json::json!({}),
+        )
+        .await;
+
+        assert_eq!(status, 200);
+        assert!(json["harmonic_flow_score"].is_number());
+        // C1: score_breakdown should be present after arrange
+        assert!(json["score_breakdown"].is_object());
+        assert!(json["score_breakdown"]["key_compatibility"].is_number());
+        assert!(json["score_breakdown"]["bpm_continuity"].is_number());
+        assert!(json["score_breakdown"]["energy_arc"].is_number());
+    }
+
+    #[tokio::test]
+    async fn test_arrange_not_found_returns_404() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) =
+            post_json(app, "/setlists/nonexistent/arrange", serde_json::json!({})).await;
+
+        assert_eq!(status, 404);
+        assert_eq!(json["error"]["code"], "NOT_FOUND");
+    }
+
+    // M5: Test arrange with 0 tracks returns 400 INVALID_REQUEST
+    #[tokio::test]
+    async fn test_arrange_empty_setlist_returns_400() {
+        let pool = crate::db::create_test_pool().await;
+
+        // Insert a setlist with no tracks
+        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+            .bind("empty-setlist")
+            .bind("user1")
+            .bind("test")
+            .bind("test-model")
+            .execute(&pool)
+            .await
+            .unwrap();
+
+        let app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+
+        let (status, json) = post_json(
+            app,
+            "/setlists/empty-setlist/arrange",
+            serde_json::json!({}),
+        )
+        .await;
+
+        assert_eq!(status, 400);
+        assert_eq!(json["error"]["code"], "INVALID_REQUEST");
+    }
+
+    // M5: Test arrange with 1 track returns setlist unchanged
+    #[tokio::test]
+    async fn test_arrange_single_track_returns_unchanged() {
+        let (_app, pool) = setup_app(&valid_llm_json()).await;
+
+        // Generate a setlist (it has 1 track)
+        let gen_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (status, gen_json) = post_json(
+            gen_app,
+            "/setlists/generate",
+            serde_json::json!({ "prompt": "test" }),
+        )
+        .await;
+        assert_eq!(status, 201);
+        let setlist_id = gen_json["id"].as_str().unwrap();
+
+        // Arrange the single-track setlist
+        let arrange_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (status, json) = post_json(
+            arrange_app,
+            &format!("/setlists/{setlist_id}/arrange"),
+            serde_json::json!({}),
+        )
+        .await;
+
+        assert_eq!(status, 200);
+        assert_eq!(json["harmonic_flow_score"], 100.0);
+        assert_eq!(json["tracks"].as_array().unwrap().len(), 1);
+        // C1: score_breakdown present for single track
+        assert!(json["score_breakdown"].is_object());
+        assert_eq!(json["score_breakdown"]["key_compatibility"], 100.0);
+    }
+
+    #[tokio::test]
+    async fn test_get_setlist_returns_200() {
+        let (_, pool) = setup_app(&valid_llm_json()).await;
+
+        // Generate first
+        let gen_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (_, gen_json) = post_json(
+            gen_app,
+            "/setlists/generate",
+            serde_json::json!({ "prompt": "test" }),
+        )
+        .await;
+        let setlist_id = gen_json["id"].as_str().unwrap();
+
+        // Now get it
+        let get_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (status, json) = get_json(get_app, &format!("/setlists/{setlist_id}")).await;
+
+        assert_eq!(status, 200);
+        assert_eq!(json["id"], setlist_id);
+        assert!(json["tracks"].is_array());
+    }
+
+    #[tokio::test]
+    async fn test_get_setlist_not_found_returns_404() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = get_json(app, "/setlists/nonexistent").await;
+
+        assert_eq!(status, 404);
+        assert_eq!(json["error"]["code"], "NOT_FOUND");
+    }
+}

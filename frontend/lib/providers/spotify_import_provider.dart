@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/api_client.dart';
+import 'api_provider.dart';
 
 // ---------------------------------------------------------------------------
 // State models
@@ -164,8 +165,3 @@ final spotifyImportProvider =
   (ref) => SpotifyImportNotifier(ref.read(apiClientProvider)),
 );
 
-// ---------------------------------------------------------------------------
-// API client provider
-// ---------------------------------------------------------------------------
-
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());

@@ -67,3 +67,33 @@ pub enum UpsertResult {
     Inserted,
     Updated,
 }
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct SetlistRow {
+    pub id: String,
+    pub user_id: String,
+    pub prompt: String,
+    pub model: String,
+    pub notes: Option<String>,
+    pub harmonic_flow_score: Option<f64>,
+    pub created_at: Option<NaiveDateTime>,
+}
+
+#[derive(Debug, Clone, sqlx::FromRow)]
+pub struct SetlistTrackRow {
+    pub id: String,
+    pub setlist_id: String,
+    pub track_id: Option<String>,
+    pub position: i32,
+    pub original_position: i32,
+    pub title: String,
+    pub artist: String,
+    pub bpm: Option<f64>,
+    pub key: Option<String>,
+    pub camelot: Option<String>,
+    pub energy: Option<f64>,
+    pub transition_note: Option<String>,
+    pub transition_score: Option<f64>,
+    pub source: String,
+    pub acquisition_info: Option<String>,
+}

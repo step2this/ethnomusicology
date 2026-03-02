@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:ethnomusicology_frontend/models/track.dart';
 import 'package:ethnomusicology_frontend/models/track_list_response.dart';
-import 'package:ethnomusicology_frontend/providers/track_catalog_provider.dart';
+import 'package:ethnomusicology_frontend/providers/api_provider.dart';
 import 'package:ethnomusicology_frontend/screens/track_catalog_screen.dart';
 import 'package:ethnomusicology_frontend/services/api_client.dart';
 

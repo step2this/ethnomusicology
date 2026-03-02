@@ -26,15 +26,18 @@ You are a member of the **Implementation Team** for the Ethnomusicology project.
   - Backend (Rust): proper error types, no `unwrap()` in production code
   - Frontend (Flutter/Dart): follow Flutter lints, proper state management
 
-### Teammate 2: Reviewer
-- Reviews Builder's code against use case postconditions
+### Teammate 2: Critic (FRESH CONTEXT — NOT the builder)
+- **MUST run in a separate, fresh agent context** — never in the same session as builders
+- Reviews the diff cold (`git diff main...HEAD`), not the code being written live
+- Reads the plan, the test output, and the implementation diff
+- Looks for: missed edge cases, dead code, unused imports, naming inconsistencies, security issues, plan deviations, test gaps, context-rot artifacts (wrong names, stale references)
 - Runs quality checks:
   - Backend: `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test`
   - Frontend: `flutter analyze`, `flutter test`
   - Use case verification command
-- Checks invariant enforcement
-- Sends feedback via agent messaging — specific, actionable, references line numbers
+- Sends feedback via agent messaging — specific, actionable, references file:line
 - Approves or requests changes
+- **Why fresh context matters**: An in-session reviewer that watches code being written suffers the same blind spots as the builder. ST-003 proved this — self-review missed wrong package names, invalid base URLs, and assertion mismatches that a cold read catches instantly.
 
 ### Teammate 3: Documentation
 - Keeps README and architecture docs updated
@@ -46,13 +49,14 @@ You are a member of the **Implementation Team** for the Ethnomusicology project.
 ## Workflow
 
 1. **Lead** loads the task list from `docs/tasks/uc-<NNN>-tasks.md`
-2. **Lead** assigns tasks to Builder in dependency order
-3. **Builder** writes test first (from postconditions), then implements
-4. **Builder** signals completion on each task
-5. **Reviewer** runs quality gate checks after each task group
-6. **Reviewer** approves or sends feedback (Builder reworks if needed)
-7. **Documentation** updates docs after implementation is approved
-8. **Lead** runs final verification and marks use case complete
+2. **Lead** assigns tasks to Builder(s) in dependency order — **lead NEVER writes implementation code**
+3. **Builder(s)** write test first (from postconditions), then implement
+4. **Builder(s)** signal completion on each task
+5. **Lead** runs automated quality gates (fmt, clippy, test, analyze)
+6. **Lead** spawns **Critic** in fresh context to review `git diff main...HEAD`
+7. **Critic** approves or sends feedback (Builder reworks if needed)
+8. **Documentation** updates docs after critic approves
+9. **Lead** runs `/verify-uc` and marks use case complete
 
 ## Quality Gates
 
