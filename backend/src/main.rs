@@ -17,6 +17,7 @@ use ethnomusicology_backend::config::AppConfig;
 use ethnomusicology_backend::repo::SqliteImportRepository;
 use ethnomusicology_backend::routes;
 use ethnomusicology_backend::routes::auth::{AuthState, TokenExchangeResult, TokenExchanger};
+use ethnomusicology_backend::routes::enrich::EnrichRouteState;
 use ethnomusicology_backend::routes::import::ImportState;
 use ethnomusicology_backend::routes::setlist::SetlistRouteState;
 
@@ -118,6 +119,8 @@ async fn main() -> anyhow::Result<()> {
     sqlx::raw_sql(migration_003).execute(&pool).await?;
     let migration_004 = include_str!("../migrations/004_setlists.sql");
     sqlx::raw_sql(migration_004).execute(&pool).await?;
+    let migration_005 = include_str!("../migrations/005_enrichment.sql");
+    sqlx::raw_sql(migration_005).execute(&pool).await?;
     sqlx::raw_sql("PRAGMA foreign_keys = ON")
         .execute(&pool)
         .await?;
@@ -170,11 +173,20 @@ async fn main() -> anyhow::Result<()> {
         encryption_key,
     });
 
+    // --- Claude client (shared) ---
+    let claude_client: Arc<dyn ethnomusicology_backend::api::claude::ClaudeClientTrait> =
+        Arc::new(ClaudeClient::new(&cfg.anthropic_api_key));
+
     // --- Setlist routes state ---
-    let claude_client = ClaudeClient::new(&cfg.anthropic_api_key);
     let setlist_state = Arc::new(SetlistRouteState {
         pool: pool.clone(),
-        claude: Arc::new(claude_client),
+        claude: claude_client.clone(),
+    });
+
+    // --- Enrich routes state ---
+    let enrich_state = Arc::new(EnrichRouteState {
+        pool: pool.clone(),
+        claude: claude_client.clone(),
     });
 
     // --- Router ---
@@ -183,6 +195,7 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api", routes::auth::auth_routes(auth_state))
         .nest("/api", routes::import::import_router(import_state))
         .nest("/api", routes::setlist::setlist_router(setlist_state))
+        .nest("/api", routes::enrich::enrich_router(enrich_state))
         .nest("/api", routes::tracks::tracks_router(pool.clone()));
 
     // Dev routes (conditionally added when DEV_MODE=true)

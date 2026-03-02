@@ -38,6 +38,7 @@ pub struct TrackRecord {
     pub duration_ms: Option<i64>,
     pub spotify_uri: String,
     pub spotify_preview_url: Option<String>,
+    pub album_art_url: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -198,13 +199,15 @@ pub async fn import_playlist(
 
             // Build track record
             let track_id = deterministic_id(&raw_track.uri);
+            let normalized = raw_track.clone().into_track();
             let track_record = TrackRecord {
                 id: track_id.clone(),
-                title: raw_track.name.clone(),
-                album: Some(raw_track.album.name.clone()),
-                duration_ms: Some(raw_track.duration_ms as i64),
-                spotify_uri: raw_track.uri.clone(),
-                spotify_preview_url: raw_track.preview_url.clone(),
+                title: normalized.name.clone(),
+                album: Some(normalized.album_name.clone()),
+                duration_ms: Some(normalized.duration_ms as i64),
+                spotify_uri: normalized.uri.clone(),
+                spotify_preview_url: normalized.preview_url.clone(),
+                album_art_url: normalized.album_art_url.clone(),
             };
 
             match repo.upsert_track(&track_record).await {

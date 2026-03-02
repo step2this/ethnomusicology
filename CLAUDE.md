@@ -229,10 +229,14 @@ cd frontend && flutter test                # Run tests
   - SP-001 (Beatport): Complete — OAuth2 w/ public client_id, BPM/key native but raw format, rate limits unknown
   - SP-002 (Flutter Audio): Complete — CORS high risk, crossfade manual (2 players), `audioplayers` preferred
   - SP-003 (essentia): Complete — 1-2 GB container, async queue required, key is raw notation
-  - ST-001 (Track Catalog API): **Implemented** — GET /api/tracks with pagination, sorting, null handling, nested error format. Merged to main.
-  - ST-003 (Generate Setlist from Prompt): **Implemented** — POST /api/setlists/generate, POST /api/setlists/{id}/arrange, GET /api/setlists/{id}. Claude API client, Camelot module, arrangement algorithm (greedy + 2-opt), hallucinated track_id validation, nested error format. Branch: `feature/st-003-generate-setlist`
-  - ST-002: Not yet created
-- **Next**: `/verify-uc ST-003` → merge to main → create ST-002
-- **Test count**: 135 backend tests (121 lib + 2 main + 12 integration), 12 frontend tests — all passing
-- **Known debt**: Migration 003 adds DJ metadata columns but they're all NULL until import or analysis populates them. `lib.rs` created for integration test support.
+  - SP-004 (Enrichment Path): Complete — Spotify Audio Features deprecated Nov 2024, LLM estimation is primary
+  - ST-001 (Track Catalog API): **Merged** — GET /api/tracks with pagination, sorting, null handling, nested error format
+  - ST-003 (Generate Setlist from Prompt): **Merged** — Claude API client, Camelot module, arrangement algorithm (greedy + 2-opt), hallucinated track_id validation
+  - ST-004 (E2E Playwright): **Merged** — Playwright tests + GitHub Actions CI, dev seed endpoint, static file serving
+  - ST-005 (Track Enrichment): **Merged** — LLM batch estimation, Camelot key conversion, album art, usage cap, POST /api/tracks/enrich
+  - ST-002: Deferred (Beatport multi-source import)
+- **MVP Roadmap**: `docs/mvp-roadmap.md` — Phase 0 (SP-004) + Phase 1 (ST-005) complete
+- **Next**: ST-006 (Multi-Input Seeding + Enhanced Generation)
+- **Test count**: 176 backend tests, 12 frontend tests — all passing
+- **Known debt**: LLM enrichment cost cap overshoot on concurrent requests (MVP-acceptable). Errored tracks have no retry path yet.
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`

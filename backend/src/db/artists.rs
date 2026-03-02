@@ -86,9 +86,18 @@ mod tests {
         let pool = create_test_pool().await;
 
         // Create a track and artist first
-        upsert_track(&pool, "t1", "Track", None, None, "spotify:track:t1", None)
-            .await
-            .unwrap();
+        upsert_track(
+            &pool,
+            "t1",
+            "Track",
+            None,
+            None,
+            "spotify:track:t1",
+            None,
+            None,
+        )
+        .await
+        .unwrap();
         upsert_artist(&pool, "a1", "Artist", "spotify:artist:a1")
             .await
             .unwrap();

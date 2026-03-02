@@ -46,6 +46,7 @@ pub struct SpotifyTrack {
     pub album_name: String,
     pub duration_ms: u64,
     pub preview_url: Option<String>,
+    pub album_art_url: Option<String>,
     pub artists: Vec<SpotifyArtist>,
 }
 
@@ -85,8 +86,17 @@ pub struct SpotifyTrackRaw {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SpotifyImageRaw {
+    pub url: String,
+    pub height: Option<u32>,
+    pub width: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpotifyAlbumRaw {
     pub name: String,
+    #[serde(default)]
+    pub images: Vec<SpotifyImageRaw>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -101,12 +111,27 @@ pub struct SpotifyArtistRaw {
 
 impl SpotifyTrackRaw {
     pub fn into_track(self) -> SpotifyTrack {
+        // Pick largest image (by width, falling back to first)
+        let album_art_url = if self.album.images.is_empty() {
+            None
+        } else {
+            Some(
+                self.album
+                    .images
+                    .iter()
+                    .max_by_key(|img| img.width.unwrap_or(0))
+                    .map(|img| img.url.clone())
+                    .unwrap_or_else(|| self.album.images[0].url.clone()),
+            )
+        };
+
         SpotifyTrack {
             name: self.name,
             uri: self.uri,
             album_name: self.album.name,
             duration_ms: self.duration_ms,
             preview_url: self.preview_url,
+            album_art_url,
             artists: self
                 .artists
                 .into_iter()
@@ -296,7 +321,14 @@ mod tests {
                     "track": {
                         "name": "Habibi Ya Nour El Ain",
                         "uri": "spotify:track:1abc",
-                        "album": { "name": "Best of Amr Diab" },
+                        "album": {
+                            "name": "Best of Amr Diab",
+                            "images": [
+                                {"url": "https://i.scdn.co/image/large", "height": 640, "width": 640},
+                                {"url": "https://i.scdn.co/image/medium", "height": 300, "width": 300},
+                                {"url": "https://i.scdn.co/image/small", "height": 64, "width": 64}
+                            ]
+                        },
                         "duration_ms": 234000,
                         "preview_url": "https://p.scdn.co/mp3-preview/abc",
                         "artists": [
@@ -392,6 +424,7 @@ mod tests {
             uri: "spotify:track:abc".to_string(),
             album: SpotifyAlbumRaw {
                 name: "Test Album".to_string(),
+                images: vec![],
             },
             duration_ms: 180000,
             preview_url: Some("https://example.com/preview".to_string()),
@@ -406,5 +439,91 @@ mod tests {
         assert_eq!(track.album_name, "Test Album");
         assert_eq!(track.artists.len(), 1);
         assert_eq!(track.artists[0].name, "Test Artist");
+        assert!(track.album_art_url.is_none());
+    }
+
+    #[test]
+    fn test_album_art_url_picks_largest() {
+        let raw = SpotifyTrackRaw {
+            name: "Art Test".to_string(),
+            uri: "spotify:track:art1".to_string(),
+            album: SpotifyAlbumRaw {
+                name: "Art Album".to_string(),
+                images: vec![
+                    SpotifyImageRaw {
+                        url: "https://i.scdn.co/image/small".to_string(),
+                        height: Some(64),
+                        width: Some(64),
+                    },
+                    SpotifyImageRaw {
+                        url: "https://i.scdn.co/image/large".to_string(),
+                        height: Some(640),
+                        width: Some(640),
+                    },
+                    SpotifyImageRaw {
+                        url: "https://i.scdn.co/image/medium".to_string(),
+                        height: Some(300),
+                        width: Some(300),
+                    },
+                ],
+            },
+            duration_ms: 200000,
+            preview_url: None,
+            artists: vec![],
+        };
+
+        let track = raw.into_track();
+        assert_eq!(
+            track.album_art_url.as_deref(),
+            Some("https://i.scdn.co/image/large")
+        );
+    }
+
+    #[test]
+    fn test_album_art_url_empty_images() {
+        let raw = SpotifyTrackRaw {
+            name: "No Art".to_string(),
+            uri: "spotify:track:noart".to_string(),
+            album: SpotifyAlbumRaw {
+                name: "No Art Album".to_string(),
+                images: vec![],
+            },
+            duration_ms: 150000,
+            preview_url: None,
+            artists: vec![],
+        };
+
+        let track = raw.into_track();
+        assert!(track.album_art_url.is_none());
+    }
+
+    #[test]
+    fn test_album_art_url_no_dimensions() {
+        let raw = SpotifyTrackRaw {
+            name: "No Dims".to_string(),
+            uri: "spotify:track:nodims".to_string(),
+            album: SpotifyAlbumRaw {
+                name: "No Dims Album".to_string(),
+                images: vec![
+                    SpotifyImageRaw {
+                        url: "https://i.scdn.co/image/first".to_string(),
+                        height: None,
+                        width: None,
+                    },
+                    SpotifyImageRaw {
+                        url: "https://i.scdn.co/image/second".to_string(),
+                        height: None,
+                        width: None,
+                    },
+                ],
+            },
+            duration_ms: 180000,
+            preview_url: None,
+            artists: vec![],
+        };
+
+        let track = raw.into_track();
+        // When no dimensions, all have width=0 so max_by_key picks the first max (first element)
+        assert!(track.album_art_url.is_some());
     }
 }
