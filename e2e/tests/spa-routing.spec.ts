@@ -5,10 +5,12 @@ import { test, expect, Page } from '@playwright/test';
 // semantics layer, which overlays <flt-semantics> DOM elements that
 // Playwright can query with getByText/getByRole.
 async function enableFlutterAccessibility(page: Page) {
-  // Flutter renders to <canvas>. Click hidden button to enable semantic DOM overlays.
-  // force: true bypasses viewport checks — Flutter positions this button offscreen intentionally.
+  // Flutter renders to <canvas>. Activate semantic DOM overlays by dispatching click
+  // on the hidden accessibility button. dispatchEvent bypasses positioning checks —
+  // needed because Flutter renders this element with zero dimensions offscreen.
   const a11yButton = page.getByRole('button', { name: 'Enable accessibility' });
-  await a11yButton.click({ timeout: 15000, force: true });
+  await a11yButton.waitFor({ timeout: 15000 });
+  await a11yButton.dispatchEvent('click');
   await page.waitForTimeout(1000);
 }
 
