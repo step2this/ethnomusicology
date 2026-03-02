@@ -18,6 +18,12 @@ class HomeScreen extends StatelessWidget {
             const Text('Welcome to Salamic Vibes'),
             const SizedBox(height: 24),
             FilledButton.icon(
+              onPressed: () => context.go('/setlist/generate'),
+              icon: const Icon(Icons.auto_awesome),
+              label: const Text('Generate Setlist'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
               onPressed: () => context.go('/tracks'),
               icon: const Icon(Icons.library_music),
               label: const Text('Track Catalog'),

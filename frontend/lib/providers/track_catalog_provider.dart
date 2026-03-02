@@ -2,9 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/track.dart';
 import '../services/api_client.dart';
-
-// Provider for the API client
-final apiClientProvider = Provider<ApiClient>((ref) => ApiClient());
+import 'api_provider.dart';
 
 // State for the track catalog
 class TrackCatalogState {

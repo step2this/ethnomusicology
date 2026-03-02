@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/setlist.dart';
 import '../models/track_list_response.dart';
 
 class ApiClient {
@@ -72,5 +73,28 @@ class ApiClient {
       'order': order,
     });
     return TrackListResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  // -------------------------------------------------------------------------
+  // Setlist Generation
+  // -------------------------------------------------------------------------
+
+  Future<Setlist> generateSetlist(String prompt, {int? trackCount}) async {
+    final data = <String, dynamic>{'prompt': prompt};
+    if (trackCount != null) {
+      data['track_count'] = trackCount;
+    }
+    final response = await _dio.post('/setlists/generate', data: data);
+    return Setlist.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<Setlist> arrangeSetlist(String id) async {
+    final response = await _dio.post('/setlists/$id/arrange');
+    return Setlist.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<Setlist> getSetlist(String id) async {
+    final response = await _dio.get('/setlists/$id');
+    return Setlist.fromJson(response.data as Map<String, dynamic>);
   }
 }

@@ -11,10 +11,12 @@ Use the Forge (`.claude/` directory) for all development:
 2. `/uc-review` — Devil's Advocate review (apply all fixes before coding)
 3. `/task-decompose` — Break into implementable tasks with dependency graph
 4. `design-crit` — Run for any UC with a frontend screen (Brief → Facet Plan → Crit Loops → Design Direction)
-5. Implement with agent teams (see below)
-6. `/verify-uc` — Validate implementation against postconditions
-7. `/grade-work` — Score completed work
-8. `/session-handoff` — Save state before ending sessions
+5. **Devil's Advocate Review** — After every plan is drafted, run a devil's advocate review before implementation. Use a Plan agent to find weaknesses, gaps, missing pieces, parallelism risks, integration seams, scope creep, and testing gaps. Address all critical and high-severity findings before coding begins. Proven valuable in ST-003 planning — caught 14 issues including missing retry logic, unspecified migration DDL, and no test for hallucinated track IDs.
+6. Implement with agent teams — **lead MUST delegate to subagents, never implement solo** (see Agent Teams section)
+7. **Critic Review** — Spawn a fresh-context critic agent to review the diff before verification. This is NOT optional. See "Code Review: Critic Agent" in Agent Teams section.
+8. `/verify-uc` — Validate implementation against postconditions
+9. `/grade-work` — Score completed work
+10. `/session-handoff` — Save state before ending sessions
 
 ## Walking Skeleton
 
@@ -54,18 +56,44 @@ Steel threads and spikes extend the Forge to de-risk frontend-backend integratio
 3. **Define API contract** (`/api-contract ST-NNN`) — OpenAPI single source of truth
 4. **Review** (`/uc-review ST-NNN`) — devil's advocate, validates contract against assertions
 5. **API Contract Review Gate** — both frontend and backend agents confirm before implementation
-6. **Implement** — backend TO the contract, frontend FROM the contract
-7. **Verify** (`/verify-uc ST-NNN`) — integration assertions + contract conformance
-8. **Grade** (`/grade-work ST-NNN`) — Integration Proof category (20% weight)
+6. **Implement** — backend TO the contract, frontend FROM the contract. **Lead delegates, never implements solo.**
+7. **Critic Review** — fresh-context agent reviews diff cold (REQUIRED before verify)
+8. **Verify** (`/verify-uc ST-NNN`) — integration assertions + contract conformance
+9. **Grade** (`/grade-work ST-NNN`) — Integration Proof category (20% weight)
 
 ## Agent Teams
 
-**Always prefer multi-agent teams** for any non-trivial work:
-- Create a team via `TeamCreate`, spawn builders in parallel
+> **MANDATORY: The lead agent MUST NOT implement code directly.**
+> The lead coordinates, reviews, wires modules together, and runs quality gates.
+> All implementation code MUST be written by spawned subagents (Builder teammates).
+> This is not optional. Violating this rule caused context rot and quality degradation in ST-003.
+
+> **MANDATORY: Use multi-agent teams for any task touching >2 files or >100 lines.**
+> Create a team via `TeamCreate`, spawn builders in parallel on non-overlapping files.
+> A single agent writing 2,800+ lines across 14 files is an anti-pattern — it exhausts context
+> and eliminates the fresh-eyes review benefit that separate agents provide.
+
 - **Backend agents work in the same repo** — assign non-overlapping module directories
 - Use traits/interfaces at boundaries so parallel agents don't block each other (e.g., `ImportRepository` trait, `MusicSourceClient` trait)
-- The lead coordinates, reviews, and wires modules together — does not implement directly
 - Use Haiku agents for research tasks (API evaluation, tool research)
+- **Pure-function modules** (scoring, algorithms, parsers) are ideal subagent targets — isolated, testable, no coordination overhead
+- **Integration/wiring modules** (main.rs, routes, mod.rs) stay with the lead since they depend on all other modules
+
+### Code Review: Critic Agent (REQUIRED)
+
+> **MANDATORY: Every implementation MUST have a separate critic review before `/verify-uc`.**
+> The critic agent runs in a FRESH context — it has NOT watched the code being written.
+> This breaks the "I wrote it so I think it's fine" blind spot.
+
+After builders complete their work and quality gates pass:
+1. Spawn a **Critic Agent** (general-purpose, fresh context, no worktree)
+2. Critic reads the diff (`git diff main...HEAD`), the plan, and the test output
+3. Critic looks for: missed edge cases, dead code, unused imports, naming inconsistencies, security issues, plan deviations, test gaps
+4. Critic sends feedback to lead via messaging — specific, actionable, with file:line references
+5. Lead assigns fixes to builders or applies wiring fixes directly
+6. Only after critic approves does the lead proceed to `/verify-uc`
+
+This replaces the in-session Reviewer role from `implementation-team.md`, which reviewed code it watched being written and thus couldn't catch context-rot artifacts.
 
 ### Lessons Learned (UC-001)
 - Two backend agents can work in parallel if they own separate directories (`src/api/` vs `src/db/`)
@@ -82,6 +110,15 @@ Steel threads and spikes extend the Forge to de-risk frontend-backend integratio
 - Artist data is relational: track API must JOIN track_artists + artists tables and concatenate names
 - API contract review gate works: both frontend and backend agents must confirm OpenAPI spec before writing implementation code
 - Research-only spikes are valid: SP-002 produced actionable decisions without a prototype
+
+### Lessons Learned (ST-003)
+- **Lead-as-solo-builder is an anti-pattern**: Lead implemented all 9 tasks (~2,800 lines, 14 new files) solo despite plan specifying 4 parallel agents. By task T8-T9 (frontend), context was exhausted — chasing formatting errors, wrong package names, assertion mismatches that a fresh agent would catch instantly.
+- **Pre-commit hook was incomplete**: Only ran backend checks (cargo fmt/clippy/test). Flutter analyze/test was NOT enforced. Fixed: hook now runs both backend and frontend gates.
+- **In-session reviewer is theater**: The Reviewer role in implementation-team.md watches code being written in the same session. It cannot catch what it already "knows" — this is the self-review blind spot. Replaced with Critic Agent pattern: fresh context, reads diff cold, finds what the builder missed.
+- **Pure-function modules are perfect subagent targets**: camelot.rs (17 tests), arrangement.rs (10 tests) — zero IO, deterministic, isolated. These should always be delegated to separate agents.
+- **Ralph Wiggum loops fit pure modules**: `while true; do claude; done` with test backpressure works for isolated, well-tested modules. Quality comes from iteration + automated feedback, not self-assessment. Consider for future camelot/arrangement-type work.
+- **Context rot is real and measurable**: Early tasks (T1-T3) produced clean code on first try. Later tasks (T8-T9) required 5+ fix iterations for issues a fresh agent wouldn't create (wrong package name, constructor mismatch, base URL invalid in test VM).
+- **Generator-Critic separation is essential**: The agent that writes code should not be the only one reviewing it. A separate agent with fresh context and adversarial intent catches a different class of bugs.
 
 ### Spike Findings Summary
 
@@ -175,9 +212,10 @@ cd frontend && flutter test                # Run tests
   - SP-001 (Beatport): Complete — OAuth2 w/ public client_id, BPM/key native but raw format, rate limits unknown
   - SP-002 (Flutter Audio): Complete — CORS high risk, crossfade manual (2 players), `audioplayers` preferred
   - SP-003 (essentia): Complete — 1-2 GB container, async queue required, key is raw notation
-  - ST-001 (Track Catalog API): **Implemented** — GET /api/tracks with pagination, sorting, null handling, nested error format. Branch: `feature/st-001-track-catalog`
-  - ST-002, ST-003: Not yet created
-- **Next**: `/verify-uc ST-001` → merge to main → create ST-002/ST-003
-- **Test count**: 66 backend tests (58 lib + 2 main + 6 integration), 5 frontend tests — all passing
+  - ST-001 (Track Catalog API): **Implemented** — GET /api/tracks with pagination, sorting, null handling, nested error format. Merged to main.
+  - ST-003 (Generate Setlist from Prompt): **Implemented** — POST /api/setlists/generate, POST /api/setlists/{id}/arrange, GET /api/setlists/{id}. Claude API client, Camelot module, arrangement algorithm (greedy + 2-opt), hallucinated track_id validation, nested error format. Branch: `feature/st-003-generate-setlist`
+  - ST-002: Not yet created
+- **Next**: `/verify-uc ST-003` → merge to main → create ST-002
+- **Test count**: 135 backend tests (121 lib + 2 main + 12 integration), 12 frontend tests — all passing
 - **Known debt**: Migration 003 adds DJ metadata columns but they're all NULL until import or analysis populates them. `lib.rs` created for integration test support.
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`
