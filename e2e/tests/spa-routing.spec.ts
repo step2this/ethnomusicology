@@ -6,8 +6,9 @@ import { test, expect, Page } from '@playwright/test';
 // Playwright can query with getByText/getByRole.
 async function enableFlutterAccessibility(page: Page) {
   // Flutter renders to <canvas>. Click hidden button to enable semantic DOM overlays.
+  // force: true bypasses viewport checks — Flutter positions this button offscreen intentionally.
   const a11yButton = page.getByRole('button', { name: 'Enable accessibility' });
-  await a11yButton.click({ timeout: 15000 });
+  await a11yButton.click({ timeout: 15000, force: true });
   await page.waitForTimeout(1000);
 }
 
