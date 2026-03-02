@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Empty Catalog — Ethnomusicology</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --surface-base: #0F0D0B;
+    --surface-content: #141210;
+    --surface-raised: #1A1714;
+    --surface-overlay: #201C18;
+    --brand-primary: #E8963A;
+    --brand-secondary: #C06030;
+    --text-primary: #F0ECE4;
+    --text-secondary: #C8C4BC;
+    --text-muted: #8B8580;
+    --text-disabled: #5C5854;
+    --border-default: #1E1A16;
+    --border-hover: #2A2520;
+    --border-accent: #E8963A;
+    --status-success: #5AC070;
+    --status-warning: #E8C43A;
+    --status-error: #D05040;
+    --status-info: #5A9EC0;
+    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+    --sp-xs: 4px; --sp-sm: 8px; --sp-md: 12px;
+    --sp-lg: 16px; --sp-xl: 24px; --sp-2xl: 32px; --sp-3xl: 48px;
+    --radius-sm: 3px; --radius-md: 6px; --radius-full: 9999px;
+    --rail-width: 48px;
+    --toolbar-height: 48px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { height: 100%; }
+
+  body {
+    height: 100%;
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+    font-feature-settings: 'tnum' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Analog noise */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  ::selection {
+    background: rgba(232, 150, 58, 0.3);
+    color: var(--text-primary);
+  }
+
+  .app { display: flex; height: 100vh; }
+
+  /* ─── Icon Rail ─── */
+  .icon-rail {
+    width: var(--rail-width);
+    min-width: var(--rail-width);
+    height: 100%;
+    background: var(--surface-base);
+    border-right: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--sp-md) 0;
+    gap: var(--sp-xs);
+    z-index: 10;
+  }
+  .rail-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 150ms ease-out;
+    position: relative;
+  }
+  .rail-btn:hover { background: var(--surface-raised); color: var(--text-secondary); }
+  .rail-btn.active { color: var(--brand-primary); background: rgba(232, 150, 58, 0.08); }
+  .rail-btn:focus-visible { outline: 2px solid var(--brand-primary); outline-offset: 2px; }
+  .rail-btn svg {
+    width: 20px; height: 20px;
+    fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .rail-btn .tooltip {
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 10px;
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    font-size: 11px; font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    opacity: 0; pointer-events: none;
+    transition: opacity 150ms ease-out;
+  }
+  .rail-btn:hover .tooltip,
+  .rail-btn:focus-visible .tooltip { opacity: 1; }
+  .rail-spacer { flex: 1; }
+
+  /* ─── Main ─── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100vh;
+    padding-right: 10px;
+  }
+
+  /* Toolbar */
+  .toolbar {
+    height: var(--toolbar-height);
+    min-height: var(--toolbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--sp-lg);
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-base);
+  }
+  .toolbar-left { display: flex; align-items: center; gap: var(--sp-lg); }
+  .track-count {
+    font-family: var(--font-mono);
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary);
+  }
+  .toolbar-right { display: flex; align-items: center; gap: var(--sp-sm); }
+  .btn-primary {
+    height: 34px; padding: 0 var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; border: none;
+    background: var(--brand-primary);
+    color: var(--surface-base);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: all 150ms ease-out;
+  }
+  .btn-primary:hover {
+    background: #F0A048;
+    box-shadow: 0 2px 6px rgba(232,150,58,0.25);
+  }
+  .btn-primary:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  /* ─── Empty State ─── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--sp-2xl);
+    padding: var(--sp-3xl);
+  }
+
+  /* Crate illustration */
+  .crate-icon {
+    position: relative;
+    width: 80px;
+    height: 72px;
+    margin-bottom: var(--sp-sm);
+  }
+  .crate-body {
+    width: 80px;
+    height: 56px;
+    border: 2px solid var(--border-hover);
+    border-radius: var(--radius-md);
+    position: absolute;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .crate-body::before {
+    content: '';
+    position: absolute;
+    inset: 6px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+  }
+  /* Vinyl disc peeking out */
+  .vinyl {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--text-disabled);
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--surface-base);
+  }
+  .vinyl::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid var(--text-disabled);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .empty-heading {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: center;
+  }
+  .empty-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    max-width: 320px;
+    line-height: 1.5;
+    margin-top: -20px;
+  }
+
+  /* ─── Source Cards ─── */
+  .source-cards {
+    display: flex;
+    gap: var(--sp-lg);
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 720px;
+  }
+
+  .source-card {
+    width: 200px;
+    background: var(--surface-content);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    padding: var(--sp-xl) var(--sp-lg) var(--sp-lg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sp-md);
+    cursor: pointer;
+    transition: all 200ms ease-out;
+    position: relative;
+    text-decoration: none;
+  }
+  .source-card:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-raised);
+    transform: translateY(-2px);
+  }
+  .source-card:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+  .source-card.disabled {
+    opacity: 0.45;
+    cursor: default;
+  }
+  .source-card.disabled:hover {
+    border-color: var(--border-default);
+    background: var(--surface-content);
+    transform: none;
+  }
+
+  .source-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .source-icon svg {
+    width: 22px;
+    height: 22px;
+  }
+  .source-icon-spotify {
+    background: rgba(90, 192, 112, 0.12);
+  }
+  .source-icon-spotify svg { fill: var(--status-success); }
+  .source-icon-beatport {
+    background: rgba(232, 150, 58, 0.12);
+  }
+  .source-icon-beatport svg { fill: var(--brand-primary); }
+  .source-icon-soundcloud {
+    background: rgba(200, 196, 188, 0.08);
+  }
+  .source-icon-soundcloud svg { fill: var(--text-disabled); }
+
+  .source-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .source-card.disabled .source-card-name {
+    color: var(--text-muted);
+  }
+  .source-card-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.45;
+  }
+
+  .source-card-action {
+    margin-top: var(--sp-xs);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--brand-primary);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: gap 150ms ease-out;
+  }
+  .source-card:hover .source-card-action {
+    gap: 6px;
+  }
+  .source-card-action svg {
+    width: 12px; height: 12px;
+    fill: none; stroke: var(--brand-primary);
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .source-card.disabled .source-card-action {
+    color: var(--text-disabled);
+  }
+  .source-card.disabled .source-card-action svg {
+    stroke: var(--text-disabled);
+  }
+
+  .coming-soon-badge {
+    position: absolute;
+    top: var(--sp-sm);
+    right: var(--sp-sm);
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 2px 6px;
+    border-radius: var(--radius-sm);
+    color: var(--text-disabled);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+  }
+
+  /* ─── Or divider ─── */
+  .or-divider {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-md);
+    width: 100%;
+    max-width: 400px;
+    margin-top: -8px;
+  }
+  .or-line {
+    flex: 1;
+    height: 1px;
+    background: var(--border-default);
+  }
+  .or-text {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-disabled);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* ─── AI Teaser ─── */
+  .ai-teaser {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-lg);
+    padding: var(--sp-lg) var(--sp-xl);
+    background: var(--surface-content);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    max-width: 480px;
+    width: 100%;
+    cursor: pointer;
+    transition: all 200ms ease-out;
+  }
+  .ai-teaser:hover {
+    border-color: var(--border-hover);
+    background: var(--surface-raised);
+  }
+  .ai-teaser:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+  .ai-teaser-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(232, 150, 58, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .ai-teaser-icon svg {
+    width: 18px; height: 18px;
+    fill: none; stroke: var(--brand-primary);
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .ai-teaser-text {
+    flex: 1;
+  }
+  .ai-teaser-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 2px;
+  }
+  .ai-teaser-desc {
+    font-size: 11px;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+  .ai-teaser-arrow {
+    color: var(--text-disabled);
+    font-size: 16px;
+    transition: transform 150ms ease-out;
+  }
+  .ai-teaser:hover .ai-teaser-arrow {
+    transform: translateX(2px);
+    color: var(--brand-primary);
+  }
+
+  /* Table footer (empty) */
+  .table-footer {
+    height: 28px; min-height: 28px;
+    display: flex; align-items: center;
+    padding: 0 var(--sp-lg);
+    font-size: 11px; color: var(--text-disabled);
+    border-top: 1px solid var(--border-default);
+    font-family: var(--font-mono);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Icon Rail -->
+  <nav class="icon-rail" aria-label="Navigation">
+    <button class="rail-btn active" aria-label="Catalog">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span class="tooltip">Catalog</span>
+    </button>
+    <button class="rail-btn" aria-label="Import">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      <span class="tooltip">Import</span>
+    </button>
+    <button class="rail-btn" aria-label="Sets">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <span class="tooltip">Sets</span>
+    </button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <span class="tooltip">Settings</span>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="track-count">0 tracks</span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-primary">+ Import</button>
+      </div>
+    </div>
+
+    <div class="empty-state">
+      <!-- Crate + vinyl illustration -->
+      <div class="crate-icon" role="img" aria-label="Empty record crate">
+        <div class="vinyl"></div>
+        <div class="crate-body"></div>
+      </div>
+
+      <div class="empty-heading">Your crate is empty</div>
+      <div class="empty-sub">Import tracks from your favorite sources to start building your catalog.</div>
+
+      <!-- Source Cards -->
+      <div class="source-cards">
+        <!-- Spotify -->
+        <div class="source-card" tabindex="0" role="button" aria-label="Import from Spotify">
+          <div class="source-icon source-icon-spotify">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm4.586 14.424a.623.623 0 01-.857.207c-2.348-1.435-5.304-1.76-8.785-.964a.623.623 0 11-.277-1.215c3.809-.87 7.076-.496 9.712 1.115a.623.623 0 01.207.857zm1.223-2.723a.78.78 0 01-1.072.257c-2.687-1.652-6.786-2.131-9.965-1.166a.78.78 0 01-.452-1.492c3.63-1.102 8.141-.568 11.232 1.329a.78.78 0 01.257 1.072zm.105-2.835C14.692 8.95 9.375 8.775 6.297 9.71a.934.934 0 11-.542-1.79c3.533-1.072 9.404-.865 13.115 1.338a.934.934 0 01-.956 1.608z"/></svg>
+          </div>
+          <div class="source-card-name">Spotify</div>
+          <div class="source-card-desc">Import playlists, albums, and liked tracks</div>
+          <div class="source-card-action">
+            Connect
+            <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+          </div>
+        </div>
+
+        <!-- Beatport -->
+        <div class="source-card" tabindex="0" role="button" aria-label="Import from Beatport">
+          <div class="source-icon source-icon-beatport">
+            <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="source-card-name">Beatport</div>
+          <div class="source-card-desc">Import charts, playlists, and purchased tracks</div>
+          <div class="source-card-action">
+            Connect
+            <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+          </div>
+        </div>
+
+        <!-- SoundCloud (disabled) -->
+        <div class="source-card disabled" tabindex="-1" aria-disabled="true">
+          <span class="coming-soon-badge">Coming soon</span>
+          <div class="source-icon source-icon-soundcloud">
+            <svg viewBox="0 0 24 24"><path d="M3 15c0 1.1.9 2 2 2h13a3 3 0 000-6c-.3 0-.6 0-.9.1A5.002 5.002 0 007 12c0 .3 0 .7.1 1H5a2 2 0 00-2 2z"/></svg>
+          </div>
+          <div class="source-card-name">SoundCloud</div>
+          <div class="source-card-desc">Discover and import from the underground</div>
+          <div class="source-card-action">
+            Coming soon
+            <svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>
+          </div>
+        </div>
+      </div>
+
+      <div class="or-divider">
+        <div class="or-line"></div>
+        <span class="or-text">or</span>
+        <div class="or-line"></div>
+      </div>
+
+      <!-- AI Teaser -->
+      <div class="ai-teaser" tabindex="0" role="button" aria-label="Generate a setlist with AI">
+        <div class="ai-teaser-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 2v4m0 12v4M4.93 4.93l2.83 2.83m8.48 8.48l2.83 2.83M2 12h4m12 0h4M4.93 19.07l2.83-2.83m8.48-8.48l2.83-2.83"/></svg>
+        </div>
+        <div class="ai-teaser-text">
+          <div class="ai-teaser-title">Generate a setlist with AI</div>
+          <div class="ai-teaser-desc">Describe a vibe, occasion, or genre and we'll build a setlist for you.</div>
+        </div>
+        <span class="ai-teaser-arrow">&rsaquo;</span>
+      </div>
+    </div>
+
+    <div class="table-footer">No tracks in catalog</div>
+  </main>
+</div>
+
+</body>
+</html>

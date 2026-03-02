@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Import Sheet — Ethnomusicology</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    --surface-base: #0F0D0B;
+    --surface-content: #141210;
+    --surface-raised: #1A1714;
+    --surface-overlay: #201C18;
+    --brand-primary: #E8963A;
+    --brand-secondary: #C06030;
+    --text-primary: #F0ECE4;
+    --text-secondary: #C8C4BC;
+    --text-muted: #8B8580;
+    --text-disabled: #5C5854;
+    --border-default: #1E1A16;
+    --border-hover: #2A2520;
+    --border-accent: #E8963A;
+    --status-success: #5AC070;
+    --status-warning: #E8C43A;
+    --status-error: #D05040;
+    --status-info: #5A9EC0;
+    --energy-low: #5A9EC0;
+    --energy-mid: #E8963A;
+    --energy-high: #D05040;
+    --scrim: rgba(0, 0, 0, 0.55);
+    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+    --sp-xs: 4px; --sp-sm: 8px; --sp-md: 12px;
+    --sp-lg: 16px; --sp-xl: 24px; --sp-2xl: 32px; --sp-3xl: 48px;
+    --radius-sm: 3px; --radius-md: 6px; --radius-full: 9999px;
+    --rail-width: 48px;
+    --toolbar-height: 48px;
+    --row-height: 40px;
+    --art-size: 32px;
+    --sheet-width: 320px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { height: 100%; }
+
+  body {
+    height: 100%;
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+    font-feature-settings: 'tnum' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Analog noise */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  ::selection {
+    background: rgba(232, 150, 58, 0.3);
+    color: var(--text-primary);
+  }
+
+  /* ─── Layout Shell ─── */
+  .app { display: flex; height: 100vh; }
+
+  /* ─── Icon Rail ─── */
+  .icon-rail {
+    width: var(--rail-width);
+    min-width: var(--rail-width);
+    height: 100%;
+    background: var(--surface-base);
+    border-right: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--sp-md) 0;
+    gap: var(--sp-xs);
+    z-index: 10;
+  }
+  .rail-btn {
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent; border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .rail-btn:hover { background: var(--surface-raised); color: var(--text-secondary); }
+  .rail-btn.active { color: var(--brand-primary); background: rgba(232, 150, 58, 0.08); }
+  .rail-btn svg {
+    width: 20px; height: 20px;
+    fill: none; stroke: currentColor;
+    stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+  }
+  .rail-spacer { flex: 1; }
+
+  /* ─── Main Content (Catalog behind) ─── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100vh;
+    padding-right: 10px;
+  }
+
+  .toolbar {
+    height: var(--toolbar-height);
+    min-height: var(--toolbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--sp-lg);
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-base);
+  }
+  .toolbar-left { display: flex; align-items: center; gap: var(--sp-lg); }
+  .track-count {
+    font-family: var(--font-mono);
+    font-size: 13px; font-weight: 700;
+    color: var(--text-primary);
+  }
+  .keyboard-hints {
+    font-size: 11px;
+    color: var(--text-disabled);
+  }
+  .keyboard-hints kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin: 0 1px;
+  }
+  .toolbar-right { display: flex; align-items: center; gap: var(--sp-sm); }
+
+  .btn-primary, .btn-secondary {
+    height: 34px;
+    padding: 0 var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+    border: none;
+  }
+  .btn-primary {
+    background: var(--brand-primary);
+    color: var(--surface-base);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .btn-primary:hover {
+    background: #F0A048;
+    box-shadow: 0 2px 6px rgba(232,150,58,0.25);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+  }
+  .btn-secondary:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+
+  /* ─── Background Table (simplified) ─── */
+  .bg-table { flex: 1; overflow: hidden; }
+  .bg-table-header {
+    height: 32px;
+    display: grid;
+    grid-template-columns: 48px 1.2fr 1.4fr 64px 60px 56px 0.7fr 72px;
+    align-items: center;
+    background: var(--surface-content);
+    border-bottom: 1px solid var(--border-default);
+  }
+  .bg-col {
+    font-size: 10px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 0 var(--sp-sm);
+  }
+  .bg-row {
+    height: var(--row-height);
+    display: grid;
+    grid-template-columns: 48px 1.2fr 1.4fr 64px 60px 56px 0.7fr 72px;
+    align-items: center;
+    border-bottom: 1px solid var(--border-default);
+    transition: background 80ms ease-out;
+  }
+  .bg-row:hover {
+    background: var(--surface-content);
+  }
+  .bg-cell {
+    padding: 0 var(--sp-sm);
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .bg-cell-art {
+    display: flex; align-items: center; justify-content: center; padding: 0;
+  }
+  .bg-art {
+    width: var(--art-size); height: var(--art-size);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; color: rgba(0,0,0,0.5);
+  }
+  .bg-artist { font-size: 13px; font-weight: 700; }
+  .bg-title { font-size: 12px; color: var(--text-secondary); }
+  .bg-bpm { font-family: var(--font-mono); font-size: 13px; font-weight: 700; text-align: right; padding-right: var(--sp-md); }
+  .bg-key-chip {
+    height: 20px; padding: 2px 8px; border-radius: var(--radius-full);
+    font-size: 11px; font-weight: 600;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  .bg-cell-key { display: flex; align-items: center; justify-content: center; }
+  .bg-genre {
+    padding: 2px 8px; border-radius: var(--radius-full);
+    font-size: 10px; color: var(--text-muted);
+    background: var(--surface-raised); border: 1px solid var(--border-default);
+  }
+  .bg-cell-genre { display: flex; align-items: center; }
+  .bg-source {
+    font-size: 10px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; padding: 1px 6px; border-radius: var(--radius-sm);
+  }
+  .bg-cell-source { display: flex; align-items: center; justify-content: center; }
+
+  .table-footer {
+    height: 28px; min-height: 28px;
+    display: flex; align-items: center;
+    padding: 0 var(--sp-lg);
+    font-size: 11px; color: var(--text-disabled);
+    border-top: 1px solid var(--border-default);
+    font-family: var(--font-mono);
+  }
+
+  /* ─── Scrim Overlay ─── */
+  .scrim {
+    position: fixed; inset: 0;
+    background: var(--scrim);
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease-out;
+  }
+  .scrim.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* ─── Import Sheet (Slide-Over) ─── */
+  .import-sheet {
+    position: fixed;
+    top: 0; right: 0;
+    width: var(--sheet-width);
+    height: 100vh;
+    background: var(--surface-raised);
+    border-left: 1px solid var(--border-default);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4);
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .import-sheet.open {
+    transform: translateX(0);
+  }
+
+  /* Sheet header */
+  .sheet-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--sp-lg);
+    border-bottom: 1px solid var(--border-default);
+    min-height: var(--toolbar-height);
+  }
+  .sheet-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .sheet-close {
+    width: 28px; height: 28px;
+    display: flex; align-items: center; justify-content: center;
+    background: transparent;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 150ms ease-out;
+  }
+  .sheet-close:hover {
+    border-color: var(--border-hover);
+    color: var(--text-secondary);
+    background: var(--surface-overlay);
+  }
+  .sheet-close:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  /* Sheet body */
+  .sheet-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: var(--sp-lg);
+    gap: var(--sp-md);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) transparent;
+  }
+
+  /* Section labels */
+  .section-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-disabled);
+    margin-bottom: 2px;
+  }
+
+  /* ─── Source Pills ─── */
+  .source-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .source-pill {
+    padding: 5px 12px;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-full);
+    background: transparent;
+    color: var(--text-muted);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+    white-space: nowrap;
+  }
+  .source-pill:hover {
+    border-color: var(--border-hover);
+    color: var(--text-secondary);
+  }
+  .source-pill.active {
+    background: rgba(232, 150, 58, 0.1);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+  }
+  .source-pill.disabled {
+    color: var(--text-disabled);
+    border-color: var(--border-default);
+    opacity: 0.4;
+    cursor: default;
+    position: relative;
+  }
+  .source-pill.disabled:hover {
+    color: var(--text-disabled);
+    border-color: var(--border-default);
+  }
+  .source-pill:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+  .source-pill .pill-tooltip {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 3px 8px;
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    font-size: 10px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease-out;
+  }
+  .source-pill.disabled:hover .pill-tooltip {
+    opacity: 1;
+  }
+
+  /* ─── URL Input ─── */
+  .url-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .url-input {
+    width: 100%;
+    padding: 8px 12px;
+    background: var(--surface-base);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    line-height: 1.4;
+    transition: border-color 150ms ease-out, box-shadow 150ms ease-out;
+  }
+  .url-input::placeholder {
+    color: var(--text-disabled);
+    font-family: var(--font-ui);
+  }
+  .url-input:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+    box-shadow: 0 0 0 2px rgba(232, 150, 58, 0.2);
+  }
+  .url-input.error {
+    border-color: var(--status-error);
+    box-shadow: 0 0 0 2px rgba(208, 80, 64, 0.2);
+  }
+  .url-input:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  .url-helper {
+    font-size: 11px;
+    color: var(--text-disabled);
+  }
+  .url-error {
+    font-size: 11px;
+    color: var(--status-error);
+    display: none;
+  }
+  .url-error.visible { display: block; }
+  .url-error-hint {
+    font-size: 10px;
+    color: var(--text-disabled);
+    margin-top: 2px;
+  }
+
+  /* ─── Import Button ─── */
+  .import-btn {
+    height: 34px;
+    padding: 0 var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+    border: none;
+    background: var(--brand-primary);
+    color: var(--surface-base);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    align-self: flex-start;
+  }
+  .import-btn:hover:not(:disabled) {
+    background: #F0A048;
+    box-shadow: 0 2px 6px rgba(232,150,58,0.25);
+  }
+  .import-btn:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+  .import-btn.loading {
+    opacity: 0.7;
+    cursor: wait;
+  }
+  .import-btn:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  /* ─── Divider ─── */
+  .sheet-divider {
+    height: 1px;
+    background: var(--border-default);
+    margin: var(--sp-xs) 0;
+  }
+
+  /* ─── Error / Warning Banners ─── */
+  .banner {
+    padding: var(--sp-md) var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    display: none;
+  }
+  .banner.visible { display: block; }
+  .banner-error {
+    background: rgba(208, 80, 64, 0.1);
+    border: 1px solid rgba(208, 80, 64, 0.25);
+    color: var(--status-error);
+  }
+  .banner-warning {
+    background: rgba(232, 196, 58, 0.08);
+    border: 1px solid rgba(232, 196, 58, 0.2);
+    color: var(--status-warning);
+  }
+  .banner-title {
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .banner-body {
+    opacity: 0.85;
+    font-size: 11px;
+    line-height: 1.45;
+  }
+  .banner-action {
+    margin-top: var(--sp-sm);
+  }
+  .banner-btn {
+    height: 28px;
+    padding: 0 var(--sp-md);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid;
+    background: transparent;
+    transition: all 150ms ease-out;
+  }
+  .banner-btn-error {
+    color: var(--status-error);
+    border-color: rgba(208, 80, 64, 0.3);
+  }
+  .banner-btn-error:hover {
+    background: rgba(208, 80, 64, 0.1);
+  }
+  .banner-btn-warning {
+    color: var(--status-warning);
+    border-color: rgba(232, 196, 58, 0.3);
+  }
+  .banner-btn-warning:hover {
+    background: rgba(232, 196, 58, 0.1);
+  }
+
+  /* ─── Track Result List ─── */
+  .result-list {
+    display: none;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) transparent;
+  }
+  .result-list.visible {
+    display: flex;
+  }
+  .result-row {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+    padding: 7px 0;
+    border-bottom: 1px solid rgba(30, 26, 22, 0.5);
+  }
+  .result-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .result-dot.success { background: var(--status-success); }
+  .result-dot.fail { background: var(--status-error); }
+  .result-dot.loading {
+    background: var(--brand-primary);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+  .result-name {
+    font-size: 11px;
+    color: var(--text-secondary);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .result-meta {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-disabled);
+    flex-shrink: 0;
+  }
+  .result-reason {
+    font-size: 9px;
+    color: var(--status-error);
+    flex-shrink: 0;
+  }
+
+  /* ─── Summary ─── */
+  .summary {
+    display: none;
+    flex-direction: column;
+    gap: var(--sp-md);
+  }
+  .summary.visible { display: flex; }
+  .summary-heading {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+  .summary-heading .count-success { color: var(--status-success); }
+  .summary-heading .count-total { color: var(--text-muted); }
+  .summary-section-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-disabled);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 2px;
+  }
+  .summary-more {
+    font-size: 11px;
+    color: var(--text-disabled);
+    padding: 4px 0;
+  }
+  .fail-section {
+    padding-top: var(--sp-sm);
+    border-top: 1px solid var(--border-default);
+  }
+  .fail-count {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--status-error);
+    margin-bottom: 6px;
+  }
+  .summary-actions {
+    display: flex;
+    gap: var(--sp-sm);
+    margin-top: var(--sp-sm);
+  }
+  .summary-btn-primary {
+    height: 34px;
+    padding: 0 var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 500;
+    border: none;
+    background: var(--brand-primary);
+    color: var(--surface-base);
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    transition: all 150ms ease-out;
+  }
+  .summary-btn-primary:hover {
+    background: #F0A048;
+  }
+  .summary-btn-ghost {
+    height: 34px;
+    padding: 0 var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: 12px; font-weight: 500;
+    border: 1px solid var(--border-default);
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 150ms ease-out;
+  }
+  .summary-btn-ghost:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+
+  /* ─── State Switcher (demo controls) ─── */
+  .demo-controls {
+    position: fixed;
+    bottom: var(--sp-lg);
+    left: calc(var(--rail-width) + var(--sp-lg));
+    display: flex;
+    gap: 6px;
+    z-index: 100;
+    flex-wrap: wrap;
+    max-width: 500px;
+  }
+  .demo-btn {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: var(--radius-full);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 500;
+    border: 1px solid var(--border-default);
+    background: var(--surface-overlay);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 120ms ease-out;
+  }
+  .demo-btn:hover {
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+  }
+  .demo-btn.active {
+    background: rgba(232, 150, 58, 0.15);
+    border-color: var(--brand-primary);
+    color: var(--brand-primary);
+  }
+  .demo-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-disabled);
+    line-height: 28px;
+    padding-right: 4px;
+  }
+
+  /* ─── Toast ─── */
+  .toast {
+    position: fixed;
+    bottom: var(--sp-xl);
+    right: var(--sp-xl);
+    padding: 10px var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 500;
+    max-width: 400px;
+    z-index: 200;
+    opacity: 0;
+    transform: translateY(8px);
+    transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .toast.visible {
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .toast-success {
+    background: rgba(90, 192, 112, 0.12);
+    color: var(--status-success);
+    border: 1px solid rgba(90, 192, 112, 0.2);
+  }
+
+  /* Focus visible */
+  :focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Icon Rail -->
+  <nav class="icon-rail" aria-label="Navigation">
+    <button class="rail-btn" aria-label="Catalog">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    </button>
+    <button class="rail-btn active" aria-label="Import">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+    </button>
+    <button class="rail-btn" aria-label="Sets">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    </button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+    </button>
+  </nav>
+
+  <!-- Catalog (Background) -->
+  <main class="main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="track-count">347 tracks</span>
+        <span class="keyboard-hints">
+          <kbd>&uarr;</kbd><kbd>&darr;</kbd> Navigate
+          &middot; <kbd>Enter</kbd> Select
+          &middot; <kbd>Space</kbd> Expand
+          &middot; <kbd>Esc</kbd> Close
+        </span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-secondary">Filter</button>
+        <button class="btn-primary" id="openImport">+ Import</button>
+      </div>
+    </div>
+    <div class="bg-table" id="bgTable"></div>
+    <div class="table-footer">Showing 19 of 347 tracks</div>
+  </main>
+</div>
+
+<!-- Scrim -->
+<div class="scrim" id="scrim"></div>
+
+<!-- Import Sheet -->
+<aside class="import-sheet" id="importSheet" role="dialog" aria-label="Import tracks" aria-modal="true">
+  <div class="sheet-header">
+    <span class="sheet-title">Import Tracks</span>
+    <button class="sheet-close" id="closeSheet" aria-label="Close import">&times;</button>
+  </div>
+
+  <div class="sheet-body">
+    <!-- Source Selection -->
+    <div>
+      <div class="section-label">Source</div>
+      <div class="source-pills" role="radiogroup" aria-label="Import source">
+        <button class="source-pill" data-source="spotify" role="radio" aria-checked="false">Spotify</button>
+        <button class="source-pill active" data-source="beatport" role="radio" aria-checked="true">Beatport</button>
+        <button class="source-pill disabled" data-source="soundcloud" role="radio" aria-checked="false" aria-disabled="true" tabindex="-1">
+          SoundCloud
+          <span class="pill-tooltip">Coming soon</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- URL Input -->
+    <div class="url-input-group" id="urlGroup">
+      <div class="section-label">Playlist or chart URL</div>
+      <input
+        type="url"
+        class="url-input"
+        id="urlInput"
+        placeholder="Paste a playlist or album URL"
+        autocomplete="off"
+        spellcheck="false"
+      >
+      <div class="url-helper" id="urlHelper">e.g. beatport.com/chart/top-100-techno/123456</div>
+      <div class="url-error" id="urlError">
+        <span id="urlErrorText"></span>
+        <div class="url-error-hint" id="urlErrorHint"></div>
+      </div>
+    </div>
+
+    <!-- Import Button -->
+    <button class="import-btn" id="importBtn" disabled>Import</button>
+
+    <!-- Network Error Banner -->
+    <div class="banner banner-error" id="bannerError">
+      <div class="banner-title">Beatport isn't responding</div>
+      <div class="banner-body">This usually resolves in a few minutes. Your existing tracks are unaffected.</div>
+      <div class="banner-action">
+        <button class="banner-btn banner-btn-error">Retry</button>
+      </div>
+    </div>
+
+    <!-- Auth Warning Banner -->
+    <div class="banner banner-warning" id="bannerWarning">
+      <div class="banner-title">Spotify needs reconnecting</div>
+      <div class="banner-body">Your connection expired — this happens periodically. Reconnecting takes about 10 seconds. Your imported tracks won't be affected.</div>
+      <div class="banner-action">
+        <button class="banner-btn banner-btn-warning">Reconnect Spotify</button>
+      </div>
+    </div>
+
+    <div class="sheet-divider" id="resultDivider" style="display:none"></div>
+
+    <!-- Progress List -->
+    <div class="result-list" id="resultList" aria-label="Import progress" role="list"></div>
+
+    <!-- Summary -->
+    <div class="summary" id="summary">
+      <div class="summary-heading">
+        <span class="count-success">12</span> of <span class="count-total">15</span> tracks imported
+      </div>
+
+      <div>
+        <div class="summary-section-label">Imported</div>
+        <div class="result-row">
+          <div class="result-dot success"></div>
+          <span class="result-name">Fisher — Losing It</span>
+          <span class="result-meta">124 · 6A</span>
+        </div>
+        <div class="result-row">
+          <div class="result-dot success"></div>
+          <span class="result-name">Peggy Gou — Starry Night</span>
+          <span class="result-meta">125 · 11B</span>
+        </div>
+        <div class="result-row">
+          <div class="result-dot success"></div>
+          <span class="result-name">Four Tet — Baby</span>
+          <span class="result-meta">130 · 2A</span>
+        </div>
+        <div class="summary-more">+ 9 more imported successfully</div>
+      </div>
+
+      <div class="fail-section">
+        <div class="fail-count">3 tracks couldn't be imported:</div>
+        <div class="result-row">
+          <div class="result-dot fail"></div>
+          <span class="result-name">Untitled — DJ Mix Set</span>
+          <span class="result-reason">Region restricted</span>
+        </div>
+        <div class="result-row">
+          <div class="result-dot fail"></div>
+          <span class="result-name">Deleted Track — Artist</span>
+          <span class="result-reason">Removed from Beatport</span>
+        </div>
+        <div class="result-row">
+          <div class="result-dot fail"></div>
+          <span class="result-name">Unknown — Promo Cut</span>
+          <span class="result-reason">Metadata unavailable</span>
+        </div>
+      </div>
+
+      <div class="summary-actions">
+        <button class="summary-btn-primary" id="summaryDone">Done — view 12 tracks</button>
+        <button class="summary-btn-ghost">Retry 3 failed</button>
+      </div>
+    </div>
+  </div>
+</aside>
+
+<!-- Toast -->
+<div class="toast toast-success" id="toast" role="status" aria-live="polite">
+  12 tracks imported successfully
+</div>
+
+<!-- Demo Controls -->
+<div class="demo-controls" aria-label="State demos">
+  <span class="demo-label">State:</span>
+  <button class="demo-btn active" data-state="default">Default</button>
+  <button class="demo-btn" data-state="filled">URL filled</button>
+  <button class="demo-btn" data-state="url-error">URL error</button>
+  <button class="demo-btn" data-state="importing">Importing</button>
+  <button class="demo-btn" data-state="complete">Complete</button>
+  <button class="demo-btn" data-state="net-error">Network error</button>
+  <button class="demo-btn" data-state="auth-warn">Auth expired</button>
+</div>
+
+<script>
+// ─── Background Catalog Data ───
+const CAMELOT = {
+  "1A":"#C04A6E","1B":"#D06080","2A":"#C07A4A","2B":"#D09060",
+  "3A":"#C0A84A","3B":"#D0B860","4A":"#9BC04A","4B":"#C04A6E",
+  "5A":"#C0A84A","5B":"#80D060","6A":"#4A9B6E","6B":"#60B080",
+  "7A":"#6E9B4A","7B":"#60D0B8","8A":"#4A8BC0","8B":"#4A8BC0",
+  "9A":"#4AC0A8","9B":"#6078D0","10A":"#6E4AC0","10B":"#8060D0",
+  "11A":"#9B4AC0","11B":"#9B6EC0","12A":"#C04A9B","12B":"#D060B0"
+};
+const BG_TRACKS = [
+  { artist:"Fisher", title:"Losing It", bpm:124, key:"6A", genre:"Tech House", source:"Spotify" },
+  { artist:"Peggy Gou", title:"Starry Night", bpm:125, key:"11B", genre:"House", source:"Beatport" },
+  { artist:"Four Tet", title:"Baby", bpm:130, key:"2A", genre:"Electronic", source:"Spotify" },
+  { artist:"Floating Points", title:"Ratio", bpm:128, key:"8B", genre:"Techno", source:"Beatport" },
+  { artist:"Kaytranada", title:"Glowed Up", bpm:110, key:"5A", genre:"R&B", source:"Spotify" },
+  { artist:"Disclosure", title:"Latch", bpm:122, key:"9A", genre:"UK Garage", source:"Spotify" },
+  { artist:"Jamie xx", title:"Gosh", bpm:120, key:"7A", genre:"Electronic", source:"Spotify" },
+  { artist:"Bicep", title:"Glue", bpm:130, key:"4B", genre:"Electronica", source:"Beatport" },
+  { artist:"Bonobo", title:"Kerala", bpm:118, key:"3A", genre:"Downtempo", source:"Spotify" },
+  { artist:"Ross From Friends", title:"Talk to Me", bpm:126, key:"10B", genre:"Lo-Fi House", source:"Beatport" },
+  { artist:"Mall Grab", title:"Can\u2019t", bpm:128, key:"1A", genre:"House", source:"Beatport" },
+  { artist:"Caribou", title:"Never Come Back", bpm:123, key:"12A", genre:"Electronica", source:"Spotify" },
+  { artist:"Khruangbin", title:"Time (You and I)", bpm:100, key:"5B", genre:"Psychedelic", source:"Spotify" },
+  { artist:"R\u00dcF\u00dcS DU SOL", title:"Innerbloom", bpm:120, key:"8A", genre:"Prog House", source:"Spotify" },
+  { artist:"Tiga", title:"Bugatti", bpm:127, key:"6B", genre:"Tech House", source:"Beatport" },
+  { artist:"DJ Koze", title:"Pick Up", bpm:118, key:"11A", genre:"Deep House", source:"Beatport" },
+  { artist:"Solomun", title:"Customer Is King", bpm:122, key:"2B", genre:"Melodic House", source:"Beatport" },
+  { artist:"Moderat", title:"Bad Kingdom", bpm:125, key:"9B", genre:"Electronica", source:"Spotify" },
+  { artist:"\u00c2me", title:"Rej", bpm:124, key:"7B", genre:"Deep House", source:"Beatport" },
+];
+
+function artColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  return `hsl(${(Math.abs(h) % 40) + 15}, 55%, 40%)`;
+}
+function chipText(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return (0.299*r + 0.587*g + 0.114*b)/255 > 0.5 ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.9)';
+}
+
+// Render background rows
+const bgTable = document.getElementById('bgTable');
+let headerHTML = '<div class="bg-table-header">';
+headerHTML += '<div class="bg-col"></div>';
+['Artist','Title','BPM','Key','Energy','Genre','Source'].forEach(c => {
+  headerHTML += `<div class="bg-col"${c==='BPM'?' style="text-align:right;padding-right:12px"':''}">${c}</div>`;
+});
+headerHTML += '</div>';
+bgTable.innerHTML = headerHTML;
+
+BG_TRACKS.forEach(t => {
+  const kc = CAMELOT[t.key] || '#666';
+  const srcCls = t.source === 'Spotify' ? 'color:#5AC070;background:rgba(90,192,112,0.1)' : 'color:#E8963A;background:rgba(232,150,58,0.1)';
+  const row = document.createElement('div');
+  row.className = 'bg-row';
+  row.innerHTML = `
+    <div class="bg-cell bg-cell-art"><div class="bg-art" style="background:${artColor(t.artist)}">${t.artist[0]}</div></div>
+    <div class="bg-cell bg-artist">${t.artist}</div>
+    <div class="bg-cell bg-title">${t.title}</div>
+    <div class="bg-cell bg-bpm">${t.bpm}</div>
+    <div class="bg-cell bg-cell-key"><span class="bg-key-chip" style="background:${kc};color:${chipText(kc)}">${t.key}</span></div>
+    <div class="bg-cell" style="color:var(--text-disabled)">—</div>
+    <div class="bg-cell bg-cell-genre"><span class="bg-genre">${t.genre}</span></div>
+    <div class="bg-cell bg-cell-source"><span class="bg-source" style="${srcCls}">${t.source}</span></div>
+  `;
+  bgTable.appendChild(row);
+});
+
+// ─── Sheet Logic ───
+const sheet = document.getElementById('importSheet');
+const scrim = document.getElementById('scrim');
+const urlInput = document.getElementById('urlInput');
+const urlHelper = document.getElementById('urlHelper');
+const urlError = document.getElementById('urlError');
+const urlErrorText = document.getElementById('urlErrorText');
+const urlErrorHint = document.getElementById('urlErrorHint');
+const importBtn = document.getElementById('importBtn');
+const resultDivider = document.getElementById('resultDivider');
+const resultList = document.getElementById('resultList');
+const summaryEl = document.getElementById('summary');
+const bannerError = document.getElementById('bannerError');
+const bannerWarning = document.getElementById('bannerWarning');
+const toast = document.getElementById('toast');
+
+function openSheet() {
+  sheet.classList.add('open');
+  scrim.classList.add('active');
+  setTimeout(() => urlInput.focus(), 300);
+}
+function closeSheet() {
+  sheet.classList.remove('open');
+  scrim.classList.remove('active');
+}
+
+document.getElementById('openImport').addEventListener('click', openSheet);
+document.getElementById('closeSheet').addEventListener('click', closeSheet);
+document.getElementById('summaryDone').addEventListener('click', () => {
+  closeSheet();
+  showToast();
+});
+scrim.addEventListener('click', closeSheet);
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && sheet.classList.contains('open')) {
+    closeSheet();
+  }
+});
+
+// Source pills
+document.querySelectorAll('.source-pill:not(.disabled)').forEach(pill => {
+  pill.addEventListener('click', () => {
+    document.querySelectorAll('.source-pill').forEach(p => {
+      p.classList.remove('active');
+      p.setAttribute('aria-checked', 'false');
+    });
+    pill.classList.add('active');
+    pill.setAttribute('aria-checked', 'true');
+  });
+});
+
+// Toast
+function showToast() {
+  toast.classList.add('visible');
+  setTimeout(() => toast.classList.remove('visible'), 4000);
+}
+
+// ─── Import Progress Tracks ───
+const IMPORT_TRACKS = [
+  { name:"Amelie Lens — Exhale", bpm:138, key:"4A", status:"success" },
+  { name:"Charlotte de Witte — Rave On", bpm:142, key:"8A", status:"success" },
+  { name:"Adam Beyer — Your Mind", bpm:133, key:"2B", status:"success" },
+  { name:"Enrico Sangiuliano — Symbiosis", bpm:136, key:"11A", status:"success" },
+  { name:"ANNA — Hidden Beauties", bpm:130, key:"6A", status:"success" },
+  { name:"Ben Klock — Subzero", bpm:131, key:"9B", status:"success" },
+  { name:"Nina Kraviz — Ghetto Kraviz", bpm:127, key:"3A", status:"success" },
+  { name:"Marcel Dettmann — Corrosion", bpm:135, key:"7A", status:"success" },
+  { name:"Kobosil — 114", bpm:140, key:"12A", status:"success" },
+  { name:"Rebekah — Code Black", bpm:139, key:"1A", status:"success" },
+  { name:"Len Faki — My Black Sheep", bpm:132, key:"5A", status:"success" },
+  { name:"Dax J — Reign of Terror", bpm:141, key:"10B", status:"success" },
+  { name:"Untitled — DJ Mix Set", bpm:null, key:null, status:"fail", reason:"Region restricted" },
+  { name:"Deleted Track — Artist", bpm:null, key:null, status:"fail", reason:"Removed from Beatport" },
+  { name:"Unknown — Promo Cut", bpm:null, key:null, status:"fail", reason:"Metadata unavailable" },
+];
+
+let importInterval = null;
+let importIdx = 0;
+
+function startImport() {
+  resultList.innerHTML = '';
+  resultList.classList.add('visible');
+  resultDivider.style.display = 'block';
+  importIdx = 0;
+
+  // Show all as loading first
+  IMPORT_TRACKS.forEach(t => {
+    const row = document.createElement('div');
+    row.className = 'result-row';
+    row.setAttribute('role', 'listitem');
+    row.innerHTML = `
+      <div class="result-dot loading"></div>
+      <span class="result-name">${t.name}</span>
+      <span class="result-meta" style="opacity:0">—</span>
+    `;
+    resultList.appendChild(row);
+  });
+
+  // Progressively resolve
+  importInterval = setInterval(() => {
+    if (importIdx >= IMPORT_TRACKS.length) {
+      clearInterval(importInterval);
+      return;
+    }
+    const t = IMPORT_TRACKS[importIdx];
+    const row = resultList.children[importIdx];
+    const dot = row.querySelector('.result-dot');
+    dot.classList.remove('loading');
+
+    if (t.status === 'success') {
+      dot.classList.add('success');
+      row.querySelector('.result-meta').style.opacity = '1';
+      row.querySelector('.result-meta').textContent = `${t.bpm} · ${t.key}`;
+    } else {
+      dot.classList.add('fail');
+      const meta = row.querySelector('.result-meta');
+      meta.remove();
+      const reason = document.createElement('span');
+      reason.className = 'result-reason';
+      reason.textContent = t.reason;
+      row.appendChild(reason);
+    }
+    importIdx++;
+  }, 220);
+}
+
+function stopImport() {
+  if (importInterval) clearInterval(importInterval);
+}
+
+// ─── State Machine ───
+function setState(state) {
+  // Reset everything
+  stopImport();
+  urlInput.value = '';
+  urlInput.classList.remove('error');
+  urlInput.disabled = false;
+  urlHelper.style.display = '';
+  urlError.classList.remove('visible');
+  importBtn.disabled = true;
+  importBtn.classList.remove('loading');
+  importBtn.textContent = 'Import';
+  resultList.classList.remove('visible');
+  resultList.innerHTML = '';
+  resultDivider.style.display = 'none';
+  summaryEl.classList.remove('visible');
+  bannerError.classList.remove('visible');
+  bannerWarning.classList.remove('visible');
+
+  // Enable/disable source pills
+  document.querySelectorAll('.source-pill:not(.disabled)').forEach(p => {
+    p.style.pointerEvents = '';
+    p.style.opacity = '';
+  });
+
+  // Update demo buttons
+  document.querySelectorAll('.demo-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector(`.demo-btn[data-state="${state}"]`)?.classList.add('active');
+
+  switch (state) {
+    case 'default':
+      openSheet();
+      break;
+
+    case 'filled':
+      openSheet();
+      urlInput.value = 'https://beatport.com/chart/top-100-techno/123456';
+      importBtn.disabled = false;
+      break;
+
+    case 'url-error':
+      openSheet();
+      urlInput.value = 'https://beatport.com/artist/amelie-lens/12345';
+      urlInput.classList.add('error');
+      urlHelper.style.display = 'none';
+      urlError.classList.add('visible');
+      urlErrorText.textContent = "This looks like an artist page, not a chart or playlist";
+      urlErrorHint.textContent = "Try a link like: beatport.com/chart/top-100/123 or beatport.com/playlist/my-list/123";
+      break;
+
+    case 'importing':
+      openSheet();
+      urlInput.value = 'https://beatport.com/chart/top-100-techno/123456';
+      urlInput.disabled = true;
+      importBtn.disabled = true;
+      importBtn.classList.add('loading');
+      importBtn.textContent = 'Importing\u2026';
+      document.querySelectorAll('.source-pill:not(.disabled)').forEach(p => {
+        p.style.pointerEvents = 'none';
+        p.style.opacity = '0.5';
+      });
+      startImport();
+      break;
+
+    case 'complete':
+      openSheet();
+      urlInput.value = 'https://beatport.com/chart/top-100-techno/123456';
+      urlInput.disabled = true;
+      importBtn.style.display = 'none';
+      document.querySelectorAll('.source-pill:not(.disabled)').forEach(p => {
+        p.style.pointerEvents = 'none';
+        p.style.opacity = '0.5';
+      });
+      summaryEl.classList.add('visible');
+      resultDivider.style.display = 'block';
+      break;
+
+    case 'net-error':
+      openSheet();
+      urlInput.value = 'https://beatport.com/chart/top-100-techno/123456';
+      bannerError.classList.add('visible');
+      break;
+
+    case 'auth-warn':
+      openSheet();
+      // Switch to Spotify pill
+      document.querySelectorAll('.source-pill').forEach(p => {
+        p.classList.remove('active');
+        p.setAttribute('aria-checked', 'false');
+      });
+      document.querySelector('[data-source="spotify"]').classList.add('active');
+      document.querySelector('[data-source="spotify"]').setAttribute('aria-checked', 'true');
+      bannerWarning.classList.add('visible');
+      break;
+  }
+
+  // Restore import button display
+  if (state !== 'complete') {
+    importBtn.style.display = '';
+  }
+}
+
+// Demo controls
+document.querySelectorAll('.demo-btn').forEach(btn => {
+  btn.addEventListener('click', () => setState(btn.dataset.state));
+});
+
+// URL input validation (simple)
+urlInput.addEventListener('input', () => {
+  const val = urlInput.value.trim();
+  importBtn.disabled = val.length < 10;
+});
+
+// Init: open sheet in default state
+setState('default');
+</script>
+</body>
+</html>

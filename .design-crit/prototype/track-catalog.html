@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Catalog — Ethnomusicology</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+  :root {
+    /* Ember Crate — Surface */
+    --surface-base: #0F0D0B;
+    --surface-content: #141210;
+    --surface-raised: #1A1714;
+    --surface-overlay: #201C18;
+
+    /* Brand */
+    --brand-primary: #E8963A;
+    --brand-secondary: #C06030;
+
+    /* Text */
+    --text-primary: #F0ECE4;
+    --text-secondary: #C8C4BC;
+    --text-muted: #8B8580;
+    --text-disabled: #5C5854;
+
+    /* Border */
+    --border-default: #1E1A16;
+    --border-hover: #2A2520;
+    --border-accent: #E8963A;
+
+    /* Status */
+    --status-success: #5AC070;
+    --status-warning: #E8C43A;
+    --status-error: #D05040;
+    --status-info: #5A9EC0;
+
+    /* Energy */
+    --energy-low: #5A9EC0;
+    --energy-mid: #E8963A;
+    --energy-high: #D05040;
+
+    /* Typography */
+    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', monospace;
+
+    /* Spacing */
+    --sp-xs: 4px; --sp-sm: 8px; --sp-md: 12px;
+    --sp-lg: 16px; --sp-xl: 24px; --sp-2xl: 32px; --sp-3xl: 48px;
+
+    /* Shape */
+    --radius-sm: 3px; --radius-md: 6px; --radius-full: 9999px;
+
+    /* Layout */
+    --rail-width: 48px;
+    --toolbar-height: 48px;
+    --row-height: 40px;
+    --art-size: 32px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { height: 100%; }
+
+  body {
+    height: 100%;
+    background: var(--surface-base);
+    color: var(--text-primary);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    line-height: 1.4;
+    overflow: hidden;
+    font-feature-settings: 'tnum' 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Analog noise texture — subtle 808 nod */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 9999;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+    background-size: 256px 256px;
+  }
+
+  /* Skip link */
+  .skip-link {
+    position: absolute;
+    top: -100px;
+    left: var(--rail-width);
+    padding: var(--sp-sm) var(--sp-lg);
+    background: var(--brand-primary);
+    color: var(--surface-base);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
+    z-index: 1000;
+    transition: top 150ms ease-out;
+  }
+  .skip-link:focus {
+    top: 0;
+    outline: none;
+  }
+
+  /* Layout shell */
+  .app {
+    display: flex;
+    height: 100vh;
+  }
+
+  /* ─── Icon Rail ─── */
+  .icon-rail {
+    width: var(--rail-width);
+    min-width: var(--rail-width);
+    height: 100%;
+    background: var(--surface-base);
+    border-right: 1px solid var(--border-default);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: var(--sp-md) 0;
+    gap: var(--sp-xs);
+    z-index: 10;
+  }
+  .rail-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    border-radius: var(--radius-md);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 150ms ease-out;
+    position: relative;
+  }
+  .rail-btn:hover {
+    background: var(--surface-raised);
+    color: var(--text-secondary);
+  }
+  .rail-btn.active {
+    color: var(--brand-primary);
+    background: rgba(232, 150, 58, 0.08);
+  }
+  .rail-btn:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+  .rail-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  /* Tooltip */
+  .rail-btn .tooltip {
+    position: absolute;
+    left: calc(100% + 8px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 4px 10px;
+    background: var(--surface-overlay);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease-out;
+  }
+  .rail-btn:hover .tooltip,
+  .rail-btn:focus-visible .tooltip {
+    opacity: 1;
+  }
+
+  .rail-spacer { flex: 1; }
+
+  /* ─── Main Content ─── */
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    height: 100vh;
+    padding-right: 10px;
+  }
+
+  /* ─── Toolbar ─── */
+  .toolbar {
+    height: var(--toolbar-height);
+    min-height: var(--toolbar-height);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 var(--sp-lg);
+    border-bottom: 1px solid var(--border-default);
+    background: var(--surface-base);
+  }
+  .toolbar-left {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-lg);
+  }
+  .track-count {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .keyboard-hints {
+    font-size: 11px;
+    color: var(--text-disabled);
+    letter-spacing: 0.01em;
+  }
+  .keyboard-hints kbd {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    border-radius: 3px;
+    padding: 1px 5px;
+    margin: 0 1px;
+  }
+  .toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-sm);
+  }
+  .btn-primary, .btn-secondary {
+    height: 34px;
+    padding: 0 var(--sp-lg);
+    border-radius: var(--radius-md);
+    font-family: var(--font-ui);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 150ms ease-out;
+    border: none;
+  }
+  .btn-primary {
+    background: var(--brand-primary);
+    color: var(--surface-base);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  }
+  .btn-primary:hover {
+    background: #F0A048;
+    box-shadow: 0 2px 6px rgba(232,150,58,0.25);
+  }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border-default);
+  }
+  .btn-secondary:hover {
+    border-color: var(--border-hover);
+    color: var(--text-primary);
+  }
+  .btn-primary:focus-visible,
+  .btn-secondary:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 2px;
+  }
+
+  /* ─── Table ─── */
+  .table-wrap {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-hover) transparent;
+  }
+  .table-wrap::-webkit-scrollbar { width: 6px; }
+  .table-wrap::-webkit-scrollbar-track { background: transparent; }
+  .table-wrap::-webkit-scrollbar-thumb {
+    background: var(--border-hover);
+    border-radius: 3px;
+  }
+
+  .table-grid {
+    display: grid;
+    grid-template-columns: 48px minmax(120px, 1.2fr) minmax(120px, 1.4fr) 64px 60px 56px minmax(80px, 0.7fr) 72px;
+    align-items: center;
+  }
+
+  /* Column headers */
+  .table-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--surface-content);
+    border-bottom: 1px solid var(--border-default);
+  }
+  .table-header .table-grid {
+    height: 32px;
+  }
+  .col-header {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    padding: 0 var(--sp-sm);
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: color 150ms ease-out;
+    height: 100%;
+  }
+  .col-header:hover { color: var(--text-secondary); }
+  .col-header.sorted { color: var(--brand-primary); }
+  .col-header .sort-arrow {
+    font-size: 8px;
+    opacity: 0;
+    transition: all 150ms ease-out;
+  }
+  .col-header:hover .sort-arrow { opacity: 0.4; }
+  .col-header.sorted .sort-arrow { opacity: 1; }
+  .col-header.sorted.desc .sort-arrow { transform: rotate(180deg); }
+  .col-header-art { padding: 0; }
+  .sort-rank {
+    font-family: var(--font-mono);
+    font-size: 8px;
+    width: 12px;
+    height: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--brand-primary);
+    color: var(--surface-base);
+    border-radius: var(--radius-full);
+    font-weight: 700;
+  }
+
+  /* ─── Track Rows ─── */
+  .track-row {
+    border-bottom: 1px solid var(--border-default);
+    cursor: pointer;
+    transition: background 80ms ease-out;
+    position: relative;
+  }
+  .track-row .table-grid {
+    height: var(--row-height);
+  }
+  .track-row:hover {
+    background: var(--surface-content);
+  }
+  .track-row:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: -2px;
+    z-index: 2;
+  }
+  .track-row.selected {
+    background: rgba(232, 150, 58, 0.05);
+    border-left: 3px solid var(--brand-primary);
+  }
+  .track-row.selected .table-grid {
+    padding-left: 0;
+  }
+
+  /* Cells */
+  .cell {
+    padding: 0 var(--sp-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
+  }
+
+  /* Art */
+  .cell-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .art-thumb {
+    width: var(--art-size);
+    height: var(--art-size);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(0,0,0,0.5);
+    flex-shrink: 0;
+  }
+
+  /* Artist */
+  .cell-artist {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  /* Title */
+  .cell-title {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-secondary);
+  }
+
+  /* BPM */
+  .cell-bpm {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-align: right;
+    padding-right: var(--sp-md);
+  }
+
+  /* Camelot Key Chip */
+  .cell-key {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .camelot-chip {
+    height: 20px;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 11px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    letter-spacing: 0.01em;
+  }
+
+  /* Energy Bars */
+  .cell-energy {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    position: relative;
+  }
+  .energy-meter {
+    display: flex;
+    gap: 1px;
+    align-items: flex-end;
+    height: 14px;
+  }
+  .energy-seg {
+    width: 3px;
+    border-radius: 1px;
+    transition: background 150ms ease-out;
+  }
+  .energy-seg.off {
+    background: var(--border-default);
+  }
+  .energy-val {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    color: var(--text-disabled);
+    opacity: 0;
+    transition: opacity 150ms ease-out;
+    position: absolute;
+    right: 4px;
+  }
+  .track-row:hover .energy-val,
+  .track-row:focus-visible .energy-val,
+  .track-row.selected .energy-val {
+    opacity: 1;
+  }
+
+  /* Genre Pill */
+  .cell-genre { display: flex; align-items: center; }
+  .genre-pill {
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-muted);
+    background: var(--surface-raised);
+    border: 1px solid var(--border-default);
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Source Badge */
+  .cell-source { display: flex; align-items: center; justify-content: center; }
+  .source-badge {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+  }
+  .source-spotify {
+    color: #5AC070;
+    background: rgba(90, 192, 112, 0.1);
+  }
+  .source-beatport {
+    color: var(--brand-primary);
+    background: rgba(232, 150, 58, 0.1);
+  }
+
+  /* ─── Detail Strip ─── */
+  .detail-strip {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 200ms ease-out, padding 200ms ease-out;
+    background: var(--surface-content);
+    border-bottom: 1px solid var(--border-default);
+  }
+  .detail-strip.open {
+    max-height: 120px;
+    padding: var(--sp-md) var(--sp-lg) var(--sp-md) calc(48px + var(--sp-lg));
+  }
+  .detail-inner {
+    display: flex;
+    gap: var(--sp-xl);
+    align-items: flex-start;
+  }
+  .detail-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .detail-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-disabled);
+  }
+  .detail-value {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+  .detail-value.mono {
+    font-family: var(--font-mono);
+  }
+  .compatible-keys {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+  .compat-chip {
+    height: 16px;
+    padding: 1px 6px;
+    border-radius: var(--radius-full);
+    font-size: 9px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* ─── Table Footer ─── */
+  .table-footer {
+    height: 28px;
+    min-height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 var(--sp-lg);
+    font-size: 11px;
+    color: var(--text-disabled);
+    border-top: 1px solid var(--border-default);
+    background: var(--surface-base);
+    font-family: var(--font-mono);
+  }
+
+  /* Transitions & accessibility */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  /* Selection color */
+  ::selection {
+    background: rgba(232, 150, 58, 0.3);
+    color: var(--text-primary);
+  }
+</style>
+</head>
+<body>
+<a href="#catalog" class="skip-link">Skip to track catalog</a>
+
+<div class="app">
+  <!-- Icon Rail -->
+  <nav class="icon-rail" aria-label="Navigation">
+    <button class="rail-btn active" aria-label="Catalog">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span class="tooltip">Catalog</span>
+    </button>
+    <button class="rail-btn" aria-label="Import">
+      <svg viewBox="0 0 24 24"><path d="M12 3v12m0 0l-4-4m4 4l4-4"/><path d="M4 17v2a2 2 0 002 2h12a2 2 0 002-2v-2"/></svg>
+      <span class="tooltip">Import</span>
+    </button>
+    <button class="rail-btn" aria-label="Sets">
+      <svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+      <span class="tooltip">Sets</span>
+    </button>
+    <div class="rail-spacer"></div>
+    <button class="rail-btn" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72l1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
+      <span class="tooltip">Settings</span>
+    </button>
+  </nav>
+
+  <!-- Main Content -->
+  <main id="catalog" class="main">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <span class="track-count" id="trackCount">347 tracks</span>
+        <span class="keyboard-hints">
+          <kbd>&uarr;</kbd><kbd>&darr;</kbd> Navigate
+          &middot; <kbd>Enter</kbd> Select
+          &middot; <kbd>Space</kbd> Expand
+          &middot; <kbd>Esc</kbd> Close
+        </span>
+      </div>
+      <div class="toolbar-right">
+        <button class="btn-secondary">Filter</button>
+        <button class="btn-primary">+ Import</button>
+      </div>
+    </div>
+
+    <div class="table-header">
+      <div class="table-grid">
+        <div class="col-header col-header-art"></div>
+        <div class="col-header" data-sort="artist">Artist <span class="sort-arrow">&#9650;</span></div>
+        <div class="col-header" data-sort="title">Title <span class="sort-arrow">&#9650;</span></div>
+        <div class="col-header sorted" data-sort="bpm" style="justify-content:flex-end;padding-right:var(--sp-md)">BPM <span class="sort-arrow">&#9650;</span></div>
+        <div class="col-header" data-sort="key">Key <span class="sort-arrow">&#9650;</span></div>
+        <div class="col-header" data-sort="energy">Energy <span class="sort-arrow">&#9650;</span></div>
+        <div class="col-header" data-sort="genre">Genre <span class="sort-arrow">&#9650;</span></div>
+        <div class="col-header" data-sort="source">Source <span class="sort-arrow">&#9650;</span></div>
+      </div>
+    </div>
+
+    <div class="table-wrap" id="tableWrap" role="grid" aria-label="Track catalog">
+      <!-- Rows injected by JS -->
+    </div>
+
+    <div class="table-footer" role="status" aria-live="polite" id="tableFooter">
+      Showing 19 of 347 tracks
+    </div>
+  </main>
+</div>
+
+<script>
+// ─── Track Data ───
+const TRACKS = [
+  { artist:"Fisher", title:"Losing It", bpm:124, key:"6A", genre:"Tech House", source:"Spotify", energy:8 },
+  { artist:"Peggy Gou", title:"Starry Night", bpm:125, key:"11B", genre:"House", source:"Beatport", energy:7 },
+  { artist:"Four Tet", title:"Baby", bpm:130, key:"2A", genre:"Electronic", source:"Spotify", energy:5 },
+  { artist:"Floating Points", title:"Ratio", bpm:128, key:"8B", genre:"Techno", source:"Beatport", energy:9 },
+  { artist:"Kaytranada", title:"Glowed Up", bpm:110, key:"5A", genre:"R&B", source:"Spotify", energy:5 },
+  { artist:"Disclosure", title:"Latch", bpm:122, key:"9A", genre:"UK Garage", source:"Spotify", energy:6 },
+  { artist:"Jamie xx", title:"Gosh", bpm:120, key:"7A", genre:"Electronic", source:"Spotify", energy:8 },
+  { artist:"Bicep", title:"Glue", bpm:130, key:"4B", genre:"Electronica", source:"Beatport", energy:9 },
+  { artist:"Bonobo", title:"Kerala", bpm:118, key:"3A", genre:"Downtempo", source:"Spotify", energy:4 },
+  { artist:"Ross From Friends", title:"Talk to Me", bpm:126, key:"10B", genre:"Lo-Fi House", source:"Beatport", energy:6 },
+  { artist:"Mall Grab", title:"Can\u2019t", bpm:128, key:"1A", genre:"House", source:"Beatport", energy:7 },
+  { artist:"Caribou", title:"Never Come Back", bpm:123, key:"12A", genre:"Electronica", source:"Spotify", energy:6 },
+  { artist:"Khruangbin", title:"Time (You and I)", bpm:100, key:"5B", genre:"Psychedelic", source:"Spotify", energy:3 },
+  { artist:"R\u00dcF\u00dcS DU SOL", title:"Innerbloom", bpm:120, key:"8A", genre:"Prog House", source:"Spotify", energy:7 },
+  { artist:"Tiga", title:"Bugatti", bpm:127, key:"6B", genre:"Tech House", source:"Beatport", energy:8 },
+  { artist:"DJ Koze", title:"Pick Up", bpm:118, key:"11A", genre:"Deep House", source:"Beatport", energy:5 },
+  { artist:"Solomun", title:"Customer Is King", bpm:122, key:"2B", genre:"Melodic House", source:"Beatport", energy:6 },
+  { artist:"Moderat", title:"Bad Kingdom", bpm:125, key:"9B", genre:"Electronica", source:"Spotify", energy:7 },
+  { artist:"\u00c2me", title:"Rej", bpm:124, key:"7B", genre:"Deep House", source:"Beatport", energy:8 },
+];
+
+// ─── Camelot Colors ───
+const CAMELOT = {
+  "1A":"#C04A6E","1B":"#D06080","2A":"#C07A4A","2B":"#D09060",
+  "3A":"#C0A84A","3B":"#D0B860","4A":"#9BC04A","4B":"#C04A6E",
+  "5A":"#C0A84A","5B":"#80D060","6A":"#4A9B6E","6B":"#60B080",
+  "7A":"#6E9B4A","7B":"#60D0B8","8A":"#4A8BC0","8B":"#4A8BC0",
+  "9A":"#4AC0A8","9B":"#6078D0","10A":"#6E4AC0","10B":"#8060D0",
+  "11A":"#9B4AC0","11B":"#9B6EC0","12A":"#C04A9B","12B":"#D060B0"
+};
+
+// Compatible keys (Camelot wheel neighbors)
+const COMPAT = {
+  "1A":["12A","2A","1B"],"1B":["12B","2B","1A"],"2A":["1A","3A","2B"],"2B":["1B","3B","2A"],
+  "3A":["2A","4A","3B"],"3B":["2B","4B","3A"],"4A":["3A","5A","4B"],"4B":["3B","5B","4A"],
+  "5A":["4A","6A","5B"],"5B":["4B","6B","5A"],"6A":["5A","7A","6B"],"6B":["5B","7B","6A"],
+  "7A":["6A","8A","7B"],"7B":["6B","8B","7A"],"8A":["7A","9A","8B"],"8B":["7B","9B","8A"],
+  "9A":["8A","10A","9B"],"9B":["8B","10B","9A"],"10A":["9A","11A","10B"],"10B":["9B","11B","10A"],
+  "11A":["10A","12A","11B"],"11B":["10B","12B","11A"],"12A":["11A","1A","12B"],"12B":["11B","1B","12A"]
+};
+
+// Art color from artist name
+function artColor(name) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h);
+  const hue = (Math.abs(h) % 40) + 15; // warm range 15-55
+  return `hsl(${hue}, 55%, 40%)`;
+}
+
+// Energy color
+function energyColor(level) {
+  if (level <= 3) return getComputedStyle(document.documentElement).getPropertyValue('--energy-low').trim();
+  if (level <= 6) return getComputedStyle(document.documentElement).getPropertyValue('--energy-mid').trim();
+  return getComputedStyle(document.documentElement).getPropertyValue('--energy-high').trim();
+}
+
+// Chip text color (light or dark based on bg brightness)
+function chipTextColor(hexBg) {
+  const r = parseInt(hexBg.slice(1,3),16), g = parseInt(hexBg.slice(3,5),16), b = parseInt(hexBg.slice(5,7),16);
+  const lum = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return lum > 0.5 ? 'rgba(0,0,0,0.75)' : 'rgba(255,255,255,0.9)';
+}
+
+// ─── Render ───
+let sortKey = 'bpm', sortDir = 'asc';
+let selectedIdx = -1;
+let expandedIdx = -1;
+let focusIdx = -1;
+let sortedTracks = [...TRACKS];
+
+function sortTracks() {
+  sortedTracks = [...TRACKS].sort((a, b) => {
+    let va = a[sortKey], vb = b[sortKey];
+    if (typeof va === 'string') va = va.toLowerCase();
+    if (typeof vb === 'string') vb = vb.toLowerCase();
+    if (va < vb) return sortDir === 'asc' ? -1 : 1;
+    if (va > vb) return sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+}
+
+function renderRows() {
+  const wrap = document.getElementById('tableWrap');
+  wrap.innerHTML = '';
+
+  sortedTracks.forEach((t, i) => {
+    // Row
+    const row = document.createElement('div');
+    row.className = 'track-row' + (i === selectedIdx ? ' selected' : '');
+    row.tabIndex = 0;
+    row.setAttribute('role', 'row');
+    row.setAttribute('aria-label', `${t.artist}, ${t.title}, ${t.bpm} BPM, key ${t.key}, energy ${t.energy} out of 10, ${t.genre}, from ${t.source}`);
+    row.dataset.index = i;
+
+    // Energy bars HTML
+    const ec = energyColor(t.energy);
+    const bars = Math.ceil(t.energy / 2);
+    let energyHTML = '<div class="energy-meter" title="Energy: ' + t.energy + '/10">';
+    for (let s = 0; s < 5; s++) {
+      const h = 6 + s * 2; // staggered heights: 6,8,10,12,14
+      const on = s < bars;
+      energyHTML += `<div class="energy-seg ${on ? '' : 'off'}" style="height:${h}px;${on ? 'background:'+ec : ''}"></div>`;
+    }
+    energyHTML += '</div>';
+    energyHTML += `<span class="energy-val">${t.energy}</span>`;
+
+    // Camelot chip
+    const kc = CAMELOT[t.key] || '#666';
+    const kt = chipTextColor(kc);
+
+    // Source badge
+    const srcClass = t.source === 'Spotify' ? 'source-spotify' : 'source-beatport';
+
+    row.innerHTML = `
+      <div class="table-grid">
+        <div class="cell cell-art">
+          <div class="art-thumb" role="img" aria-label="${t.title} by ${t.artist}" style="background:${artColor(t.artist)}">${t.artist[0]}</div>
+        </div>
+        <div class="cell cell-artist">${t.artist}</div>
+        <div class="cell cell-title">${t.title}</div>
+        <div class="cell cell-bpm">${t.bpm}</div>
+        <div class="cell cell-key"><span class="camelot-chip" style="background:${kc};color:${kt}">${t.key}</span></div>
+        <div class="cell cell-energy">${energyHTML}</div>
+        <div class="cell cell-genre"><span class="genre-pill">${t.genre}</span></div>
+        <div class="cell cell-source"><span class="source-badge ${srcClass}">${t.source}</span></div>
+      </div>
+    `;
+
+    // Click handler
+    row.addEventListener('click', () => selectRow(i));
+
+    wrap.appendChild(row);
+
+    // Detail strip
+    const strip = document.createElement('div');
+    strip.className = 'detail-strip' + (i === expandedIdx ? ' open' : '');
+    strip.id = 'detail-' + i;
+
+    const compatHTML = (COMPAT[t.key] || []).map(k => {
+      const cc = CAMELOT[k] || '#666';
+      return `<span class="compat-chip" style="background:${cc};color:${chipTextColor(cc)}">${k}</span>`;
+    }).join('');
+
+    strip.innerHTML = `
+      <div class="detail-inner">
+        <div class="detail-group">
+          <span class="detail-label">Label</span>
+          <span class="detail-value">${t.source === 'Beatport' ? 'Drumcode' : 'XL Recordings'}</span>
+        </div>
+        <div class="detail-group">
+          <span class="detail-label">Added</span>
+          <span class="detail-value mono">2026-02-28</span>
+        </div>
+        <div class="detail-group">
+          <span class="detail-label">Duration</span>
+          <span class="detail-value mono">${Math.floor(3 + Math.random()*4)}:${String(Math.floor(Math.random()*60)).padStart(2,'0')}</span>
+        </div>
+        <div class="detail-group">
+          <span class="detail-label">Compatible Keys</span>
+          <div class="compatible-keys">${compatHTML}</div>
+        </div>
+      </div>
+    `;
+    wrap.appendChild(strip);
+  });
+
+  // Update headers
+  document.querySelectorAll('.col-header[data-sort]').forEach(h => {
+    const k = h.dataset.sort;
+    h.classList.toggle('sorted', k === sortKey);
+    h.classList.toggle('desc', k === sortKey && sortDir === 'desc');
+  });
+}
+
+function selectRow(idx) {
+  if (selectedIdx === idx) {
+    selectedIdx = -1;
+    expandedIdx = -1;
+  } else {
+    selectedIdx = idx;
+  }
+  renderRows();
+  focusRow(idx);
+}
+
+function toggleExpand(idx) {
+  if (expandedIdx === idx) {
+    expandedIdx = -1;
+  } else {
+    expandedIdx = idx;
+    if (selectedIdx !== idx) selectedIdx = idx;
+  }
+  renderRows();
+  focusRow(idx);
+}
+
+function focusRow(idx) {
+  focusIdx = idx;
+  const rows = document.querySelectorAll('.track-row');
+  if (rows[idx]) {
+    rows[idx].focus();
+    rows[idx].scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+}
+
+// ─── Sort ───
+document.querySelectorAll('.col-header[data-sort]').forEach(h => {
+  h.addEventListener('click', () => {
+    const k = h.dataset.sort;
+    if (sortKey === k) {
+      sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+    } else {
+      sortKey = k;
+      sortDir = 'asc';
+    }
+    selectedIdx = -1;
+    expandedIdx = -1;
+    sortTracks();
+    renderRows();
+  });
+});
+
+// ─── Keyboard Navigation ───
+document.addEventListener('keydown', (e) => {
+  const rows = document.querySelectorAll('.track-row');
+  if (!rows.length) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    focusIdx = Math.min(focusIdx + 1, rows.length - 1);
+    focusRow(focusIdx);
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    focusIdx = Math.max(focusIdx - 1, 0);
+    focusRow(focusIdx);
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (focusIdx >= 0) selectRow(focusIdx);
+  } else if (e.key === ' ') {
+    e.preventDefault();
+    if (focusIdx >= 0) toggleExpand(focusIdx);
+  } else if (e.key === 'Escape') {
+    selectedIdx = -1;
+    expandedIdx = -1;
+    renderRows();
+  }
+});
+
+// ─── Init ───
+sortTracks();
+renderRows();
+</script>
+</body>
+</html>
