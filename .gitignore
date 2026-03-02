@@ -43,3 +43,4 @@ Thumbs.db
 
 # Claude local settings
 .claude/settings.local.json
+backend/e2e-test.db
