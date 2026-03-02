@@ -1,0 +1,2093 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Forge: Prompt-Engineering a Development Methodology</title>
+
+<!-- Reveal.js from CDN -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/theme/black.min.css" id="theme">
+
+<!-- highlight.js for code -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+
+<!-- Inter + JetBrains Mono -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    /* Ember Crate palette */
+    --surface-base: #0F0D0B;
+    --surface-content: #141210;
+    --surface-raised: #1A1714;
+    --surface-overlay: #201C18;
+    --brand-primary: #E8963A;
+    --brand-secondary: #C06030;
+    --text-primary: #F0ECE4;
+    --text-secondary: #C8C4BC;
+    --text-muted: #8B8580;
+    --text-disabled: #5C5854;
+    --accent-teal: #5A9EC0;
+    --accent-red: #D05040;
+    --accent-green: #6AAF6A;
+  }
+
+  .reveal {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    font-size: 28px;
+  }
+
+  .reveal .slides {
+    text-align: left;
+  }
+
+  .reveal .slides section {
+    background: var(--surface-base);
+  }
+
+  .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    color: var(--text-primary);
+    text-transform: none;
+    letter-spacing: -0.01em;
+  }
+
+  .reveal h1 {
+    font-size: 2.2em;
+    line-height: 1.1;
+  }
+  .reveal h2 {
+    font-size: 1.5em;
+    margin-bottom: 0.6em;
+  }
+  .reveal h3 {
+    font-size: 1.1em;
+    color: var(--brand-primary);
+  }
+
+  .reveal p, .reveal li {
+    color: var(--text-secondary);
+    font-size: 0.85em;
+    line-height: 1.5;
+  }
+
+  .reveal strong {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .reveal em {
+    color: var(--brand-primary);
+    font-style: normal;
+  }
+
+  .reveal code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85em;
+    background: var(--surface-content);
+    padding: 2px 6px;
+    border-radius: 3px;
+    color: var(--brand-primary);
+  }
+
+  .reveal pre {
+    width: 100%;
+    font-size: 0.52em;
+    box-shadow: none;
+    margin: 0.5em 0;
+  }
+
+  .reveal pre code {
+    font-family: 'JetBrains Mono', monospace;
+    background: var(--surface-content);
+    border: 1px solid var(--surface-raised);
+    border-radius: 6px;
+    padding: 16px 20px;
+    max-height: 500px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+  }
+
+  .reveal ul {
+    list-style: none;
+    padding-left: 0;
+  }
+
+  .reveal ul li::before {
+    content: "→ ";
+    color: var(--brand-primary);
+    font-weight: 600;
+  }
+
+  .reveal ul ul li::before {
+    content: "· ";
+    color: var(--text-muted);
+  }
+
+  .reveal .subtitle {
+    color: var(--text-muted);
+    font-size: 0.7em;
+    margin-top: 0.2em;
+  }
+
+  .reveal .amber {
+    color: var(--brand-primary);
+  }
+
+  .reveal .copper {
+    color: var(--brand-secondary);
+  }
+
+  .reveal .teal {
+    color: var(--accent-teal);
+  }
+
+  .reveal .muted {
+    color: var(--text-muted);
+  }
+
+  .reveal .red {
+    color: var(--accent-red);
+  }
+
+  .reveal .green {
+    color: var(--accent-green);
+  }
+
+  /* Color palette strip */
+  .palette-strip {
+    display: flex;
+    gap: 2px;
+    margin: 20px 0;
+    height: 6px;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .palette-strip span {
+    flex: 1;
+    display: block;
+  }
+
+  /* Two column layout */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 40px;
+    align-items: start;
+  }
+
+  .two-col-narrow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+
+  /* Cards */
+  .card {
+    background: var(--surface-content);
+    border: 1px solid var(--surface-raised);
+    border-radius: 6px;
+    padding: 20px;
+    margin: 8px 0;
+  }
+
+  .card h4 {
+    font-size: 0.8em;
+    color: var(--brand-primary);
+    margin: 0 0 8px 0;
+  }
+
+  /* Stats grid */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .stat {
+    background: var(--surface-content);
+    border: 1px solid var(--surface-raised);
+    border-radius: 6px;
+    padding: 12px 16px;
+    text-align: center;
+  }
+
+  .stat .number {
+    font-size: 1.8em;
+    font-weight: 700;
+    color: var(--brand-primary);
+    font-family: 'JetBrains Mono', monospace;
+    display: block;
+    line-height: 1.1;
+  }
+
+  .stat .label {
+    font-size: 0.6em;
+    color: var(--text-muted);
+    display: block;
+    margin-top: 4px;
+  }
+
+  /* Comparison panels */
+  .compare-panel {
+    background: var(--surface-content);
+    border: 1px solid var(--surface-raised);
+    border-radius: 6px;
+    padding: 16px;
+    font-size: 0.75em;
+  }
+
+  .compare-panel.bad {
+    border-left: 3px solid var(--accent-red);
+  }
+
+  .compare-panel.good {
+    border-left: 3px solid var(--accent-green);
+  }
+
+  .compare-panel h4 {
+    margin: 0 0 10px 0;
+    font-size: 0.9em;
+  }
+
+  /* Bar chart for context rot */
+  .bar-chart {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    height: 180px;
+    padding: 0 20px;
+    border-bottom: 2px solid var(--surface-raised);
+    margin: 20px 0;
+  }
+
+  .bar-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex: 1;
+  }
+
+  .bar {
+    width: 100%;
+    max-width: 50px;
+    background: var(--brand-primary);
+    border-radius: 3px 3px 0 0;
+    transition: height 0.3s;
+    min-height: 4px;
+  }
+
+  .bar-item.rot .bar {
+    background: var(--accent-red);
+  }
+
+  .bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6em;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+
+  .bar-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65em;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+  }
+
+  /* Diagram boxes */
+  .flow-diagram {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 16px 0;
+  }
+
+  .flow-box {
+    background: var(--surface-content);
+    border: 1px solid var(--brand-primary);
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-size: 0.7em;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--brand-primary);
+    white-space: nowrap;
+  }
+
+  .flow-arrow {
+    color: var(--text-muted);
+    font-size: 0.9em;
+  }
+
+  /* Phase labels */
+  .phase-label {
+    display: inline-block;
+    font-size: 0.55em;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 10px;
+    border-radius: 3px;
+    margin-bottom: 8px;
+  }
+
+  .phase-plan { background: rgba(232,150,58,0.15); color: var(--brand-primary); }
+  .phase-do { background: rgba(90,158,192,0.15); color: var(--accent-teal); }
+  .phase-check { background: rgba(106,175,106,0.15); color: var(--accent-green); }
+  .phase-act { background: rgba(208,80,64,0.15); color: var(--accent-red); }
+
+  /* Section dividers */
+  .section-divider {
+    text-align: center;
+  }
+
+  .section-divider h2 {
+    font-size: 2em;
+    color: var(--brand-primary);
+  }
+
+  .section-divider .section-number {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.5em;
+    color: var(--text-muted);
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  /* Sequence diagram - CSS only */
+  .sequence {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6em;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    padding: 12px;
+    background: var(--surface-content);
+    border-radius: 6px;
+    border: 1px solid var(--surface-raised);
+  }
+
+  .seq-header {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    text-align: center;
+    font-weight: 700;
+    color: var(--brand-primary);
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--surface-raised);
+    margin-bottom: 8px;
+  }
+
+  .seq-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    text-align: center;
+    padding: 2px 0;
+  }
+
+  .seq-arrow {
+    color: var(--brand-primary);
+  }
+
+  /* Directory tree */
+  .tree {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65em;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    background: var(--surface-content);
+    border: 1px solid var(--surface-raised);
+    border-radius: 6px;
+    padding: 16px 20px;
+  }
+
+  .tree .dir {
+    color: var(--brand-primary);
+    font-weight: 500;
+  }
+
+  .tree .file {
+    color: var(--text-secondary);
+  }
+
+  .tree .comment {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Grade table */
+  .grade-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.7em;
+    margin: 12px 0;
+  }
+
+  .grade-table th {
+    background: var(--surface-content);
+    color: var(--brand-primary);
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 12px;
+    border-bottom: 2px solid var(--brand-primary);
+  }
+
+  .grade-table td {
+    padding: 6px 12px;
+    border-bottom: 1px solid var(--surface-raised);
+    color: var(--text-secondary);
+  }
+
+  /* Team topology */
+  .team-diagram {
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65em;
+    line-height: 2;
+    color: var(--text-secondary);
+    background: var(--surface-content);
+    border-radius: 6px;
+    padding: 20px;
+    border: 1px solid var(--surface-raised);
+  }
+
+  .team-lead {
+    color: var(--brand-primary);
+    font-weight: 700;
+  }
+
+  .team-builder {
+    color: var(--accent-teal);
+  }
+
+  .team-critic {
+    color: var(--accent-red);
+  }
+
+  /* Pattern cards */
+  .pattern-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .pattern-card {
+    background: var(--surface-content);
+    border: 1px solid var(--surface-raised);
+    border-radius: 6px;
+    padding: 12px 16px;
+  }
+
+  .pattern-card .pattern-num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--brand-primary);
+    font-weight: 700;
+    font-size: 0.7em;
+  }
+
+  .pattern-card .pattern-text {
+    color: var(--text-secondary);
+    font-size: 0.7em;
+    margin-top: 4px;
+  }
+
+  /* Blockquote */
+  .reveal blockquote {
+    background: var(--surface-content);
+    border-left: 3px solid var(--brand-primary);
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-style: italic;
+    color: var(--text-secondary);
+    font-size: 0.85em;
+    border-radius: 0 6px 6px 0;
+    width: auto;
+  }
+
+  /* PDCA diagram */
+  .pdca-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+
+  .pdca-box {
+    background: var(--surface-content);
+    border-radius: 6px;
+    padding: 14px;
+    border: 1px solid var(--surface-raised);
+  }
+
+  .pdca-box h4 {
+    font-size: 0.7em;
+    margin: 0 0 8px 0;
+  }
+
+  .pdca-box ul {
+    margin: 0;
+    font-size: 0.65em;
+  }
+
+  .pdca-box ul li {
+    font-size: 1em;
+    margin-bottom: 2px;
+  }
+
+  /* Facet grid */
+  .facet-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    margin: 12px 0;
+  }
+
+  .facet-item {
+    background: var(--surface-content);
+    border: 1px solid var(--surface-raised);
+    border-radius: 4px;
+    padding: 8px;
+    text-align: center;
+    font-size: 0.55em;
+    color: var(--text-secondary);
+  }
+
+  .facet-item .facet-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    display: block;
+    margin-bottom: 3px;
+  }
+
+  .facet-item .facet-result {
+    color: var(--brand-primary);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9em;
+    display: block;
+  }
+
+  .facet-item.locked {
+    border-color: var(--brand-primary);
+  }
+
+  /* Token swatch */
+  .swatch-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    margin: 6px 0;
+  }
+
+  .swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.1);
+    flex-shrink: 0;
+  }
+
+  .swatch-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65em;
+    color: var(--text-muted);
+  }
+
+  /* Diff view */
+  .diff-view {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6em;
+    line-height: 1.6;
+    background: var(--surface-content);
+    border-radius: 6px;
+    padding: 14px 18px;
+    border: 1px solid var(--surface-raised);
+  }
+
+  .diff-add {
+    color: var(--accent-green);
+  }
+
+  .diff-remove {
+    color: var(--accent-red);
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+
+  .diff-context {
+    color: var(--text-muted);
+  }
+
+  /* Image placeholders */
+  .img-placeholder {
+    background: var(--surface-content);
+    border: 2px dashed var(--surface-raised);
+    border-radius: 6px;
+    padding: 30px 20px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.6em;
+    font-style: italic;
+    margin: 12px 0;
+  }
+
+  .img-placeholder .prompt-label {
+    display: block;
+    font-size: 0.9em;
+    color: var(--text-disabled);
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Reveal overrides */
+  .reveal .slide-number {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    font-size: 14px;
+  }
+
+  .reveal .progress span {
+    background: var(--brand-primary);
+  }
+
+  .reveal .controls button {
+    color: var(--brand-primary);
+  }
+
+  /* Speaker notes styling (only visible in speaker view) */
+  .reveal .speaker-notes {
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Fragments */
+  .reveal .fragment.highlight-amber.visible {
+    color: var(--brand-primary);
+  }
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+
+<!-- ============================================================ -->
+<!-- SLIDE 1: Title -->
+<!-- ============================================================ -->
+<section>
+  <div style="margin-top: 60px;">
+    <h1>The Forge</h1>
+    <p class="subtitle" style="font-size: 1em; color: var(--text-muted); margin-top: 0;">Prompt-Engineering a Development Methodology</p>
+    <p style="font-size: 0.7em; color: var(--text-disabled); margin-top: 40px;">
+      How 16 markdown files turn Claude Code into a full development team
+    </p>
+    <div class="palette-strip" style="margin-top: 50px;">
+      <span style="background: #0F0D0B;"></span>
+      <span style="background: #141210;"></span>
+      <span style="background: #1A1714;"></span>
+      <span style="background: #201C18;"></span>
+      <span style="background: #5C5854;"></span>
+      <span style="background: #8B8580;"></span>
+      <span style="background: #C06030;"></span>
+      <span style="background: #E8963A;"></span>
+      <span style="background: #F0ECE4;"></span>
+    </div>
+  </div>
+  <aside class="notes">
+    Everything you see in this presentation — the design system, the code, the tests, the retrospective — was produced by Claude Code using 16 markdown files in a .claude/ directory. One person, six weeks.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2: The Receipts -->
+<!-- ============================================================ -->
+<section>
+  <h2>The Receipts</h2>
+  <p class="subtitle">What the Forge actually produced — one person, six weeks</p>
+
+  <div class="two-col" style="margin-top: 20px;">
+    <div>
+      <h3>Code</h3>
+      <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="stat"><span class="number">7,096</span><span class="label">lines of Rust</span></div>
+        <div class="stat"><span class="number">27</span><span class="label">backend files</span></div>
+        <div class="stat"><span class="number">147</span><span class="label">tests passing</span></div>
+        <div class="stat"><span class="number">5</span><span class="label">quality gates per commit</span></div>
+      </div>
+    </div>
+    <div>
+      <h3>Artifacts</h3>
+      <div class="stats-grid" style="grid-template-columns: 1fr 1fr;">
+        <div class="stat"><span class="number">13</span><span class="label">use cases</span></div>
+        <div class="stat"><span class="number">3</span><span class="label">steel threads</span></div>
+        <div class="stat"><span class="number">10</span><span class="label">design facets locked</span></div>
+        <div class="stat"><span class="number">3</span><span class="label">HTML prototypes</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="img-placeholder" style="margin-top: 16px;">
+    AI-generated image: Overhead photograph of a workbench with scattered engineering blueprints, amber desk lamp casting warm light on technical drawings
+    <span class="prompt-label">Generate with: "workbench engineering blueprints amber desk lamp overhead shot dark moody workshop"</span>
+  </div>
+
+  <aside class="notes">
+    This is what prompt engineering looks like when you apply it to process, not just code generation. The Forge produced not just code, but the design system, the requirements, the quality gates, and the retrospectives that improved the process itself.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3: Before/After -->
+<!-- ============================================================ -->
+<section>
+  <h2>Before / After</h2>
+  <p class="subtitle">Same task — "Build a paginated track API" — different process</p>
+
+  <div class="two-col" style="margin-top: 16px;">
+    <div class="compare-panel bad">
+      <h4 class="red">Without the Forge</h4>
+<pre><code class="language-plaintext">You: "Build me a paginated track API"
+Claude: [writes 200 lines of code]
+You: "Wait, the error format is wrong"
+Claude: [rewrites error handling]
+You: "The artist field is null"
+Claude: [patches JOIN query]
+You: "Tests?"
+Claude: [writes tests after the fact]
+You: "What about empty results?"
+Claude: [adds edge case]</code></pre>
+      <p style="color: var(--accent-red); font-size: 0.75em; margin-top: 8px;">5 rounds. No error catalog. No verified postconditions.</p>
+    </div>
+    <div class="compare-panel good">
+      <h4 class="green">With the Forge</h4>
+<pre><code class="language-plaintext">/st-create Track Catalog API
+  → Steel thread doc (integration assertions)
+/uc-review ST-001
+  → Devil's advocate finds 6 gaps → fixed
+/api-contract ST-001
+  → OpenAPI spec → both agents confirm
+/task-decompose ST-001
+  → 8 tasks, dependency graph
+[Multi-agent implementation]
+/verify-uc ST-001
+  → All postconditions COVERED
+/grade-work ST-001
+  → Grade: B+ (87%) → APPROVED</code></pre>
+      <p style="color: var(--accent-green); font-size: 0.75em; margin-top: 8px;">Zero rework. Every error path handled. Graded against spec.</p>
+    </div>
+  </div>
+
+  <aside class="notes">
+    The Before column is what most teams experience with AI coding assistants. The After column is what happens when you give Claude a structured process. The key insight: the prompt engineering isn't in the code generation — it's in the workflow commands.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 2 DIVIDER -->
+<!-- ============================================================ -->
+<section class="section-divider">
+  <span class="section-number">02</span>
+  <h2>The Machinery</h2>
+  <p class="muted">How the Forge works</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4: What is the Forge? -->
+<!-- ============================================================ -->
+<section>
+  <h2>What Is the Forge?</h2>
+  <p class="subtitle">Just markdown. No plugins, no SDKs, no special tooling.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="tree">
+        <span class="dir">.claude/</span><br>
+        &nbsp;&nbsp;<span class="dir">commands/</span> <span class="comment">← 16 slash commands</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">uc-create.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">uc-review.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">task-decompose.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">st-create.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">spike-create.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">api-contract.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">verify-uc.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">grade-work.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">wireframe.md</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="file" style="color: var(--text-muted);">+ 7 more...</span><br>
+        &nbsp;&nbsp;<span class="dir">agents/</span> <span class="comment">← team roles</span><br>
+        &nbsp;&nbsp;<span class="dir">skills/</span> <span class="comment">← rubrics, templates</span><br>
+        &nbsp;&nbsp;<span class="file">settings.json</span> <span class="comment">← hooks</span>
+      </div>
+    </div>
+    <div>
+      <p style="font-size: 0.8em;">Each command file is a <strong>prompt template</strong> that casts Claude into a specialized role:</p>
+      <ul style="font-size: 0.75em;">
+        <li><strong>Requirements Architect</strong> — writes use cases</li>
+        <li><strong>Devil's Advocate</strong> — finds gaps</li>
+        <li><strong>Task Planner</strong> — builds dependency graphs</li>
+        <li><strong>Quality Gate</strong> — verifies postconditions</li>
+        <li><strong>Blind Reviewer</strong> — grades against spec</li>
+      </ul>
+      <p style="font-size: 0.7em; color: var(--text-muted); margin-top: 16px;">The command header is the entire secret:</p>
+<pre><code class="language-yaml">---
+description: Review for gaps and untestable postconditions
+allowed-tools: Read, Glob, Grep
+---</code></pre>
+      <p style="font-size: 0.65em; color: var(--text-muted);">Tool restriction = behavioral constraint.<br><code>allowed-tools: Read, Glob, Grep</code> means it can <em>find</em> problems but can't <em>fix</em> them.</p>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This is the entire technology. A markdown file with a YAML header that restricts which tools Claude can use, and a body that assigns a persona and step-by-step instructions. You can write your first command in 5 minutes.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5: PDCA Loop -->
+<!-- ============================================================ -->
+<section>
+  <h2>The PDCA Loop</h2>
+  <p class="subtitle">Every slash command maps to a phase. The cycle is repeatable and self-correcting.</p>
+
+  <div class="pdca-grid">
+    <div class="pdca-box">
+      <span class="phase-label phase-plan">Plan</span>
+      <ul>
+        <li><code>/spike-create</code> — falsifiable hypothesis</li>
+        <li><code>/uc-create</code> — Cockburn use case</li>
+        <li><code>/st-create</code> — steel thread</li>
+        <li><code>/uc-review</code> — devil's advocate</li>
+        <li><code>/api-contract</code> — OpenAPI spec</li>
+        <li><code>/task-decompose</code> — dependency graph</li>
+        <li><code>design-crit</code> — 10-facet design</li>
+      </ul>
+    </div>
+    <div class="pdca-box">
+      <span class="phase-label phase-do">Do</span>
+      <ul>
+        <li><code>/agent-team-plan</code> — team config</li>
+        <li><code>/parallel-sprint</code> — worktrees</li>
+        <li>Multi-agent implementation</li>
+        <li>Lead coordinates, never implements</li>
+        <li>Non-overlapping file ownership</li>
+      </ul>
+    </div>
+    <div class="pdca-box">
+      <span class="phase-label phase-check">Check</span>
+      <ul>
+        <li><strong>Critic Agent</strong> — fresh-context review</li>
+        <li><code>/verify-uc</code> — postcondition check</li>
+        <li><code>/grade-work</code> — blind grading (A-F)</li>
+        <li>Pre-commit hook — 5 automated gates</li>
+      </ul>
+    </div>
+    <div class="pdca-box">
+      <span class="phase-label phase-act">Act</span>
+      <ul>
+        <li><code>/retrospective</code> — lessons learned</li>
+        <li><code>/session-handoff</code> — cross-session state</li>
+        <li>Update <code>CLAUDE.md</code> with learnings</li>
+        <li>Update commands themselves</li>
+      </ul>
+    </div>
+  </div>
+
+  <p style="font-size: 0.65em; color: var(--text-muted); text-align: center;">
+    Every arrow in this cycle is an actual slash command invocation in the project history.
+  </p>
+
+  <aside class="notes">
+    This is not theoretical. We can trace every use case through this cycle in the git log. The Act phase is the most important — retrospectives feed improvements back into the commands themselves. The process evolves.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6: /uc-create -->
+<!-- ============================================================ -->
+<section>
+  <h2><code>/uc-create</code></h2>
+  <p class="subtitle">Requirements as prompt engineering — Cockburn use cases from conversation</p>
+
+  <div class="two-col">
+    <div>
+      <p style="font-size: 0.75em;">8 interactive dialog groups, each a structured prompt:</p>
+      <ol style="font-size: 0.7em; padding-left: 20px; list-style: decimal;">
+        <li style="list-style: decimal;">Classification (goal level, priority)</li>
+        <li style="list-style: decimal;">Actors (primary, supporting)</li>
+        <li style="list-style: decimal;">Conditions (pre, post, invariants)</li>
+        <li style="list-style: decimal;">Main Success Scenario (happy path)</li>
+        <li style="list-style: decimal; color: var(--brand-primary); font-weight: 600;">Extensions — MOST CRITICAL</li>
+        <li style="list-style: decimal;">Variations</li>
+        <li style="list-style: decimal;">Agent Execution Notes</li>
+        <li style="list-style: decimal;">Acceptance Criteria</li>
+      </ol>
+      <p style="font-size: 0.7em; margin-top: 12px;">Each postcondition → a test assertion<br>Each extension → error handling code</p>
+    </div>
+    <div>
+      <p style="font-size: 0.7em; color: var(--brand-primary); font-weight: 600;">The single most important line in this project:</p>
+<pre><code class="language-markdown">## Extensions
+
+- 8c. LLM hallucinates catalog tracks
+      (returns track_ids that don't exist):
+  1. Backend validation catches non-existent
+     track_ids
+  2. Those tracks are reclassified as
+     'suggestion'
+  3. Continues with corrected data</code></pre>
+      <p style="font-size: 0.65em; color: var(--text-muted);">Without this extension, the system would happily serve hallucinated track IDs to the frontend. The devil's advocate review caught this <em>before a single line of code was written</em>.</p>
+    </div>
+  </div>
+
+  <aside class="notes">
+    The Extensions section is explicitly marked "MOST CRITICAL" in the uc-create command. Error paths get more attention than happy paths. This is where the Forge pays for itself — every extension you identify here is a bug you never have to debug in production.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7: /uc-review -->
+<!-- ============================================================ -->
+<section>
+  <h2><code>/uc-review</code></h2>
+  <p class="subtitle">Adversarial review before code exists</p>
+
+  <div class="two-col">
+    <div>
+<pre><code class="language-yaml">---
+description: Review for gaps and untestable
+  postconditions
+allowed-tools: Read, Glob, Grep
+---
+
+# Review Use Case: $ARGUMENTS
+
+You are a **Devil's Advocate** reviewing
+a Cockburn-style use case.
+
+## Step 7: Extension Coverage (MOST CRITICAL)
+
+For EACH MSS step:
+  → What if it fails?
+  → Unexpected input?
+  → Dependency unavailable?
+  → Race condition?
+  → Wrong permissions?</code></pre>
+    </div>
+    <div>
+      <div class="card">
+        <h4>Key design choice: tool restriction</h4>
+        <p style="font-size: 0.7em; color: var(--text-secondary);">
+          <code>allowed-tools: Read, Glob, Grep</code><br><br>
+          The devil's advocate <strong>cannot Write</strong>. It can <em>find</em> problems but can't <em>fix</em> them. This forces it to report issues rather than silently patching.
+        </p>
+      </div>
+      <div class="card" style="margin-top: 12px;">
+        <h4>ST-003 review results</h4>
+        <p style="font-size: 0.7em; color: var(--text-secondary);">
+          <span class="red">14 issues found</span> before implementation:<br>
+          → Missing retry logic<br>
+          → Unspecified migration DDL<br>
+          → No test for hallucinated track IDs<br>
+          → No enforcement of daily rate limits<br>
+          <br>
+          <span class="green">All fixed before a single line of code.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    The tool restriction is the key insight. When Claude can only read, it becomes a genuine adversary — it has to report what's wrong instead of quietly fixing it. This produces a complete issue report that you review before implementation begins.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8: /task-decompose -->
+<!-- ============================================================ -->
+<section>
+  <h2><code>/task-decompose</code></h2>
+  <p class="subtitle">From use case to parallel task graph</p>
+
+  <div class="two-col">
+    <div>
+<pre><code class="language-plaintext">## ST-001 Dependency Graph
+
+T1 (migration 003) ──┐
+                      ├── T3 (DB query)
+T2 (AppError nested) ─┤      │
+                      │      ├── T5 (route)
+                      │      │      │
+                      │      │      ├── T6 (integration test)
+T4 (response types) ──┘      │      │
+                             │      └── T7 (frontend screen)
+                             │             │
+                             │             └── T8 (widget test)
+
+Critical path: T1 → T3 → T5 → T6
+Parallel:      Backend (T1-T6) ‖ Frontend (T7-T8)</code></pre>
+    </div>
+    <div>
+      <p style="font-size: 0.75em;">Each task specifies:</p>
+      <ul style="font-size: 0.7em;">
+        <li><strong>Module path</strong> — <code>backend/src/routes/tracks.rs</code></li>
+        <li><strong>Acceptance criteria</strong> — testable assertions</li>
+        <li><strong>Blocked by / Blocks</strong> — dependency chain</li>
+        <li><strong>Size</strong> — S / M / L / XL</li>
+        <li><strong>Risk</strong> — Low / Medium / High</li>
+        <li><strong>Agent assignment</strong> — non-overlapping files</li>
+      </ul>
+      <div class="card" style="margin-top: 12px;">
+        <h4>Why this matters</h4>
+        <p style="font-size: 0.65em; color: var(--text-secondary);">
+          The dependency graph determines which tasks can run in parallel. T1 and T2 have no dependencies — two agents can start simultaneously. The critical path tells you exactly where bottlenecks are.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This is the command that enables multi-agent teams. Without the dependency graph, you don't know what can run in parallel. With it, you can assign agents to non-overlapping tasks and let them work concurrently.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9: /grade-work -->
+<!-- ============================================================ -->
+<section>
+  <h2><code>/grade-work</code></h2>
+  <p class="subtitle">Grade the code like you'd grade a paper — blind review against spec</p>
+
+  <table class="grade-table">
+    <thead>
+      <tr><th>Category</th><th>Weight</th><th>What It Measures</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Postcondition Coverage</td><td class="amber">30%</td><td>Does every postcondition have a test?</td></tr>
+      <tr><td>Extension Handling</td><td class="amber">25%</td><td>Is every error path implemented AND tested?</td></tr>
+      <tr><td>Invariant Enforcement</td><td>15%</td><td>Enforced by types or assertions?</td></tr>
+      <tr><td>Code Quality</td><td>15%</td><td>Zero warnings, no panics, doc comments</td></tr>
+      <tr><td>Test Quality</td><td>15%</td><td>Unit + integration, clear naming</td></tr>
+    </tbody>
+  </table>
+
+  <div class="two-col" style="margin-top: 12px;">
+    <div class="card">
+      <h4>Verdict Scale</h4>
+      <p style="font-size: 0.7em; font-family: 'JetBrains Mono', monospace;">
+        <span class="green">A (90-100%)</span> → APPROVED<br>
+        <span class="green">B (80-89%)</span> &nbsp;→ APPROVED<br>
+        <span class="amber">C (70-79%)</span> &nbsp;→ CONDITIONAL<br>
+        <span class="red">D (60-69%)</span> &nbsp;→ REJECTED<br>
+        <span class="red">F (&lt;60%)</span> &nbsp;&nbsp;&nbsp;→ REJECTED
+      </p>
+    </div>
+    <div class="card">
+      <h4>Bonuses &amp; Penalties</h4>
+      <p style="font-size: 0.7em; font-family: 'JetBrains Mono', monospace;">
+        <span class="green">+5%</span> Doc comments on all public items<br>
+        <span class="green">+5%</span> Property-based tests<br>
+        <span class="red">-10%</span> Per <code>unwrap()</code> in production code<br>
+        <span class="red">-15%</span> Panics on recoverable errors
+      </p>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This is the closest thing to a code review rubric that's actually machine-executable. The blind reviewer pattern means it evaluates code ONLY against what the spec says — not what the code looks like. It can't be swayed by clean formatting or clever comments.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 3 DIVIDER -->
+<!-- ============================================================ -->
+<section class="section-divider">
+  <span class="section-number">03</span>
+  <h2>Design-Crit</h2>
+  <p class="muted">From prompts to a production design system</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10: Design-Crit Pipeline -->
+<!-- ============================================================ -->
+<section>
+  <h2>Design-Crit Pipeline</h2>
+  <p class="subtitle">10 facets, 12 rounds, 1 day — a complete design system from conversation</p>
+
+  <div class="flow-diagram" style="margin: 20px 0;">
+    <div class="flow-box">Brief</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-box">Facet Plan</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-box">Crit Loops ×12</div>
+    <span class="flow-arrow">→</span>
+    <div class="flow-box">Design Direction</div>
+  </div>
+
+  <div class="facet-grid">
+    <div class="facet-item locked"><span class="facet-name">Screen Inventory</span><span class="facet-result">Catalog-First</span></div>
+    <div class="facet-item locked"><span class="facet-name">Edge States</span><span class="facet-result">Context-Rich</span></div>
+    <div class="facet-item locked"><span class="facet-name">Layout</span><span class="facet-result">Full-Width Crate</span></div>
+    <div class="facet-item locked"><span class="facet-name">Content Hierarchy</span><span class="facet-result">Flat Five</span></div>
+    <div class="facet-item locked"><span class="facet-name">Component Design</span><span class="facet-result">Crate + Board</span></div>
+    <div class="facet-item locked"><span class="facet-name">Elevation</span><span class="facet-result">Wire Lift</span></div>
+    <div class="facet-item locked"><span class="facet-name">Typography</span><span class="facet-result">Inter Tight</span></div>
+    <div class="facet-item locked"><span class="facet-name">Color System</span><span class="facet-result">Ember Crate</span></div>
+    <div class="facet-item locked"><span class="facet-name">Density</span><span class="facet-result">Studio</span></div>
+    <div class="facet-item locked"><span class="facet-name">Accessibility</span><span class="facet-result">Enhanced Access</span></div>
+  </div>
+
+  <div class="two-col" style="margin-top: 12px;">
+    <div>
+      <h3 style="font-size: 0.8em;">How each facet works</h3>
+      <p style="font-size: 0.65em;">
+        1. Generate <strong>2-4 options</strong> as full HTML wireframes<br>
+        2. Build a <strong>side-by-side compare page</strong> with iframes<br>
+        3. User marks each: <em>Keep / Cut / Refine</em><br>
+        4. Repeat or <strong>lock</strong> the decision
+      </p>
+    </div>
+    <div>
+      <h3 style="font-size: 0.8em;">Outputs</h3>
+      <p style="font-size: 0.65em; font-family: 'JetBrains Mono', monospace;">
+        <span class="amber">design-tokens.json</span> — 233 lines, Flutter-ready<br>
+        <span class="amber">track-catalog.html</span> — full-fidelity prototype<br>
+        <span class="amber">import-sheet.html</span> — import overlay<br>
+        <span class="amber">empty-catalog.html</span> — empty state<br>
+        <span class="amber">decisions.md</span> — rationale + user signals
+      </p>
+    </div>
+  </div>
+
+  <aside class="notes">
+    Each facet generates 2-4 complete HTML wireframes that you can view side-by-side. The compare page has keep/cut/refine buttons. Most facets locked in 1 round — the user knew what they wanted when they saw it. Component Design took 2 rounds because the user wanted to merge two options.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 11: Ember Crate -->
+<!-- ============================================================ -->
+<section>
+  <h2>"It's Like a Roland 808"</h2>
+  <p class="subtitle">User signal drove the aesthetic — warm amber is the brand</p>
+
+  <div class="two-col">
+    <div>
+      <div style="margin-bottom: 16px;">
+        <div class="swatch-row"><div class="swatch" style="background: #0F0D0B;"></div><span class="swatch-label">#0F0D0B — surface base</span></div>
+        <div class="swatch-row"><div class="swatch" style="background: #141210;"></div><span class="swatch-label">#141210 — surface content</span></div>
+        <div class="swatch-row"><div class="swatch" style="background: #E8963A;"></div><span class="swatch-label">#E8963A — primary (warm amber)</span></div>
+        <div class="swatch-row"><div class="swatch" style="background: #C06030;"></div><span class="swatch-label">#C06030 — secondary (copper)</span></div>
+        <div class="swatch-row"><div class="swatch" style="background: #F0ECE4;"></div><span class="swatch-label">#F0ECE4 — text (warm white)</span></div>
+      </div>
+
+      <blockquote style="font-size: 0.75em;">
+        "All five data points matter equally. Don't pick a winner."
+        <br><br>
+        "Merge, don't compromise. Sortable columns are non-negotiable."
+        <br><br>
+        "DJs actively seek hotkeys — keyboard shortcuts are a feature, not just compliance."
+      </blockquote>
+    </div>
+    <div>
+      <div class="img-placeholder" style="min-height: 200px;">
+        Screenshot: track-catalog.html prototype<br>
+        Warm amber/copper on warm blacks, 40px rows, Camelot chips, energy bars<br>
+        <span class="prompt-label">Open .design-crit/prototype/track-catalog.html in browser</span>
+      </div>
+      <div class="card" style="margin-top: 12px;">
+        <h4>24 Camelot Key Colors (warm-shifted)</h4>
+        <div style="display: flex; gap: 2px; flex-wrap: wrap; margin-top: 6px;">
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #C04A6E;" title="1A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #D06080;" title="1B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #C07A4A;" title="2A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #D09060;" title="2B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #C0A04A;" title="3A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #D0B060;" title="3B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #8AAA4E;" title="4A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #A0C060;" title="4B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #4AAA70;" title="5A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #60C080;" title="5B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #4AAAA0;" title="6A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #60C0B0;" title="6B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #4A8AAA;" title="7A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #60A0C0;" title="7B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #4A6AAA;" title="8A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #6080C0;" title="8B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #6A4AAA;" title="9A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #8060C0;" title="9B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #904AAA;" title="10A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #A060C0;" title="10B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #AA4A8A;" title="11A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #C060A0;" title="11B"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #AA4A5A;" title="12A"></div>
+          <div style="width: 18px; height: 18px; border-radius: 3px; background: #C06070;" title="12B"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    The user immediately connected warm amber to the Roland TR-808. They think in physical hardware references, not abstract color theory. This design system was generated from structured conversation — not a designer in Figma. The decision log captures WHY each choice was made.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 4 DIVIDER -->
+<!-- ============================================================ -->
+<section class="section-divider">
+  <span class="section-number">04</span>
+  <h2>Steel Threads &amp; Spikes</h2>
+  <p class="muted">De-risking integration before building features</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 12: Problem with UCs alone -->
+<!-- ============================================================ -->
+<section>
+  <h2>The Problem with Use Cases Alone</h2>
+  <p class="subtitle">13 use cases, zero proof they connect</p>
+
+  <div class="two-col">
+    <div>
+      <p style="font-size: 0.75em;">After implementing UC-001 (Spotify Import), the project had <strong>12 more UCs planned</strong>. But:</p>
+      <ul style="font-size: 0.7em;">
+        <li>Each UC is self-contained — none proves layers connect</li>
+        <li>Does Beatport actually return BPM in Camelot format? <span class="red">Unknown</span></li>
+        <li>Can Flutter play audio cross-origin? <span class="red">Unknown</span></li>
+        <li>Does essentia fit in a 512MB container? <span class="red">Unknown</span></li>
+      </ul>
+      <p style="font-size: 0.75em; margin-top: 16px;">We needed two new tools:</p>
+      <ul style="font-size: 0.7em;">
+        <li><strong>Spikes</strong> — time-boxed experiments to reduce uncertainty</li>
+        <li><strong>Steel threads</strong> — thin vertical slices that prove integration end-to-end</li>
+      </ul>
+    </div>
+    <div>
+      <div class="card">
+        <h4>Use Case = Feature Depth</h4>
+        <p style="font-size: 0.7em;">
+          UC-016: 12 MSS steps, 15 extensions, 9 postconditions<br>
+          Covers every edge case of setlist generation<br>
+          <span class="muted">But doesn't prove Frontend → API → Claude → DB</span>
+        </p>
+      </div>
+      <div class="card" style="margin-top: 8px;">
+        <h4>Steel Thread = Integration Proof</h4>
+        <p style="font-size: 0.7em;">
+          ST-003: Thin slice across 5 layers<br>
+          8 integration assertions<br>
+          <span class="amber">Proves the connection works end-to-end</span>
+        </p>
+      </div>
+      <div class="card" style="margin-top: 8px;">
+        <h4>Spike = Hypothesis Test</h4>
+        <p style="font-size: 0.7em;">
+          SP-001: "Does Beatport return BPM?" — 4 hours<br>
+          Binary answer with evidence<br>
+          <span class="amber">De-risks before committing</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This is when we introduced the walking skeleton methodology. Use cases define WHAT to build. Steel threads prove HOW it connects. Spikes answer WILL IT WORK. Three different tools for three different questions.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 13: Spikes -->
+<!-- ============================================================ -->
+<section>
+  <h2>Spikes — Falsifiable Hypotheses</h2>
+  <p class="subtitle">3 spikes, 12 hours total, saved weeks of rework</p>
+
+  <div class="two-col">
+    <div>
+<pre><code class="language-markdown">## Hypothesis
+
+Beatport v4 API provides authenticated access
+to track metadata including BPM, musical key,
+and genre, with sufficient rate limits for
+batch import workflows.
+
+## Timebox: 4 hours
+
+## Findings
+
+Q1: Authentication flow?
+  → OAuth 2.0 with public client_id workaround
+
+Q2: BPM and key returned?
+  → YES. Native fields.
+
+Q3: What format?
+  → BPM: integer (128)
+  → Key: raw notation ("A♭ min")
+  → NOT Camelot format natively
+
+## Decision: Partially confirmed
+  ✅ BPM numeric, key native
+  ⚠️ Needs Camelot lookup table
+  ⚠️ Rate limits undocumented</code></pre>
+    </div>
+    <div>
+      <table class="grade-table" style="font-size: 0.65em;">
+        <thead>
+          <tr><th>Spike</th><th>Hypothesis</th><th>Result</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SP-001<br><span class="muted">Beatport</span></td>
+            <td>v4 API returns BPM/key</td>
+            <td><span class="amber">Partial</span><br>Key not Camelot</td>
+          </tr>
+          <tr>
+            <td>SP-002<br><span class="muted">Flutter Audio</span></td>
+            <td>just_audio plays previews in Chrome</td>
+            <td><span class="red">Partial</span><br>CORS high risk</td>
+          </tr>
+          <tr>
+            <td>SP-003<br><span class="muted">essentia</span></td>
+            <td>BPM/key extract in &lt;5s, 512MB</td>
+            <td><span class="red">Partial</span><br>Needs 1-2GB</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="card" style="margin-top: 12px;">
+        <h4>What spikes prevent</h4>
+        <p style="font-size: 0.7em;">
+          SP-002 discovered CORS would block audio streaming. Without the spike, this would have been found <em>mid-implementation</em> of the crossfade preview feature — after days of coding.
+        </p>
+        <p style="font-size: 0.7em; margin-top: 8px;">
+          SP-003 proved the container needs 1-2GB, not 512MB. The infrastructure decision changed <em>before</em> anyone wrote a Dockerfile.
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    Every spike has a falsifiable hypothesis, a timebox, specific questions, and a binary decision. "Partially confirmed" is a valid result — it means "proceed with adjustments." The spike format forces rigor: you have to answer each question with evidence, not vibes.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 14: Steel Threads -->
+<!-- ============================================================ -->
+<section>
+  <h2>Steel Threads — Proving the Connections</h2>
+  <p class="subtitle">Thin vertical slice across all layers with integration assertions</p>
+
+  <div class="two-col">
+    <div>
+      <h3 style="font-size: 0.75em;">ST-003: Setlist Generation — 5-layer slice</h3>
+      <div class="sequence">
+        <div class="seq-header">
+          <span>Frontend</span><span>API</span><span>Claude</span><span>Database</span>
+        </div>
+        <div class="seq-row"><span class="seq-arrow">●───</span><span class="seq-arrow">──→</span><span></span><span></span></div>
+        <div class="seq-row" style="font-size: 0.9em; color: var(--text-muted);">&nbsp;&nbsp;&nbsp;POST /api/setlists/generate</div>
+        <div class="seq-row"><span></span><span class="seq-arrow">───</span><span></span><span class="seq-arrow">──→</span></div>
+        <div class="seq-row" style="font-size: 0.9em; color: var(--text-muted);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Load user catalog</div>
+        <div class="seq-row"><span></span><span class="seq-arrow">───</span><span class="seq-arrow">──→</span><span></span></div>
+        <div class="seq-row" style="font-size: 0.9em; color: var(--text-muted);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Claude API call</div>
+        <div class="seq-row"><span></span><span class="seq-arrow">───</span><span></span><span class="seq-arrow">──→</span></div>
+        <div class="seq-row" style="font-size: 0.9em; color: var(--text-muted);">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Persist setlist</div>
+        <div class="seq-row"><span class="seq-arrow">←──</span><span class="seq-arrow">───</span><span></span><span></span></div>
+        <div class="seq-row" style="font-size: 0.9em; color: var(--text-muted);">&nbsp;&nbsp;&nbsp;201 Created (setlist)</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <h4>Integration Assertions (8 total)</h4>
+        <p style="font-size: 0.65em; font-family: 'JetBrains Mono', monospace; line-height: 1.7;">
+          <span class="green">✓</span> Frontend submits prompt, receives setlist<br>
+          <span class="green">✓</span> Claude API returns structured JSON<br>
+          <span class="green">✓</span> Hallucinated track_ids caught<br>
+          <span class="green">✓</span> Setlist persisted in DB<br>
+          <span class="green">✓</span> Arrangement algorithm runs E2E<br>
+          <span class="green">✓</span> Harmonic flow score calculated<br>
+          <span class="green">✓</span> Frontend renders arranged setlist<br>
+          <span class="green">✓</span> Nested error format on failure
+        </p>
+      </div>
+      <div class="card" style="margin-top: 8px;">
+        <h4 class="red">Does NOT Prove (explicit scope boundary)</h4>
+        <p style="font-size: 0.65em; color: var(--text-muted); line-height: 1.7;">
+          Prompt caching optimization<br>
+          Large catalog pre-filtering<br>
+          Per-user rate limits<br>
+          Frontend visualizations (BPM flow, energy arc)<br>
+          Conversational refinement
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    Steel threads have a "Does NOT Prove" section that prevents scope creep. This is critical — without explicit boundaries, the thread grows into a full feature. The integration assertions are the real deliverable: each one is a tested claim that a cross-layer connection works.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 5 DIVIDER -->
+<!-- ============================================================ -->
+<section class="section-divider">
+  <span class="section-number">05</span>
+  <h2>The ST-003 Story</h2>
+  <p class="muted">When the process failed — and how it evolved</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 15: Context Rot -->
+<!-- ============================================================ -->
+<section>
+  <h2>2,800 Lines, 14 Files, 1 Agent</h2>
+  <p class="subtitle">Plan: 4 parallel agents. Actual: the lead implemented everything solo.</p>
+
+  <div class="two-col">
+    <div>
+      <h3 style="font-size: 0.75em;">Fix iterations per task</h3>
+      <div class="bar-chart">
+        <div class="bar-item"><span class="bar-value">1</span><div class="bar" style="height: 17%;"></div><span class="bar-label">T1</span></div>
+        <div class="bar-item"><span class="bar-value">1</span><div class="bar" style="height: 17%;"></div><span class="bar-label">T2</span></div>
+        <div class="bar-item"><span class="bar-value">1</span><div class="bar" style="height: 17%;"></div><span class="bar-label">T3</span></div>
+        <div class="bar-item"><span class="bar-value">2</span><div class="bar" style="height: 33%;"></div><span class="bar-label">T4</span></div>
+        <div class="bar-item"><span class="bar-value">2</span><div class="bar" style="height: 33%;"></div><span class="bar-label">T5</span></div>
+        <div class="bar-item"><span class="bar-value">2</span><div class="bar" style="height: 33%;"></div><span class="bar-label">T6</span></div>
+        <div class="bar-item rot"><span class="bar-value">3</span><div class="bar" style="height: 50%;"></div><span class="bar-label">T7</span></div>
+        <div class="bar-item rot"><span class="bar-value">5</span><div class="bar" style="height: 83%;"></div><span class="bar-label">T8</span></div>
+        <div class="bar-item rot"><span class="bar-value">6</span><div class="bar" style="height: 100%;"></div><span class="bar-label">T9</span></div>
+      </div>
+      <p style="font-size: 0.6em; color: var(--text-muted); text-align: center;">
+        <span class="amber">← Clean zone</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="red">Context rot zone →</span>
+      </p>
+    </div>
+    <div>
+      <div class="card">
+        <h4 class="red">What happened</h4>
+        <p style="font-size: 0.7em;">
+          The plan specified 4 parallel agents. The lead agent ignored the directive and implemented all 9 tasks sequentially — ~2,800 lines across 14 new files.
+        </p>
+      </div>
+      <div class="card" style="margin-top: 8px;">
+        <h4>Context rot is measurable</h4>
+        <p style="font-size: 0.7em;">
+          <strong>T1-T3</strong> compiled on first try<br>
+          <strong>T8</strong>: wrong package name (<code>ethnomusicology</code> vs <code>ethnomusicology_frontend</code>)<br>
+          <strong>T9</strong>: invalid base URL, constructor mismatch, wrong assertion format<br><br>
+          <span class="muted">Errors a fresh agent would never make.</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This chart is the most important slide in the presentation. Context rot is measurable. The error rate increases as the session gets longer. By task 8, the agent was making mistakes it would never make with fresh context — confusing the backend crate name with the frontend package name.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 16: Self-Review Blind Spot -->
+<!-- ============================================================ -->
+<section>
+  <h2>"I Wrote It So I Think It's Fine"</h2>
+  <p class="subtitle">The self-review blind spot — from the actual retrospective</p>
+
+  <div class="two-col">
+    <div>
+      <h3 style="font-size: 0.75em;">Retrospective findings (verbatim)</h3>
+      <div class="card">
+        <p style="font-size: 0.7em; line-height: 1.6;">
+          <strong class="red">1. Lead implemented solo</strong><br>
+          Plan specified 4 parallel agents. Lead wrote all 9 tasks. Violated "lead coordinates, does not implement" directive.<br><br>
+          <strong class="red">2. No independent code review</strong><br>
+          Agent reviewed its own code. Self-review misses the same class of issues the writer created.<br><br>
+          <strong class="red">3. Pre-commit hook was half-built</strong><br>
+          Only backend checks. Flutter analyze + test were NOT enforced. Frontend code was unguarded.<br><br>
+          <strong class="red">4. Directives without enforcement</strong><br>
+          CLAUDE.md said "always use teams" but nothing prevented the lead from ignoring it.
+        </p>
+      </div>
+    </div>
+    <div>
+      <blockquote>
+        "Directives are not enforcement. 'Always use teams' written in CLAUDE.md doesn't prevent a solo run. You need either hooks (automated enforcement) or workflow gates (human checkpoints) to make it real."
+      </blockquote>
+
+      <table class="grade-table" style="margin-top: 16px; font-size: 0.65em;">
+        <thead><tr><th>Pattern</th><th>Impact</th></tr></thead>
+        <tbody>
+          <tr><td>Context rot in long sessions</td><td class="red">High</td></tr>
+          <tr><td>Self-review blind spot</td><td class="red">High</td></tr>
+          <tr><td>Pure-function modules ideal for delegation</td><td class="amber">Medium</td></tr>
+          <tr><td>Directives ignored without enforcement</td><td class="red">High</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This is the key learning: the process failed because directives were not enforcement. Writing "always use teams" in a markdown file doesn't prevent a solo run. The ST-003 retrospective forced us to evolve the Forge — adding hooks, mandatory critic agents, and stronger imperatives.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 17: The Fix -->
+<!-- ============================================================ -->
+<section>
+  <h2>The Fix — Process Evolution</h2>
+  <p class="subtitle">5 changes applied within 1 hour of the retrospective</p>
+
+  <div class="diff-view">
+    <span class="diff-context">## Agent Teams</span><br><br>
+    <span class="diff-add">+ > **MANDATORY: The lead agent MUST NOT implement code directly.**</span><br>
+    <span class="diff-add">+ > The lead coordinates, reviews, wires modules together,</span><br>
+    <span class="diff-add">+ > and runs quality gates.</span><br>
+    <span class="diff-add">+ > All implementation code MUST be written by spawned subagents.</span><br><br>
+    <span class="diff-add">+ > **MANDATORY: Use multi-agent teams for any task touching</span><br>
+    <span class="diff-add">+ > >2 files or >100 lines.**</span><br><br>
+    <span class="diff-context">### Code Review: Critic Agent (REQUIRED)</span><br><br>
+    <span class="diff-add">+ > **MANDATORY: Every implementation MUST have a separate critic</span><br>
+    <span class="diff-add">+ > review before /verify-uc.** The critic agent runs in a</span><br>
+    <span class="diff-add">+ > FRESH context — it has NOT watched the code being written.</span><br><br>
+    <span class="diff-context">## hooks/PreToolUse:</span><br>
+    <span class="diff-remove">- command: "cd backend && cargo fmt --check && cargo test"</span><br>
+    <span class="diff-add">+ command: "cd backend && cargo fmt --check && cargo clippy &&</span><br>
+    <span class="diff-add">+   cargo test && cd frontend && flutter analyze && flutter test"</span>
+  </div>
+
+  <p style="font-size: 0.65em; color: var(--text-muted); margin-top: 16px;">
+    The <code>/retrospective</code> command didn't just document what went wrong — it generated specific action items and applied them immediately. <em>The process improved itself.</em>
+  </p>
+
+  <aside class="notes">
+    Five changes in one hour. Blockquoted imperatives are harder to ignore than regular text. The pre-commit hook now runs all 5 quality gates. And the Critic Agent requirement means no code reaches the verify step without a fresh-context review.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 18: Critic Agent -->
+<!-- ============================================================ -->
+<section>
+  <h2>The Critic Agent Pattern</h2>
+  <p class="subtitle">Fresh context breaks the self-review blind spot</p>
+
+  <div class="two-col">
+    <div>
+      <div class="team-diagram" style="text-align: left; padding: 16px;">
+        <span class="team-builder" style="font-weight: 700;">Builder Agent</span> <span style="color: var(--text-muted);">(context rot)</span><br><br>
+        &nbsp;&nbsp;Wrote camelot.rs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ✓<br>
+        &nbsp;&nbsp;Wrote arrangement.rs&nbsp; ✓<br>
+        &nbsp;&nbsp;Wrote setlist.rs&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ✓<br>
+        &nbsp;&nbsp;Wrote frontend&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ✓<br>
+        &nbsp;&nbsp;<span style="color: var(--text-muted);">"Looks fine to me"</span><br><br>
+        <span style="color: var(--text-muted);">─────────────────────────────</span><br><br>
+        <span class="team-critic" style="font-weight: 700;">Critic Agent</span> <span style="color: var(--text-muted);">(fresh context)</span><br><br>
+        &nbsp;&nbsp;Reads <code>git diff main...HEAD</code> cold<br>
+        &nbsp;&nbsp;Has NOT watched code being written<br>
+        &nbsp;&nbsp;<span class="red">"Line 47: wrong crate name"</span><br>
+        &nbsp;&nbsp;<span class="red">"Line 203: stale variable"</span><br>
+        &nbsp;&nbsp;<span class="red">"Tests missing edge case"</span>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size: 0.8em;">How it works</h3>
+      <ol style="font-size: 0.7em; padding-left: 20px;">
+        <li style="list-style: decimal;">Builders complete their work</li>
+        <li style="list-style: decimal;">Spawn a <strong>Critic Agent</strong> in fresh context</li>
+        <li style="list-style: decimal;">Critic reads <code>git diff main...HEAD</code>, the plan, and test output</li>
+        <li style="list-style: decimal;">Critic looks for:<br>
+          <span class="muted" style="font-size: 0.9em;">Missed edge cases, dead code, unused imports, naming inconsistencies, plan deviations, context-rot artifacts</span>
+        </li>
+        <li style="list-style: decimal;">Critic sends feedback with <code>file:line</code> references</li>
+        <li style="list-style: decimal;">Only after critic approves → <code>/verify-uc</code></li>
+      </ol>
+      <blockquote style="margin-top: 16px;">
+        "The generator-critic separation is essential. The agent that writes code should not be the only one reviewing it."
+      </blockquote>
+    </div>
+  </div>
+
+  <aside class="notes">
+    The key insight is information asymmetry. The builder has been staring at this code for hours — it can't see what it already "knows." The critic sees the diff for the first time. It catches a fundamentally different class of bugs. This is the same principle behind why code review works for humans.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 6 DIVIDER -->
+<!-- ============================================================ -->
+<section class="section-divider">
+  <span class="section-number">06</span>
+  <h2>Multi-Agent Teams</h2>
+  <p class="muted">Coordination patterns that actually work</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 19: Team Architecture -->
+<!-- ============================================================ -->
+<section>
+  <h2>Team Architecture</h2>
+  <p class="subtitle">Lead coordinates, never implements. Builders own non-overlapping directories.</p>
+
+  <div class="two-col">
+    <div>
+      <div class="team-diagram">
+        <span class="team-lead">Lead (Coordinator)</span><br>
+        <span style="color: var(--text-muted);">Never writes implementation code</span><br>
+        <span style="color: var(--text-muted);">Creates tasks, reviews, wires modules</span><br><br>
+        ┌──────────┬──────────┬──────────┐<br>
+        │ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; │ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; │ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; │<br>
+        <span class="team-builder">Backend-1</span>&nbsp;&nbsp;<span class="team-builder">Backend-2</span>&nbsp;&nbsp;<span class="team-builder">Frontend</span><br>
+        <span style="font-size: 0.85em; color: var(--text-muted);">src/api/</span>&nbsp;&nbsp;&nbsp;<span style="font-size: 0.85em; color: var(--text-muted);">src/services/</span>&nbsp;<span style="font-size: 0.85em; color: var(--text-muted);">lib/</span><br>
+        <span style="font-size: 0.85em; color: var(--text-muted);">src/db/</span>&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size: 0.85em; color: var(--text-muted);">camelot.rs</span>&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size: 0.85em; color: var(--text-muted);">screens/</span><br>
+        <span style="font-size: 0.85em; color: var(--text-muted);"></span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size: 0.85em; color: var(--text-muted);">arrangement.rs</span><span style="font-size: 0.85em; color: var(--text-muted);"></span><br><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;│<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="team-critic">Critic Agent</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="font-size: 0.85em; color: var(--text-muted);">Fresh context, reads diff cold</span>
+      </div>
+    </div>
+    <div>
+      <h3 style="font-size: 0.75em;">Coordination Rules</h3>
+      <ul style="font-size: 0.7em;">
+        <li>Only ONE agent edits a given file at a time</li>
+        <li>Define <strong>shared traits</strong> up front so parallel agents produce compatible interfaces</li>
+        <li>Integration/wiring modules (<code>main.rs</code>, routes) stay with the lead</li>
+        <li>Flag blockers immediately via messaging</li>
+      </ul>
+
+<pre style="margin-top: 12px;"><code class="language-rust">// Shared trait — defined before agents start
+pub trait ImportRepository {
+    async fn upsert_track(&self, track: &Track)
+        -> Result<String>;
+}
+
+// Backend-1 implements this in src/db/
+// Backend-2 consumes it in src/services/
+// No coordination needed — the trait IS the contract</code></pre>
+    </div>
+  </div>
+
+  <aside class="notes">
+    The key pattern is non-overlapping file ownership. Backend-1 owns src/api and src/db. Backend-2 owns src/services. They communicate through shared traits defined before implementation begins — the trait is the contract. This is the same principle as API contracts but at the module level.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 20: Pure Functions -->
+<!-- ============================================================ -->
+<section>
+  <h2>Pure Functions Are Delegation Gold</h2>
+  <p class="subtitle">camelot.rs: 420 lines, 17 tests, zero coordination overhead</p>
+
+  <div class="two-col">
+    <div>
+<pre><code class="language-rust">/// Compute Camelot compatibility score between keys.
+/// Same key = 1.0, adjacent = 0.9,
+/// ±2 = 0.5, else = 0.0
+pub fn camelot_score(
+    a: &CamelotKey,
+    b: &CamelotKey
+) -> f64
+
+/// BPM proximity score.
+/// |a-b| mapped to 1.0 (0-2) through 0.0 (>10)
+pub fn bpm_score(a: f64, b: f64) -> f64
+
+/// Position-aware energy arc score.
+/// Build 0-40%, peak 40-75%, cooldown 75-100%
+pub fn energy_arc_score(
+    energy: i32,
+    position: usize,
+    total: usize
+) -> f64
+
+/// Combined transition score.
+/// Camelot 50% + BPM 30% + Energy 20%
+pub fn transition_score(...) -> f64</code></pre>
+    </div>
+    <div>
+      <div class="card">
+        <h4>Why pure functions delegate well</h4>
+        <p style="font-size: 0.7em;">
+          <span class="green">✓</span> No IO, no state, no network calls<br>
+          <span class="green">✓</span> Deterministic — same input, same output<br>
+          <span class="green">✓</span> Fully testable in isolation<br>
+          <span class="green">✓</span> Zero coordination with other agents<br>
+          <span class="green">✓</span> Clear spec: scoring rules are the entire prompt
+        </p>
+      </div>
+      <div class="card" style="margin-top: 12px;">
+        <h4>"Ralph Wiggum Loops"</h4>
+        <p style="font-size: 0.7em;">
+          For test-heavy pure modules, consider autonomous loops:
+        </p>
+<pre style="font-size: 1.1em;"><code class="language-bash">while true; do
+  claude "implement and pass all tests"
+done</code></pre>
+        <p style="font-size: 0.65em; color: var(--text-muted);">
+          Quality comes from iteration + automated test feedback, not self-assessment. The test suite IS the acceptance criteria.
+        </p>
+      </div>
+      <div class="card" style="margin-top: 12px;">
+        <h4>Result</h4>
+        <p style="font-size: 0.7em;">
+          <code>camelot.rs</code>: <span class="amber">17 tests</span>, 0 fix iterations (fresh agent)<br>
+          <code>arrangement.rs</code>: <span class="amber">10 tests</span>, 0 fix iterations
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <aside class="notes">
+    If your codebase has pure-function modules, delegate them. They're the highest-ROI use of multi-agent teams. Zero coordination overhead, fully testable, and the spec is the test suite itself. camelot.rs had 17 tests and compiled on the first try when a fresh agent wrote it — compared to 5+ fix iterations when the same logic was part of a longer session.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 21: Quality Gates -->
+<!-- ============================================================ -->
+<section>
+  <h2>Quality Gates That Actually Gate</h2>
+  <p class="subtitle">Pre-commit hook in settings.json — the agent cannot bypass it</p>
+
+<pre><code class="language-json">{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash(git commit.*)",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd backend && cargo fmt --check
+              && cargo clippy -- -D warnings
+              && cargo test
+              && cd ../frontend && flutter analyze
+              && flutter test",
+            "timeout": 300000
+          }
+        ]
+      }
+    ]
+  }
+}</code></pre>
+
+  <div class="two-col" style="margin-top: 12px;">
+    <div class="card">
+      <h4>5 gates, 1 hook</h4>
+      <p style="font-size: 0.7em; font-family: 'JetBrains Mono', monospace; line-height: 1.8;">
+        <span class="amber">1.</span> cargo fmt --check <span class="muted">← formatting</span><br>
+        <span class="amber">2.</span> cargo clippy -D warnings <span class="muted">← lint</span><br>
+        <span class="amber">3.</span> cargo test <span class="muted">← 135 tests</span><br>
+        <span class="amber">4.</span> flutter analyze <span class="muted">← frontend lint</span><br>
+        <span class="amber">5.</span> flutter test <span class="muted">← 12 tests</span>
+      </p>
+    </div>
+    <div class="card">
+      <h4>Directives vs. Enforcement</h4>
+      <p style="font-size: 0.7em;">
+        <span class="red">Directive</span>: "Always run tests before committing"<br>
+        <em>→ Agent can ignore this. And did (ST-003).</em><br><br>
+        <span class="green">Enforcement</span>: Pre-commit hook blocks <code>git commit</code><br>
+        <em>→ Agent cannot commit without all 5 gates passing.</em><br><br>
+        <span class="muted">One is a suggestion. The other is a constraint.</span>
+      </p>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This is the lesson from ST-003: directives are suggestions, hooks are enforcement. The pre-commit hook runs all 5 quality gates before every single commit. The agent cannot bypass it. This is what turned the "always run tests" directive from a hope into a guarantee.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SECTION 7 DIVIDER -->
+<!-- ============================================================ -->
+<section class="section-divider">
+  <span class="section-number">07</span>
+  <h2>Practical Takeaways</h2>
+  <p class="muted">Start Monday</p>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 22: Start Monday -->
+<!-- ============================================================ -->
+<section>
+  <h2>Start Monday: 4 Commands</h2>
+  <p class="subtitle">Prioritized by impact — you can build the first one in 5 minutes</p>
+
+  <div class="two-col-narrow">
+    <div class="card">
+      <h4>1. /review (Devil's Advocate)</h4>
+      <p style="font-size: 0.65em; color: var(--text-secondary);">
+        Highest ROI. Reviews design docs adversarially.<br>
+        <strong>Key</strong>: <code>allowed-tools: Read, Glob, Grep</code><br>
+        Can find problems, can't fix them. Forces a report.
+      </p>
+    </div>
+    <div class="card">
+      <h4>2. /decompose (Task Graph)</h4>
+      <p style="font-size: 0.65em; color: var(--text-secondary);">
+        Breaks features into tasks with dependencies.<br>
+        <strong>Key</strong>: Agent assignment + file ownership.<br>
+        Enables parallel work without conflicts.
+      </p>
+    </div>
+    <div class="card">
+      <h4>3. /verify (Postcondition Check)</h4>
+      <p style="font-size: 0.65em; color: var(--text-secondary);">
+        Runs automated checks against spec.<br>
+        <strong>Key</strong>: Maps postconditions → test assertions.<br>
+        Binary PASS/FAIL, not vibes.
+      </p>
+    </div>
+    <div class="card">
+      <h4>4. Pre-commit Hook</h4>
+      <p style="font-size: 0.65em; color: var(--text-secondary);">
+        Add to <code>.claude/settings.json</code>.<br>
+        <strong>Key</strong>: <code>PreToolUse</code> matcher on <code>git commit</code>.<br>
+        Enforcement, not a directive.
+      </p>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 16px;">
+    <p style="font-size: 0.7em; color: var(--text-muted);">
+      The rest emerges from your retrospectives. Start with these four.
+    </p>
+  </div>
+
+  <aside class="notes">
+    These four commands will change your workflow more than any other AI coding tool. The devil's advocate alone — reviewing your design docs before you write code — will catch more bugs than any test framework. The pre-commit hook guarantees quality. Start with these four and evolve from there.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 23: Write Your First Command -->
+<!-- ============================================================ -->
+<section>
+  <h2>Write Your First Slash Command</h2>
+  <p class="subtitle">A slash command is just a markdown file — 5 minutes to write</p>
+
+<pre><code class="language-markdown"># File: .claude/commands/review.md
+
+---
+description: Review a design doc for gaps
+allowed-tools: Read, Glob, Grep
+---
+
+# Review: $ARGUMENTS
+
+You are a **Devil's Advocate** reviewing a design document.
+
+## Step 1: Load the Document
+Read the file at $ARGUMENTS.
+
+## Step 2: Check for Untestable Requirements
+For each requirement, ask:
+"How would I write an automated test for this?"
+Flag anything that can't be tested automatically.
+
+## Step 3: Check Error Paths
+For EACH step in the happy path:
+  → What if this fails?
+  → What if input is unexpected?
+  → What if a dependency is unavailable?
+
+## Step 4: Generate Report
+Output findings as:
+  CRITICAL — must fix before implementation
+  WARNING  — should fix, creates risk
+  SUGGESTION — nice to have
+
+Format: [SEVERITY] [Section] Description</code></pre>
+
+  <p style="font-size: 0.65em; color: var(--text-muted); margin-top: 8px;">
+    Run with: <code>/review docs/my-design-doc.md</code>
+  </p>
+
+  <aside class="notes">
+    This is the entire technology. YAML frontmatter with a description and tool restrictions, then a body with a persona, numbered steps, and an output format. The $ARGUMENTS variable is whatever the user types after the slash command. Five minutes to write, and it runs adversarial review on any document.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 24: Universal Patterns -->
+<!-- ============================================================ -->
+<section>
+  <h2>Universal Patterns</h2>
+  <p class="subtitle">Applicable to any codebase, any team, any AI coding tool</p>
+
+  <div class="pattern-grid">
+    <div class="pattern-card">
+      <span class="pattern-num">01</span>
+      <p class="pattern-text"><strong>Specification before implementation.</strong><br>Use cases and steel threads as executable specs. Don't write code until the error paths are documented.</p>
+    </div>
+    <div class="pattern-card">
+      <span class="pattern-num">02</span>
+      <p class="pattern-text"><strong>Adversarial review before code.</strong><br>Devil's advocate on requirements, not just code review. Catch bugs before they exist.</p>
+    </div>
+    <div class="pattern-card">
+      <span class="pattern-num">03</span>
+      <p class="pattern-text"><strong>Dependency graphs before parallelism.</strong><br>Know what blocks what before spawning agents. The graph IS the coordination.</p>
+    </div>
+    <div class="pattern-card">
+      <span class="pattern-num">04</span>
+      <p class="pattern-text"><strong>Fresh-context critic.</strong><br>The generator should not be the only reviewer. Different context catches different bugs.</p>
+    </div>
+    <div class="pattern-card">
+      <span class="pattern-num">05</span>
+      <p class="pattern-text"><strong>Hooks > directives.</strong><br>Automated enforcement beats README instructions. If you can't hook it, it's a suggestion.</p>
+    </div>
+    <div class="pattern-card">
+      <span class="pattern-num">06</span>
+      <p class="pattern-text"><strong>Retrospectives update tooling.</strong><br>Process changes applied to <code>.claude/</code> files, not just meeting notes. The process evolves.</p>
+    </div>
+    <div class="pattern-card">
+      <span class="pattern-num">07</span>
+      <p class="pattern-text"><strong>Design decisions as data.</strong><br><code>design-tokens.json</code>, not Figma screenshots. Machine-readable, version-controlled, traceable.</p>
+    </div>
+    <div class="pattern-card">
+      <span class="pattern-num">08</span>
+      <p class="pattern-text"><strong>Pure functions delegate best.</strong><br>No IO, no state, deterministic = zero coordination overhead. Test suite IS the acceptance criteria.</p>
+    </div>
+  </div>
+
+  <aside class="notes">
+    These eight patterns transfer to any team, any codebase, any AI coding tool. They're not specific to Claude Code — they're software engineering patterns amplified by AI assistance. The ones that will have the most immediate impact: adversarial review, hooks over directives, and the fresh-context critic.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 25: Directory Structure -->
+<!-- ============================================================ -->
+<section>
+  <h2>The Forge at a Glance</h2>
+  <p class="subtitle">Complete <code>.claude/</code> directory — reference card</p>
+
+  <div class="two-col">
+    <div class="tree">
+      <span class="dir">.claude/</span><br>
+      &nbsp;&nbsp;<span class="dir">commands/</span> <span class="comment">← slash commands</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">uc-create.md</span> <span class="comment">Cockburn use case</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">uc-review.md</span> <span class="comment">Devil's advocate</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">task-decompose.md</span> <span class="comment">Task graph</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">st-create.md</span> <span class="comment">Steel thread</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">spike-create.md</span> <span class="comment">Hypothesis test</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">api-contract.md</span> <span class="comment">OpenAPI gen</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">verify-uc.md</span> <span class="comment">Postcondition check</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">grade-work.md</span> <span class="comment">Blind grading</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">wireframe.md</span> <span class="comment">ASCII wireframes</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">session-handoff.md</span> <span class="comment">Cross-session</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">retrospective.md</span> <span class="comment">Process improvement</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">agent-team-plan.md</span> <span class="comment">Team config</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">parallel-sprint.md</span> <span class="comment">Worktree setup</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">ux-review.md</span> <span class="comment">Post-build UX</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">prd-from-usecases.md</span> <span class="comment">PRD synthesis</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">code-quality.md</span> <span class="comment">Quality checks</span>
+    </div>
+    <div class="tree">
+      &nbsp;&nbsp;<span class="dir">agents/</span> <span class="comment">← team roles</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">implementation-team.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">requirements-team.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">testing-team.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">ux-team.md</span><br>
+      <br>
+      &nbsp;&nbsp;<span class="dir">skills/</span> <span class="comment">← templates + rubrics</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">cockburn-template.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">design-system.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">grading-rubric.md</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">pre-implementation-checklist.md</span><br>
+      <br>
+      &nbsp;&nbsp;<span class="file">settings.json</span> <span class="comment">← hooks + plugins</span><br>
+      <br>
+      <span class="dir">.design-crit/</span> <span class="comment">← design outputs</span><br>
+      &nbsp;&nbsp;<span class="file">design-tokens.json</span><br>
+      &nbsp;&nbsp;<span class="file">decisions.md</span><br>
+      &nbsp;&nbsp;<span class="dir">prototype/</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">track-catalog.html</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">import-sheet.html</span><br>
+      &nbsp;&nbsp;&nbsp;&nbsp;<span class="file">empty-catalog.html</span><br>
+      &nbsp;&nbsp;<span class="dir">facets/</span> <span class="comment">← 10 facet dirs</span>
+    </div>
+  </div>
+
+  <aside class="notes">
+    This is the complete reference card. 16 commands, 4 agent definitions, 4 skills with templates and rubrics, and a settings file with hooks. The design-crit outputs live separately in .design-crit/ with tokens, prototypes, and decision logs. Everything is version-controlled alongside the code.
+  </aside>
+</section>
+
+<!-- ============================================================ -->
+<!-- SLIDE 26: Closing -->
+<!-- ============================================================ -->
+<section>
+  <h2 style="text-align: center;">Claude Code Is an Empty Workshop.<br><span class="amber">The Forge Is the Jig.</span></h2>
+
+  <div style="max-width: 700px; margin: 30px auto; text-align: center;">
+    <p style="font-size: 0.85em; color: var(--text-secondary); line-height: 1.6;">
+      The <code>.claude/</code> directory IS your development methodology, version-controlled alongside your code.
+    </p>
+    <p style="font-size: 0.85em; color: var(--text-secondary); line-height: 1.6; margin-top: 16px;">
+      The process evolves: retrospectives feed improvements back into the commands themselves. The Forge that finishes a project is not the Forge that started it.
+    </p>
+
+    <div style="margin: 30px 0; padding: 20px; border: 1px solid var(--brand-primary); border-radius: 6px; text-align: left;">
+      <p style="font-size: 0.8em; color: var(--brand-primary); font-weight: 600; margin-bottom: 8px;">Start here:</p>
+      <p style="font-size: 0.75em; font-family: 'JetBrains Mono', monospace; color: var(--text-secondary); line-height: 1.8;">
+        1. Write <code>/review</code> — 5 minutes<br>
+        2. Add a pre-commit hook — 2 minutes<br>
+        3. Write <code>/decompose</code> — 10 minutes<br>
+        4. The rest emerges from your retrospectives.
+      </p>
+    </div>
+
+    <blockquote style="text-align: left; margin-top: 20px;">
+      "Directives are not enforcement. Hooks are enforcement."
+    </blockquote>
+  </div>
+
+  <div class="img-placeholder" style="max-width: 600px; margin: 16px auto;">
+    AI-generated image: Woodworking workshop, organized tools on pegboard, warm amber lighting, measuring jigs clamped to workbench
+    <span class="prompt-label">"woodworking workshop amber lighting tools pegboard jigs workbench atmospheric"</span>
+  </div>
+
+  <aside class="notes">
+    The Forge is not a product. It's a pattern. You can build your own version in an afternoon. Start with /review, add a pre-commit hook, add /decompose. Run a retrospective after your first project and let the process tell you what it needs next. The Forge that finishes a project is not the Forge that started it — and that's the point.
+  </aside>
+</section>
+
+</div><!-- /slides -->
+</div><!-- /reveal -->
+
+<!-- Reveal.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/reveal.min.js"></script>
+<!-- highlight.js plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/highlight/highlight.min.js"></script>
+<!-- Notes plugin -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/reveal.js/4.6.1/plugin/notes/notes.min.js"></script>
+
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    width: 1280,
+    height: 800,
+    margin: 0.06,
+    center: false,
+    transition: 'none',
+    backgroundTransition: 'none',
+    plugins: [RevealHighlight, RevealNotes],
+    highlight: {
+      beforeHighlight: (hljs) => {
+        // Register plaintext as a language
+        hljs.registerLanguage('plaintext', () => ({ contains: [] }));
+      }
+    }
+  });
+</script>
+</body>
+</html>

@@ -187,6 +187,23 @@ Backend:  cargo fmt --check && cargo clippy -- -D warnings && cargo test
 Frontend: flutter analyze && flutter test
 ```
 
+## Research Before Hacking
+
+When you encounter a technology or integration you haven't used before (e.g., Playwright + Flutter, headless browser rendering, CI pipelines), **STOP and research best practices before writing code**. Red flags that you're hacking: writing debug scripts, adding elaborate workarounds, trying multiple config tweaks in sequence. Instead: search the web for established patterns, check official docs, and use proven solutions. If a problem has been solved, use that solution.
+
+## Shell Command Style
+
+**Chain commands with `&&`** to avoid repeated permission prompts. This enables longer autonomous runs:
+```bash
+# Good: single permission prompt
+cd backend && cargo fmt --check && cargo clippy -- -D warnings && cargo test
+
+# Bad: three separate prompts
+cd backend
+cargo fmt --check
+cargo clippy -- -D warnings
+```
+
 ## Key Commands
 
 ```bash

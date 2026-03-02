@@ -7,6 +7,8 @@ pub struct AppConfig {
     pub token_encryption_key: String,
     pub anthropic_api_key: String,
     pub server_port: u16,
+    pub dev_mode: bool,
+    pub bind_address: String,
 }
 
 impl AppConfig {
@@ -33,6 +35,10 @@ impl AppConfig {
                 .ok()
                 .and_then(|p| p.parse().ok())
                 .unwrap_or(3001),
+            dev_mode: std::env::var("DEV_MODE")
+                .map(|v| v == "true")
+                .unwrap_or(false),
+            bind_address: std::env::var("BIND_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
         }
     }
 }

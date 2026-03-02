@@ -7,6 +7,7 @@ use serde::Serialize;
 use sqlx::sqlite::SqlitePoolOptions;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -98,6 +99,10 @@ async fn main() -> anyhow::Result<()> {
 
     let cfg = AppConfig::from_env();
 
+    if cfg.dev_mode {
+        tracing::warn!("DEV_MODE enabled — dev-only endpoints are active");
+    }
+
     // --- Database ---
     let pool = SqlitePoolOptions::new()
         .max_connections(5)
@@ -173,16 +178,36 @@ async fn main() -> anyhow::Result<()> {
     });
 
     // --- Router ---
-    let app = Router::new()
+    let mut app = Router::new()
         .nest("/api", api_router())
         .nest("/api", routes::auth::auth_routes(auth_state))
         .nest("/api", routes::import::import_router(import_state))
         .nest("/api", routes::setlist::setlist_router(setlist_state))
-        .nest("/api", routes::tracks::tracks_router(pool.clone()))
+        .nest("/api", routes::tracks::tracks_router(pool.clone()));
+
+    // Dev routes (conditionally added when DEV_MODE=true)
+    if cfg.dev_mode {
+        app = app.nest("/api", routes::dev::dev_router(pool.clone()));
+    }
+
+    let static_dir = std::path::Path::new("../frontend/build/web");
+    if static_dir.exists() {
+        tracing::info!("Serving Flutter web build from {:?}", static_dir);
+        let serve_dir =
+            ServeDir::new(static_dir).fallback(ServeFile::new(static_dir.join("index.html")));
+        app = app.fallback_service(serve_dir);
+    } else {
+        tracing::warn!(
+            "Flutter web build not found at {:?} — static file serving disabled",
+            static_dir
+        );
+    }
+
+    let app = app
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());
 
-    let addr = format!("127.0.0.1:{}", cfg.server_port);
+    let addr = format!("{}:{}", cfg.bind_address, cfg.server_port);
     tracing::info!("Backend listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
