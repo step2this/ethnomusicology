@@ -96,17 +96,19 @@ n. <Success postcondition is achieved>
 - Each extension must resolve with "returns to step X" or "use case fails"
 
 ### Common Ethnomusicology Actors
-- **App User** (Listener, Curator, Admin)
-- **Spotify API** (Track data, Previews, OAuth)
-- **YouTube API** (Playback fallback, Embeds)
-- **Last.fm API** (Tags, Similar artists)
-- **MusicBrainz API** (Metadata, Regions)
-- **Audio Player** (just_audio, Playback state)
+- **App User** (Listener, DJ, Curator, Admin)
+- **Spotify API** (Track data, Previews, OAuth, Playlist import)
+- **Beatport API** (DJ tracks, BPM/key metadata, Chart import)
+- **SoundCloud API** (Discovery, streaming, OAuth 2.1)
+- **Claude API** (Setlist generation, music knowledge, prompt processing)
+- **essentia Sidecar** (BPM detection, key detection, energy analysis)
+- **Audio Player** (just_audio, Crossfade playback, Preview streaming)
 - **Database** (SQLite/PostgreSQL via SQLx)
 
 ### Common Ethnomusicology Invariants
 - API keys never exposed to the frontend
-- Cultural/sacred content flags are respected in playlist generation
+- Backend owns ALL external API keys (Spotify, Beatport, SoundCloud, Anthropic)
 - Audio playback never hosts files directly (preview/embed/link only)
 - User data is not shared without consent
-- Regional/tradition taxonomy is granular, never homogenizing
+- BPM and key metadata are always stored in normalized format (numeric BPM, Camelot notation)
+- Setlist generation respects harmonic mixing rules (Camelot wheel compatibility)

@@ -78,6 +78,33 @@ How good are the tests themselves?
 | D (40%) | Minimal tests; only happy path |
 | F (0%) | No tests or tests don't compile |
 
+### 6. Integration Proof (Steel Threads Only — 20% of ST total)
+
+How well does the steel thread prove cross-layer integration?
+
+| Grade | Criteria |
+|-------|----------|
+| A (100%) | All integration assertions tested end-to-end with real dependencies; API contract validated against actual responses |
+| B (80%) | Most integration assertions tested; contract validated; 1-2 minor gaps |
+| C (60%) | Integration tests exist but some assertions use mocks at boundaries |
+| D (40%) | Minimal cross-layer testing; contract not validated |
+| F (0%) | No cross-layer tests; only unit tests with mocked dependencies |
+
+## Steel Thread Scoring Weights
+
+When grading a steel thread (ST-NNN), use these rebalanced weights instead of the UC weights:
+
+| Category | UC Weight | ST Weight |
+|----------|-----------|-----------|
+| Postcondition Coverage | 30% | 20% |
+| Extension Handling | 25% | 15% |
+| Invariant Enforcement | 15% | 15% |
+| Code Quality | 15% | 15% |
+| Test Quality | 15% | 15% |
+| **Integration Proof** | — | **20%** |
+
+The grading scale (A-F) and quality adjustments (bonuses/penalties) remain the same as for UCs.
+
 ## Quality Adjustments (Bonus/Penalty)
 
 Applied after calculating the base score:
@@ -98,6 +125,15 @@ Applied after calculating the base score:
 | Panics on recoverable errors | -15% |
 | Hardcoded values that should be configurable | -5% |
 | `unsafe` without justification comment | -10% |
+
+### Steel Thread Adjustments
+
+| Factor | Adjustment |
+|--------|------------|
+| API contract held through implementation without changes | +5% bonus |
+| API contract broke during implementation (required mid-sprint update) | -10% penalty |
+| Mocking at layer boundaries in integration tests | -15% penalty |
+| All integration assertions proven with real dependencies | +5% bonus |
 
 ## Completeness Scoring (for Use Case Documents)
 

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+extension BuildContextTheme on BuildContext {
+  ColorScheme get colors => Theme.of(this).colorScheme;
+  TextTheme get textTheme => Theme.of(this).textTheme;
+}
+
 class AppTheme {
   static const _goldPrimary = Color(0xFFD4A843);
   static const _navySecondary = Color(0xFF1B2A4A);
