@@ -38,6 +38,98 @@ pub fn parse_camelot(notation: &str) -> Option<CamelotKey> {
 }
 
 // ---------------------------------------------------------------------------
+// Key Conversion Functions
+// ---------------------------------------------------------------------------
+
+/// Camelot codes for major keys indexed by pitch class (0=C through 11=B).
+/// Each entry is (camelot_number, camelot_letter).
+const MAJOR_CAMELOT: [(u8, char); 12] = [
+    (8, 'B'),  // 0  C
+    (3, 'B'),  // 1  C#
+    (10, 'B'), // 2  D
+    (5, 'B'),  // 3  Eb
+    (12, 'B'), // 4  E
+    (7, 'B'),  // 5  F
+    (2, 'B'),  // 6  F#
+    (9, 'B'),  // 7  G
+    (4, 'B'),  // 8  Ab
+    (11, 'B'), // 9  A
+    (6, 'B'),  // 10 Bb
+    (1, 'B'),  // 11 B
+];
+
+/// Camelot codes for minor keys indexed by pitch class (0=C through 11=B).
+const MINOR_CAMELOT: [(u8, char); 12] = [
+    (5, 'A'),  // 0  C
+    (12, 'A'), // 1  C#
+    (7, 'A'),  // 2  D
+    (2, 'A'),  // 3  Eb
+    (9, 'A'),  // 4  E
+    (4, 'A'),  // 5  F
+    (11, 'A'), // 6  F#
+    (6, 'A'),  // 7  G
+    (1, 'A'),  // 8  Ab
+    (8, 'A'),  // 9  A
+    (3, 'A'),  // 10 Bb
+    (10, 'A'), // 11 B
+];
+
+/// Convert Spotify Audio Features key/mode to a CamelotKey.
+///
+/// `pitch_class`: 0-11 (C through B), from Spotify's `key` field.
+/// `mode`: 0 = minor, 1 = major, from Spotify's `mode` field.
+/// Returns `None` for out-of-range values.
+pub fn from_spotify_key(pitch_class: i32, mode: i32) -> Option<CamelotKey> {
+    if !(0..=11).contains(&pitch_class) {
+        return None;
+    }
+    let idx = pitch_class as usize;
+    let (number, letter) = match mode {
+        1 => MAJOR_CAMELOT[idx],
+        0 => MINOR_CAMELOT[idx],
+        _ => return None,
+    };
+    Some(CamelotKey { number, letter })
+}
+
+/// Convert a musical note name and scale to a CamelotKey.
+///
+/// Handles essentia-style output (e.g., "C", "minor" → 5A).
+/// - Supports sharps (`C#`) and flats (`Db`).
+/// - Case-insensitive for both note and scale.
+///
+/// Returns `None` for unrecognized note names or scale types.
+///
+pub fn from_notation(note: &str, scale: &str) -> Option<CamelotKey> {
+    let pitch_class = note_to_pitch_class(note)?;
+    let mode = match scale.to_lowercase().as_str() {
+        "major" => 1,
+        "minor" => 0,
+        _ => return None,
+    };
+    from_spotify_key(pitch_class, mode)
+}
+
+/// Parse a note name (e.g., "C#", "Db", "E") to a pitch class (0-11).
+fn note_to_pitch_class(note: &str) -> Option<i32> {
+    match note.to_lowercase().as_str() {
+        "c" => Some(0),
+        "c#" | "db" => Some(1),
+        "d" => Some(2),
+        "d#" | "eb" => Some(3),
+        "e" => Some(4),
+        "f" => Some(5),
+        "f#" | "gb" => Some(6),
+        "g" => Some(7),
+        "g#" | "ab" => Some(8),
+        "a" => Some(9),
+        "a#" | "bb" => Some(10),
+        "b" => Some(11),
+        _ => None,
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Scoring Functions
 // ---------------------------------------------------------------------------
 
@@ -416,5 +508,90 @@ mod tests {
         let score = transition_score(None, None, None, None);
         // key=0.5*0.5 + bpm=0.5*0.3 + base=0.5*0.2 = 0.25 + 0.15 + 0.1 = 0.5
         assert!((score - 0.5).abs() < 0.001);
+    }
+
+    // --- from_spotify_key ---
+
+    #[test]
+    fn test_from_spotify_key_c_major() {
+        let key = from_spotify_key(0, 1).unwrap();
+        assert_eq!(key.number, 8);
+        assert_eq!(key.letter, 'B');
+    }
+
+    #[test]
+    fn test_from_spotify_key_a_minor() {
+        let key = from_spotify_key(9, 0).unwrap();
+        assert_eq!(key.number, 8);
+        assert_eq!(key.letter, 'A');
+    }
+
+    #[test]
+    fn test_from_spotify_key_all_major() {
+        for pitch in 0..12 {
+            assert!(
+                from_spotify_key(pitch, 1).is_some(),
+                "Failed for pitch {pitch} major"
+            );
+        }
+    }
+
+    #[test]
+    fn test_from_spotify_key_all_minor() {
+        for pitch in 0..12 {
+            assert!(
+                from_spotify_key(pitch, 0).is_some(),
+                "Failed for pitch {pitch} minor"
+            );
+        }
+    }
+
+    #[test]
+    fn test_from_spotify_key_invalid_pitch() {
+        assert!(from_spotify_key(-1, 1).is_none());
+        assert!(from_spotify_key(12, 0).is_none());
+    }
+
+    #[test]
+    fn test_from_spotify_key_invalid_mode() {
+        assert!(from_spotify_key(0, 2).is_none());
+        assert!(from_spotify_key(0, -1).is_none());
+    }
+
+    // --- from_notation ---
+
+    #[test]
+    fn test_from_notation_c_minor() {
+        let key = from_notation("C", "minor").unwrap();
+        assert_eq!(key.number, 5);
+        assert_eq!(key.letter, 'A');
+    }
+
+    #[test]
+    fn test_from_notation_a_major() {
+        let key = from_notation("A", "major").unwrap();
+        assert_eq!(key.number, 11);
+        assert_eq!(key.letter, 'B');
+    }
+
+    #[test]
+    fn test_from_notation_sharp_flat() {
+        let sharp = from_notation("C#", "minor").unwrap();
+        let flat = from_notation("Db", "minor").unwrap();
+        assert_eq!(sharp.number, flat.number);
+        assert_eq!(sharp.letter, flat.letter);
+    }
+
+    #[test]
+    fn test_from_notation_case_insensitive() {
+        let key = from_notation("c", "Minor").unwrap();
+        assert_eq!(key.number, 5);
+        assert_eq!(key.letter, 'A');
+    }
+
+    #[test]
+    fn test_from_notation_invalid() {
+        assert!(from_notation("X", "minor").is_none());
+        assert!(from_notation("C", "lydian").is_none());
     }
 }

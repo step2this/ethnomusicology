@@ -41,6 +41,7 @@ impl ImportRepository for SqliteImportRepository {
             track.duration_ms,
             &track.spotify_uri,
             track.spotify_preview_url.as_deref(),
+            track.album_art_url.as_deref(),
         )
         .await
         .map_err(|e| ImportError::Database(e.to_string()))?;

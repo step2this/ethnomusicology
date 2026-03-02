@@ -2,6 +2,7 @@ use sqlx::SqlitePool;
 
 use super::models::{Track, TrackRow, UpsertResult};
 
+#[allow(clippy::too_many_arguments)]
 pub async fn upsert_track(
     pool: &SqlitePool,
     id: &str,
@@ -10,6 +11,7 @@ pub async fn upsert_track(
     duration_ms: Option<i64>,
     spotify_uri: &str,
     preview_url: Option<&str>,
+    album_art_url: Option<&str>,
 ) -> Result<UpsertResult, sqlx::Error> {
     // Check if a track with this spotify_uri already exists
     let existing = sqlx::query_scalar::<_, String>("SELECT id FROM tracks WHERE spotify_uri = ?")
@@ -18,13 +20,14 @@ pub async fn upsert_track(
         .await?;
 
     sqlx::query(
-        "INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, spotify_preview_url, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        "INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, spotify_preview_url, album_art_url, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
          ON CONFLICT(spotify_uri) DO UPDATE SET
            title = excluded.title,
            album = excluded.album,
            duration_ms = excluded.duration_ms,
            spotify_preview_url = excluded.spotify_preview_url,
+           album_art_url = excluded.album_art_url,
            updated_at = CURRENT_TIMESTAMP",
     )
     .bind(id)
@@ -33,6 +36,7 @@ pub async fn upsert_track(
     .bind(duration_ms)
     .bind(spotify_uri)
     .bind(preview_url)
+    .bind(album_art_url)
     .execute(pool)
     .await?;
 
@@ -113,6 +117,102 @@ pub async fn get_track_by_spotify_uri(
         .await
 }
 
+/// Get tracks that need enrichment (needs_enrichment = 1, no enrichment_error).
+pub async fn get_unenriched_tracks(
+    pool: &SqlitePool,
+    limit: usize,
+) -> Result<Vec<TrackRow>, sqlx::Error> {
+    sqlx::query_as::<_, TrackRow>(
+        r#"SELECT
+            t.id, t.title, GROUP_CONCAT(a.name, ', ') AS artist,
+            t.album, t.duration_ms, t.bpm, t.camelot_key, t.energy,
+            t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url, t.created_at
+        FROM tracks t
+        LEFT JOIN track_artists ta ON t.id = ta.track_id
+        LEFT JOIN artists a ON ta.artist_id = a.id
+        WHERE t.needs_enrichment = 1 AND t.enrichment_error IS NULL
+        GROUP BY t.id
+        ORDER BY t.created_at DESC
+        LIMIT ?"#,
+    )
+    .bind(limit as i64)
+    .fetch_all(pool)
+    .await
+}
+
+/// Update a track's DJ metadata after enrichment.
+pub async fn update_track_dj_metadata(
+    pool: &SqlitePool,
+    id: &str,
+    bpm: Option<f64>,
+    camelot_key: Option<&str>,
+    energy: Option<f64>,
+    album_art_url: Option<&str>,
+) -> Result<(), sqlx::Error> {
+    sqlx::query(
+        "UPDATE tracks SET bpm = COALESCE(?, bpm), camelot_key = COALESCE(?, camelot_key), energy = COALESCE(?, energy), album_art_url = COALESCE(?, album_art_url), needs_enrichment = 0, enriched_at = CURRENT_TIMESTAMP WHERE id = ?",
+    )
+    .bind(bpm)
+    .bind(camelot_key)
+    .bind(energy)
+    .bind(album_art_url)
+    .bind(id)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
+/// Mark a track's enrichment as failed.
+pub async fn mark_enrichment_error(
+    pool: &SqlitePool,
+    id: &str,
+    error: &str,
+) -> Result<(), sqlx::Error> {
+    sqlx::query("UPDATE tracks SET enrichment_error = ?, needs_enrichment = 0 WHERE id = ?")
+        .bind(error)
+        .bind(id)
+        .execute(pool)
+        .await?;
+    Ok(())
+}
+
+/// Get today's enrichment count for a user.
+pub async fn get_daily_enrichment_count(
+    pool: &SqlitePool,
+    user_id: &str,
+) -> Result<i64, sqlx::Error> {
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let count: Option<i64> = sqlx::query_scalar(
+        "SELECT enrichment_count FROM user_usage WHERE user_id = ? AND date = ?",
+    )
+    .bind(user_id)
+    .bind(&today)
+    .fetch_optional(pool)
+    .await?;
+    Ok(count.unwrap_or(0))
+}
+
+/// Increment the enrichment usage counter for a user.
+pub async fn increment_enrichment_usage(
+    pool: &SqlitePool,
+    user_id: &str,
+    count: i64,
+) -> Result<(), sqlx::Error> {
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let id = uuid::Uuid::new_v4().to_string();
+    sqlx::query(
+        "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES (?, ?, ?, ?)
+         ON CONFLICT(user_id, date) DO UPDATE SET enrichment_count = enrichment_count + excluded.enrichment_count",
+    )
+    .bind(&id)
+    .bind(user_id)
+    .bind(&today)
+    .bind(count)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -130,6 +230,7 @@ mod tests {
             Some(210_000),
             "spotify:track:abc123",
             Some("https://preview.url"),
+            Some("https://i.scdn.co/image/art1"),
         )
         .await
         .unwrap();
@@ -157,6 +258,7 @@ mod tests {
             Some(200_000),
             "spotify:track:abc123",
             None,
+            None,
         )
         .await
         .unwrap();
@@ -169,6 +271,7 @@ mod tests {
             Some(220_000),
             "spotify:track:abc123",
             Some("https://new-preview.url"),
+            Some("https://i.scdn.co/image/updated"),
         )
         .await
         .unwrap();
