@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
 
+import '../models/track_list_response.dart';
+
 class ApiClient {
   static const _baseUrl = '/api';
 
@@ -51,5 +53,24 @@ class ApiClient {
   Future<Map<String, dynamic>> getImportStatus(String importId) async {
     final response = await _dio.get('/import/$importId');
     return response.data as Map<String, dynamic>;
+  }
+
+  // -------------------------------------------------------------------------
+  // Track Catalog
+  // -------------------------------------------------------------------------
+
+  Future<TrackListResponse> listTracks({
+    int page = 1,
+    int perPage = 25,
+    String sort = 'date_added',
+    String order = 'desc',
+  }) async {
+    final response = await _dio.get('/tracks', queryParameters: {
+      'page': page,
+      'per_page': perPage,
+      'sort': sort,
+      'order': order,
+    });
+    return TrackListResponse.fromJson(response.data as Map<String, dynamic>);
   }
 }

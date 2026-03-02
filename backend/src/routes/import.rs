@@ -44,31 +44,35 @@ impl From<ImportSummary> for ImportResponse {
     }
 }
 
-#[derive(Serialize)]
-struct ErrorBody {
-    error: String,
-}
-
 // ---------------------------------------------------------------------------
 // Error → HTTP mapping
 // ---------------------------------------------------------------------------
 
 impl IntoResponse for ImportError {
     fn into_response(self) -> Response {
-        let (status, msg) = match &self {
-            ImportError::InvalidUrl(m) => (StatusCode::BAD_REQUEST, m.clone()),
-            ImportError::NotFound(m) => (StatusCode::NOT_FOUND, m.clone()),
-            ImportError::AccessDenied(m) => (StatusCode::FORBIDDEN, m.clone()),
-            ImportError::SpotifyError(_) => {
-                (StatusCode::BAD_GATEWAY, "Spotify API error".to_string())
-            }
+        let (status, code, msg) = match &self {
+            ImportError::InvalidUrl(m) => (StatusCode::BAD_REQUEST, "INVALID_REQUEST", m.clone()),
+            ImportError::NotFound(m) => (StatusCode::NOT_FOUND, "NOT_FOUND", m.clone()),
+            ImportError::AccessDenied(m) => (StatusCode::FORBIDDEN, "ACCESS_DENIED", m.clone()),
+            ImportError::SpotifyError(_) => (
+                StatusCode::BAD_GATEWAY,
+                "UPSTREAM_ERROR",
+                "Spotify API error".to_string(),
+            ),
             ImportError::Database(m) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
+                "INTERNAL_ERROR",
                 format!("Database error: {m}"),
             ),
         };
 
-        (status, Json(ErrorBody { error: msg })).into_response()
+        let body = serde_json::json!({
+            "error": {
+                "code": code,
+                "message": msg,
+            }
+        });
+        (status, Json(body)).into_response()
     }
 }
 

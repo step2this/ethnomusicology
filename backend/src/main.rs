@@ -10,19 +10,12 @@ use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
-pub mod api;
-pub mod config;
-pub mod db;
-pub mod error;
-pub mod repo;
-pub mod routes;
-pub mod services;
-
-use api::spotify::SpotifyClient;
-use config::AppConfig;
-use repo::SqliteImportRepository;
-use routes::auth::{AuthState, TokenExchangeResult, TokenExchanger};
-use routes::import::ImportState;
+use ethnomusicology_backend::api::spotify::SpotifyClient;
+use ethnomusicology_backend::config::AppConfig;
+use ethnomusicology_backend::repo::SqliteImportRepository;
+use ethnomusicology_backend::routes;
+use ethnomusicology_backend::routes::auth::{AuthState, TokenExchangeResult, TokenExchanger};
+use ethnomusicology_backend::routes::import::ImportState;
 
 // ---------------------------------------------------------------------------
 // Real Spotify token exchanger
@@ -114,6 +107,8 @@ async fn main() -> anyhow::Result<()> {
     sqlx::raw_sql(migration_001).execute(&pool).await?;
     let migration_002 = include_str!("../migrations/002_spotify_imports.sql");
     sqlx::raw_sql(migration_002).execute(&pool).await?;
+    let migration_003 = include_str!("../migrations/003_dj_metadata.sql");
+    sqlx::raw_sql(migration_003).execute(&pool).await?;
     sqlx::raw_sql("PRAGMA foreign_keys = ON")
         .execute(&pool)
         .await?;
@@ -171,6 +166,7 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api", api_router())
         .nest("/api", routes::auth::auth_routes(auth_state))
         .nest("/api", routes::import::import_router(import_state))
+        .nest("/api", routes::tracks::tracks_router(pool.clone()))
         .layer(CorsLayer::permissive())
         .layer(TraceLayer::new_for_http());
 
