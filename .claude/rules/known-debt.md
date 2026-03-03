@@ -22,3 +22,6 @@ paths:
 | Duplicate BPM warning functions | ST-006 critic MEDIUM-5 | Low | `compute_bpm_warnings` (SetlistTrackRow) and `compute_bpm_warnings_from_responses` (SetlistTrackResponse) duplicate logic. Could share a generic helper. |
 | Energy profile selector lacks visual mini-curve | ST-006 critic LOW-1 | Low | Plan says "visual mini-curve" but implementation uses text-only ChoiceChips. Functional, UX polish deferred. |
 | Daily generation limits not enforced | ST-006 steel thread | Low | user_usage.generation_count column exists but not checked during generation. Explicitly deferred from ST-006. |
+| `CorsLayer::permissive()` in main.rs | AWS deploy plan C3 | Medium | Unconditional permissive CORS. Replace with explicit allowed origins before removing basic auth from Caddy. |
+| Migration versioning needed before ALTER TABLE | AWS deploy plan H4 | Medium | Current migrations use `CREATE TABLE IF NOT EXISTS` (re-runs safe). First `ALTER TABLE` migration will require version tracking or it will fail on re-run. |
+| `sst-deployer` IAM has AdministratorAccess | AWS deploy plan C1 | High | Must scope down to S3-only before storing any credentials in GitHub Actions secrets. |
