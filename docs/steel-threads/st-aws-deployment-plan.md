@@ -79,7 +79,9 @@ Key decisions:
 - `BIND_ADDRESS=127.0.0.1` — only Caddy can reach the backend
 - Secrets in systemd env file (chmod 600), NOT in Caddyfile or git
 
-Note: `CorsLayer::permissive()` in main.rs is acceptable while basic auth is active. Add to known-debt: replace with explicit allowed origins before removing basic auth.
+Also in T1, fix `CorsLayer::permissive()` in main.rs — replace with explicit allowed origins for the DuckDNS domain (or `localhost` for dev). This is cheap to do now and avoids a landmine when basic auth is eventually removed.
+
+Also wire up graceful shutdown: add `tokio::signal::ctrl_c()` with `.with_graceful_shutdown()` on `axum::serve`. Without it, `systemctl restart` sends SIGTERM and active connections (e.g., mid-Spotify OAuth flow) are dropped immediately.
 
 **T2: Scope down IAM**
 
@@ -128,15 +130,10 @@ fi
 aws s3 cp "$BACKUP_PATH" "s3://$BUCKET/$(date +%Y/%m/%d)/$(basename $BACKUP_PATH)"
 rm -f "$BACKUP_PATH"
 
-# Prune backups older than 30 days
-aws s3 ls "s3://$BUCKET/" --recursive | \
-  awk '{print $4}' | \
-  while read key; do
-    file_date=$(echo "$key" | grep -oP '\d{8}')
-    if [ -n "$file_date" ] && [ "$file_date" -lt "$(date -d '30 days ago' +%Y%m%d)" ]; then
-      aws s3 rm "s3://$BUCKET/$key"
-    fi
-  done
+# Prune backups older than 30 days (uses S3 ls date column, not filename parsing)
+aws s3 ls "s3://$BUCKET/" --recursive \
+  | awk -v cutoff="$(date -d '30 days ago' +%Y-%m-%d)" '$1 < cutoff {print $4}' \
+  | xargs -r -I{} aws s3 rm "s3://$BUCKET/{}"
 
 echo "Backup complete: $BACKUP_PATH → s3://$BUCKET/"
 ```
@@ -151,10 +148,16 @@ Cron (every 6 hours): `0 */6 * * * /opt/ethnomusicology/scripts/backup.sh >> /va
 
 Design contract (shared between T1 and T4):
 - Binary location: `/opt/ethnomusicology/ethnomusicology-backend-<timestamp>`
-- Active symlink: `/opt/ethnomusicology/ethnomusicology-backend-current`
-- Web assets: `/opt/ethnomusicology/frontend/`
+- Active binary symlink: `/opt/ethnomusicology/ethnomusicology-backend-current`
+- Frontend location: `/opt/ethnomusicology/frontend-<timestamp>/`
+- Active frontend symlink: `/opt/ethnomusicology/frontend-current`
 - Service name: `ethnomusicology.service`
 - Environment file: `/etc/ethnomusicology/env`
+
+Caddy must be updated to serve from the frontend symlink:
+```
+root * /opt/ethnomusicology/frontend-current
+```
 
 Deploy script (`scripts/deploy.sh` on EC2):
 ```bash
@@ -164,38 +167,54 @@ set -euo pipefail
 DEPLOY_DIR="/opt/ethnomusicology"
 TIMESTAMP=$(date +%s)
 NEW_BINARY="$DEPLOY_DIR/ethnomusicology-backend-$TIMESTAMP"
-CURRENT_LINK="$DEPLOY_DIR/ethnomusicology-backend-current"
-PREVIOUS=$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo "")
+CURRENT_BINARY_LINK="$DEPLOY_DIR/ethnomusicology-backend-current"
+CURRENT_FRONTEND_LINK="$DEPLOY_DIR/frontend-current"
+NEW_FRONTEND="$DEPLOY_DIR/frontend-$TIMESTAMP"
+PREVIOUS_BINARY=$(readlink -f "$CURRENT_BINARY_LINK" 2>/dev/null || echo "")
+PREVIOUS_FRONTEND=$(readlink -f "$CURRENT_FRONTEND_LINK" 2>/dev/null || echo "")
 
 # Binary was already SCP'd to $NEW_BINARY by GitHub Actions
 chmod +x "$NEW_BINARY"
 
-# Swap symlink atomically
-ln -sf "$NEW_BINARY" "${CURRENT_LINK}.tmp"
-mv -f "${CURRENT_LINK}.tmp" "$CURRENT_LINK"
+# Frontend was already SCP'd to $NEW_FRONTEND/ by GitHub Actions
+# Swap both symlinks atomically — no partial state where Caddy serves
+# old index.html with new chunk hashes (or vice versa)
+ln -sf "$NEW_BINARY" "${CURRENT_BINARY_LINK}.tmp"
+mv -f "${CURRENT_BINARY_LINK}.tmp" "$CURRENT_BINARY_LINK"
 
-# Restart service
+ln -sfn "$NEW_FRONTEND" "${CURRENT_FRONTEND_LINK}.tmp"
+mv -f "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
+
+# Restart service (Caddy picks up new frontend via symlink, no restart needed)
 sudo systemctl restart ethnomusicology
 
-# Health check (30 second timeout)
-for i in $(seq 1 30); do
+# Health check (60 second timeout with exponential backoff)
+# Cold-start Axum + SQLite migrations can take time on a loaded instance
+DELAY=1
+for i in $(seq 1 10); do
   if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
     echo "Deploy successful: $NEW_BINARY"
-    # Keep last 3 binaries, remove older ones
-    ls -t "$DEPLOY_DIR"/ethnomusicology-backend-[0-9]* 2>/dev/null | tail -n +4 | xargs rm -f
+    # Keep last 3 binaries + frontends, remove older ones
+    ls -t "$DEPLOY_DIR"/ethnomusicology-backend-[0-9]* 2>/dev/null | tail -n +4 | xargs -r rm -f
+    ls -dt "$DEPLOY_DIR"/frontend-[0-9]* 2>/dev/null | tail -n +4 | xargs -r rm -rf
     exit 0
   fi
-  sleep 1
+  sleep "$DELAY"
+  DELAY=$((DELAY * 2 > 15 ? 15 : DELAY * 2))
 done
 
-# Health check failed — rollback
-echo "HEALTH CHECK FAILED — rolling back to $PREVIOUS" >&2
-if [ -n "$PREVIOUS" ] && [ -f "$PREVIOUS" ]; then
-  ln -sf "$PREVIOUS" "${CURRENT_LINK}.tmp"
-  mv -f "${CURRENT_LINK}.tmp" "$CURRENT_LINK"
-  sudo systemctl restart ethnomusicology
-  echo "Rollback complete. Previous binary restored."
+# Health check failed — rollback both binary and frontend
+echo "HEALTH CHECK FAILED — rolling back" >&2
+if [ -n "$PREVIOUS_BINARY" ] && [ -f "$PREVIOUS_BINARY" ]; then
+  ln -sf "$PREVIOUS_BINARY" "${CURRENT_BINARY_LINK}.tmp"
+  mv -f "${CURRENT_BINARY_LINK}.tmp" "$CURRENT_BINARY_LINK"
 fi
+if [ -n "$PREVIOUS_FRONTEND" ] && [ -d "$PREVIOUS_FRONTEND" ]; then
+  ln -sfn "$PREVIOUS_FRONTEND" "${CURRENT_FRONTEND_LINK}.tmp"
+  mv -f "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
+fi
+sudo systemctl restart ethnomusicology
+echo "Rollback complete. Previous binary + frontend restored."
 exit 1
 ```
 
@@ -232,17 +251,17 @@ jobs:
           echo "$EC2_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
           ssh-keyscan "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
           TIMESTAMP=$(date +%s)
+          SSH="ssh -i ~/.ssh/deploy_key ubuntu@$EC2_HOST"
+          SCP="scp -i ~/.ssh/deploy_key"
           # Upload binary
-          scp -i ~/.ssh/deploy_key \
-            backend/target/release/ethnomusicology-backend \
+          $SCP backend/target/release/ethnomusicology-backend \
             ubuntu@$EC2_HOST:/opt/ethnomusicology/ethnomusicology-backend-$TIMESTAMP
-          # Upload frontend
-          scp -i ~/.ssh/deploy_key -r \
-            frontend/build/web/* \
-            ubuntu@$EC2_HOST:/opt/ethnomusicology/frontend/
+          # Upload frontend to timestamped directory (atomic swap, not file-by-file)
+          $SSH "mkdir -p /opt/ethnomusicology/frontend-$TIMESTAMP"
+          $SCP -r frontend/build/web/* \
+            ubuntu@$EC2_HOST:/opt/ethnomusicology/frontend-$TIMESTAMP/
           # Run deploy script (handles symlink swap, restart, health check, rollback)
-          ssh -i ~/.ssh/deploy_key ubuntu@$EC2_HOST \
-            "TIMESTAMP=$TIMESTAMP /opt/ethnomusicology/scripts/deploy.sh"
+          $SSH "TIMESTAMP=$TIMESTAMP /opt/ethnomusicology/scripts/deploy.sh"
 ```
 
 Note: The SSH deploy key is a **dedicated key pair** for deployment only. It is NOT the `sst-deployer` AWS credentials. The EC2 instance's AWS CLI access is scoped to S3 backups only (T2).
@@ -356,6 +375,15 @@ Revisit when moving to multi-service architecture: **AWS IaC MCP Server** (offic
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| `CorsLayer::permissive()` in main.rs | Medium | Replace with explicit allowed origins before removing basic auth |
 | Migration versioning | Medium | `CREATE IF NOT EXISTS` works now; need version tracking before first `ALTER TABLE` |
 | CI/CD architecture assumption (x86_64) | Low | Document in workflow; update if switching to Graviton |
+
+## Review Notes (Claude Web, 2026-03-03)
+
+Incorporated feedback from external review:
+1. Health check window extended to 60s with exponential backoff (was 30s linear)
+2. Frontend deploy now uses atomic symlink swap (was file-by-file SCP mid-serve)
+3. Backup pruning uses S3 `ls` date column (was fragile filename parsing)
+4. `CorsLayer::permissive()` moved from debt to T1 implementation (fix while we're there)
+5. `actions/checkout@v5` confirmed working (our e2e.yml already uses it)
+6. Added graceful shutdown (`with_graceful_shutdown`) to T1 — drain in-flight requests on SIGTERM
