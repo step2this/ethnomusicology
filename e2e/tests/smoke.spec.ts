@@ -50,7 +50,7 @@ test.describe('Smoke Tests', () => {
     // Click Generate Setlist button
     await page.getByText('Generate Setlist').click();
 
-    // Assert setlist generation screen has the vibe tab (ST-006 redesigned to tabbed input)
-    await expect(page.getByText('Describe a Vibe')).toBeVisible({ timeout: 10000 });
+    // Assert setlist generation screen loaded by checking its AppBar title
+    await expect(page.getByRole('heading', { name: 'Create Set' })).toBeVisible({ timeout: 10000 });
   });
 });
