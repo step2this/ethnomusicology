@@ -27,7 +27,10 @@ async fn print_bootstrap_sql() {
     println!("    execution_time BIGINT NOT NULL DEFAULT 0");
     println!(");");
     for (version, description, _installed_on, success, checksum, execution_time) in &rows {
-        let hex = checksum.iter().map(|b| format!("{:02x}", b)).collect::<String>();
+        let hex = checksum
+            .iter()
+            .map(|b| format!("{:02x}", b))
+            .collect::<String>();
         println!(
             "INSERT OR IGNORE INTO _sqlx_migrations (version, description, installed_on, success, checksum, execution_time) VALUES ({}, '{}', datetime('now'), {}, X'{}', {});",
             version, description, success, hex, execution_time

@@ -263,7 +263,7 @@ async fn main() -> anyhow::Result<()> {
                 AllowOrigin::any()
             } else {
                 AllowOrigin::list([
-                    "https://salamic-vibes.duckdns.org"
+                    "https://tarab.studio"
                         .parse::<axum::http::HeaderValue>()
                         .unwrap(),
                     "http://localhost:3000"
