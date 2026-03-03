@@ -59,6 +59,8 @@ pub struct TrackRow {
     pub spotify_uri: Option<String>,
     pub spotify_preview_url: Option<String>,
     pub album_art_url: Option<String>,
+    pub deezer_id: Option<i64>,
+    pub deezer_preview_url: Option<String>,
     pub created_at: Option<NaiveDateTime>,
 }
 

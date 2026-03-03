@@ -115,7 +115,8 @@ pub async fn load_catalog_tracks(pool: &SqlitePool) -> Result<Vec<TrackRow>, sql
         r#"SELECT
             t.id, t.title, GROUP_CONCAT(a.name, ', ') AS artist,
             t.album, t.duration_ms, t.bpm, t.camelot_key, t.energy,
-            t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url, t.created_at
+            t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url,
+            t.deezer_id, t.deezer_preview_url, t.created_at
         FROM tracks t
         LEFT JOIN track_artists ta ON t.id = ta.track_id
         LEFT JOIN artists a ON ta.artist_id = a.id

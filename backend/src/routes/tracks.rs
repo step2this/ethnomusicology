@@ -39,6 +39,9 @@ pub struct TrackListResponse {
 
 impl From<TrackRow> for TrackResponse {
     fn from(row: TrackRow) -> Self {
+        // Prefer Deezer preview URL if available, fall back to Spotify
+        let preview_url = row.deezer_preview_url.or(row.spotify_preview_url);
+
         TrackResponse {
             id: row.id,
             title: row.title,
@@ -50,7 +53,7 @@ impl From<TrackRow> for TrackResponse {
             energy: row.energy,
             source: row.source,
             source_id: row.spotify_uri,
-            preview_url: row.spotify_preview_url,
+            preview_url,
             album_art_url: row.album_art_url,
             date_added: row
                 .created_at

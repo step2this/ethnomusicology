@@ -114,7 +114,8 @@ pub async fn get_tracks_by_import_id(
         r#"SELECT
             t.id, t.title, GROUP_CONCAT(a.name, ', ') AS artist,
             t.album, t.duration_ms, t.bpm, t.camelot_key, t.energy,
-            t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url, t.created_at
+            t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url,
+            t.deezer_id, t.deezer_preview_url, t.created_at
         FROM import_tracks it
         INNER JOIN tracks t ON it.track_id = t.id
         LEFT JOIN track_artists ta ON t.id = ta.track_id

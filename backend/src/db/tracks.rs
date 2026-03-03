@@ -85,6 +85,8 @@ pub async fn list_tracks_paginated(
             t.spotify_uri,
             t.spotify_preview_url,
             t.album_art_url,
+            t.deezer_id,
+            t.deezer_preview_url,
             t.created_at
         FROM tracks t
         LEFT JOIN track_artists ta ON t.id = ta.track_id
@@ -111,10 +113,12 @@ pub async fn get_track_by_spotify_uri(
     pool: &SqlitePool,
     uri: &str,
 ) -> Result<Option<Track>, sqlx::Error> {
-    sqlx::query_as::<_, Track>("SELECT * FROM tracks WHERE spotify_uri = ?")
-        .bind(uri)
-        .fetch_optional(pool)
-        .await
+    sqlx::query_as::<_, Track>(
+        "SELECT id, title, album, duration_ms, spotify_uri, spotify_preview_url, youtube_id, musicbrainz_id, created_at, updated_at FROM tracks WHERE spotify_uri = ?",
+    )
+    .bind(uri)
+    .fetch_optional(pool)
+    .await
 }
 
 /// Get tracks that need enrichment (needs_enrichment = 1, no enrichment_error).
@@ -126,7 +130,8 @@ pub async fn get_unenriched_tracks(
         r#"SELECT
             t.id, t.title, GROUP_CONCAT(a.name, ', ') AS artist,
             t.album, t.duration_ms, t.bpm, t.camelot_key, t.energy,
-            t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url, t.created_at
+            t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url,
+            t.deezer_id, t.deezer_preview_url, t.created_at
         FROM tracks t
         LEFT JOIN track_artists ta ON t.id = ta.track_id
         LEFT JOIN artists a ON ta.artist_id = a.id

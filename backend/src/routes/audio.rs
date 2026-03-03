@@ -1,12 +1,13 @@
 use axum::{
     body::Body,
-    extract::Query,
+    extract::{Query, State},
     http::{header, StatusCode},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
+use sqlx::SqlitePool;
 
 #[derive(Deserialize)]
 pub struct DeezerSearchParams {
@@ -102,7 +103,7 @@ async fn audio_proxy(Query(params): Query<AudioProxyParams>) -> impl IntoRespons
         }
     };
 
-    if !host.ends_with("dzcdn.net") {
+    if !(host == "dzcdn.net" || host.ends_with(".dzcdn.net")) {
         return (
             StatusCode::FORBIDDEN,
             Json(serde_json::json!({
@@ -164,8 +165,46 @@ async fn audio_proxy(Query(params): Query<AudioProxyParams>) -> impl IntoRespons
     }
 }
 
-pub fn audio_router() -> Router {
+#[derive(Debug, Serialize)]
+struct EnrichDeezerResponse {
+    enriched: usize,
+}
+
+async fn enrich_deezer_handler(
+    State(pool): State<SqlitePool>,
+) -> Result<Json<EnrichDeezerResponse>, DeezerEnrichError> {
+    let enriched = crate::services::deezer::enrich_tracks_with_deezer(&pool).await?;
+
+    Ok(Json(EnrichDeezerResponse { enriched }))
+}
+
+#[derive(Debug)]
+struct DeezerEnrichError(anyhow::Error);
+
+impl From<anyhow::Error> for DeezerEnrichError {
+    fn from(e: anyhow::Error) -> Self {
+        DeezerEnrichError(e)
+    }
+}
+
+impl axum::response::IntoResponse for DeezerEnrichError {
+    fn into_response(self) -> axum::response::Response {
+        let msg = self.0.to_string();
+
+        let body = serde_json::json!({
+            "error": {
+                "code": "DEEZER_ENRICH_ERROR",
+                "message": msg,
+            }
+        });
+        (StatusCode::INTERNAL_SERVER_ERROR, Json(body)).into_response()
+    }
+}
+
+pub fn audio_router(pool: SqlitePool) -> Router {
     Router::new()
         .route("/audio/deezer-search", get(deezer_search))
         .route("/audio/proxy", get(audio_proxy))
+        .route("/audio/enrich-deezer", post(enrich_deezer_handler))
+        .with_state(pool)
 }
