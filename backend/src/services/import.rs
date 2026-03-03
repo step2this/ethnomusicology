@@ -93,6 +93,12 @@ pub trait ImportRepository: Send + Sync {
         import_id: &str,
         summary: &ImportSummary,
     ) -> Result<(), ImportError>;
+
+    async fn insert_import_track_link(
+        &self,
+        import_id: &str,
+        track_id: &str,
+    ) -> Result<(), ImportError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -219,6 +225,15 @@ pub async fn import_playlist(
                 }
             }
 
+            // Record import-track linkage
+            if let Err(e) = repo.insert_import_track_link(&import_id, &track_id).await {
+                tracing::warn!(
+                    "Failed to record import-track link for import={}, track={}: {e}",
+                    import_id,
+                    track_id
+                );
+            }
+
             // Upsert each artist and link
             for raw_artist in &raw_track.artists {
                 let artist_id = deterministic_id(&raw_artist.uri);
@@ -323,6 +338,7 @@ mod tests {
         artists: Mutex<Vec<ArtistRecord>>,
         track_artists: Mutex<Vec<(String, String)>>,
         completed: Mutex<Vec<ImportSummary>>,
+        import_track_links: Mutex<Vec<(String, String)>>,
     }
 
     impl MockRepo {
@@ -333,6 +349,7 @@ mod tests {
                 artists: Mutex::new(Vec::new()),
                 track_artists: Mutex::new(Vec::new()),
                 completed: Mutex::new(Vec::new()),
+                import_track_links: Mutex::new(Vec::new()),
             }
         }
     }
@@ -388,6 +405,18 @@ mod tests {
             summary: &ImportSummary,
         ) -> Result<(), ImportError> {
             self.completed.lock().unwrap().push(summary.clone());
+            Ok(())
+        }
+
+        async fn insert_import_track_link(
+            &self,
+            import_id: &str,
+            track_id: &str,
+        ) -> Result<(), ImportError> {
+            self.import_track_links
+                .lock()
+                .unwrap()
+                .push((import_id.to_string(), track_id.to_string()));
             Ok(())
         }
     }
@@ -547,5 +576,266 @@ mod tests {
         assert_eq!(deterministic_id("spotify:track:abc123"), "abc123");
         assert_eq!(deterministic_id("spotify:artist:xyz"), "xyz");
         assert_eq!(deterministic_id("nocolon"), "nocolon");
+    }
+
+    #[tokio::test]
+    async fn test_import_playlist_records_import_track_linkage() {
+        use wiremock::matchers::{method, path_regex};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let mock_server = MockServer::start().await;
+
+        let body = serde_json::json!({
+            "items": [
+                {
+                    "track": {
+                        "name": "Track 1",
+                        "uri": "spotify:track:t1",
+                        "album": { "name": "Album 1" },
+                        "duration_ms": 200000,
+                        "preview_url": null,
+                        "artists": [{ "name": "Artist 1", "uri": "spotify:artist:a1" }]
+                    }
+                },
+                {
+                    "track": {
+                        "name": "Track 2",
+                        "uri": "spotify:track:t2",
+                        "album": { "name": "Album 2" },
+                        "duration_ms": 180000,
+                        "preview_url": null,
+                        "artists": [{ "name": "Artist 2", "uri": "spotify:artist:a2" }]
+                    }
+                }
+            ],
+            "total": 2,
+            "next": null,
+            "offset": 0,
+            "limit": 100
+        });
+
+        Mock::given(method("GET"))
+            .and(path_regex(r"/v1/playlists/.*/tracks.*"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&body))
+            .mount(&mock_server)
+            .await;
+
+        let client =
+            SpotifyClient::new("id", "secret").with_base_url(mock_server.uri(), mock_server.uri());
+
+        let repo = MockRepo::new();
+
+        let summary = import_playlist(&repo, &client, "token", "user1", "playlist789")
+            .await
+            .unwrap();
+
+        assert_eq!(summary.inserted, 2);
+
+        // Verify import-track linkage was recorded
+        let links = repo.import_track_links.lock().unwrap();
+        assert_eq!(links.len(), 2);
+        assert!(links
+            .iter()
+            .any(|(imp, trk)| imp == "import-001" && trk == "t1"));
+        assert!(links
+            .iter()
+            .any(|(imp, trk)| imp == "import-001" && trk == "t2"));
+    }
+
+    #[tokio::test]
+    async fn test_import_playlist_linkage_correct_ids() {
+        use wiremock::matchers::{method, path_regex};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let mock_server = MockServer::start().await;
+
+        let body = serde_json::json!({
+            "items": [
+                {
+                    "track": {
+                        "name": "Only Track",
+                        "uri": "spotify:track:onlyone",
+                        "album": { "name": "Album" },
+                        "duration_ms": 150000,
+                        "preview_url": null,
+                        "artists": [{ "name": "Artist", "uri": "spotify:artist:art1" }]
+                    }
+                }
+            ],
+            "total": 1,
+            "next": null,
+            "offset": 0,
+            "limit": 100
+        });
+
+        Mock::given(method("GET"))
+            .and(path_regex(r"/v1/playlists/.*/tracks.*"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&body))
+            .mount(&mock_server)
+            .await;
+
+        let client =
+            SpotifyClient::new("id", "secret").with_base_url(mock_server.uri(), mock_server.uri());
+
+        let repo = MockRepo::new();
+
+        import_playlist(&repo, &client, "token", "user1", "pl_check")
+            .await
+            .unwrap();
+
+        let links = repo.import_track_links.lock().unwrap();
+        assert_eq!(links.len(), 1);
+        // track_id is the deterministic_id of "spotify:track:onlyone" = "onlyone"
+        assert_eq!(links[0], ("import-001".to_string(), "onlyone".to_string()));
+    }
+
+    #[tokio::test]
+    async fn test_import_playlist_linkage_failure_does_not_fail_import() {
+        use wiremock::matchers::{method, path_regex};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        // A repo that fails on insert_import_track_link but everything else works
+        struct FailLinkRepo;
+
+        #[async_trait::async_trait]
+        impl ImportRepository for FailLinkRepo {
+            async fn create_import(
+                &self,
+                _user_id: &str,
+                _playlist_id: &str,
+                _playlist_name: Option<&str>,
+            ) -> Result<String, ImportError> {
+                Ok("imp-fail-link".to_string())
+            }
+
+            async fn upsert_track(
+                &self,
+                _track: &TrackRecord,
+            ) -> Result<UpsertResult, ImportError> {
+                Ok(UpsertResult::Inserted)
+            }
+
+            async fn upsert_artist(
+                &self,
+                _artist: &ArtistRecord,
+            ) -> Result<UpsertResult, ImportError> {
+                Ok(UpsertResult::Inserted)
+            }
+
+            async fn upsert_track_artist(
+                &self,
+                _track_id: &str,
+                _artist_id: &str,
+            ) -> Result<(), ImportError> {
+                Ok(())
+            }
+
+            async fn complete_import(
+                &self,
+                _import_id: &str,
+                _summary: &ImportSummary,
+            ) -> Result<(), ImportError> {
+                Ok(())
+            }
+
+            async fn insert_import_track_link(
+                &self,
+                _import_id: &str,
+                _track_id: &str,
+            ) -> Result<(), ImportError> {
+                Err(ImportError::Database("link insert failed".to_string()))
+            }
+        }
+
+        let mock_server = MockServer::start().await;
+
+        let body = serde_json::json!({
+            "items": [
+                {
+                    "track": {
+                        "name": "Track",
+                        "uri": "spotify:track:linkfail",
+                        "album": { "name": "Album" },
+                        "duration_ms": 200000,
+                        "preview_url": null,
+                        "artists": [{ "name": "Artist", "uri": "spotify:artist:a" }]
+                    }
+                }
+            ],
+            "total": 1,
+            "next": null,
+            "offset": 0,
+            "limit": 100
+        });
+
+        Mock::given(method("GET"))
+            .and(path_regex(r"/v1/playlists/.*/tracks.*"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&body))
+            .mount(&mock_server)
+            .await;
+
+        let client =
+            SpotifyClient::new("id", "secret").with_base_url(mock_server.uri(), mock_server.uri());
+
+        let repo = FailLinkRepo;
+
+        // Import should succeed even though link insert failed
+        let summary = import_playlist(&repo, &client, "token", "user1", "pl_linkfail")
+            .await
+            .unwrap();
+
+        assert_eq!(summary.inserted, 1);
+        assert_eq!(summary.status, "completed");
+    }
+
+    #[tokio::test]
+    async fn test_import_playlist_null_track_has_no_linkage() {
+        use wiremock::matchers::{method, path_regex};
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let mock_server = MockServer::start().await;
+
+        let body = serde_json::json!({
+            "items": [
+                { "track": null },
+                {
+                    "track": {
+                        "name": "Valid Track",
+                        "uri": "spotify:track:valid1",
+                        "album": { "name": "Album" },
+                        "duration_ms": 200000,
+                        "preview_url": null,
+                        "artists": [{ "name": "Artist", "uri": "spotify:artist:a" }]
+                    }
+                }
+            ],
+            "total": 2,
+            "next": null,
+            "offset": 0,
+            "limit": 100
+        });
+
+        Mock::given(method("GET"))
+            .and(path_regex(r"/v1/playlists/.*/tracks.*"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(&body))
+            .mount(&mock_server)
+            .await;
+
+        let client =
+            SpotifyClient::new("id", "secret").with_base_url(mock_server.uri(), mock_server.uri());
+
+        let repo = MockRepo::new();
+
+        let summary = import_playlist(&repo, &client, "token", "user1", "pl_null")
+            .await
+            .unwrap();
+
+        assert_eq!(summary.inserted, 1);
+        assert_eq!(summary.failed, 1);
+
+        // Only the valid track should have a linkage
+        let links = repo.import_track_links.lock().unwrap();
+        assert_eq!(links.len(), 1);
+        assert_eq!(links[0].1, "valid1");
     }
 }

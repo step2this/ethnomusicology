@@ -91,11 +91,11 @@ cd frontend && flutter analyze && flutter test  # Lint + test
 
 ## Current State
 
-- **Branch**: `main` (clean, pushed to GitHub)
-- **Completed**: UC-001, ST-001, ST-003, ST-004, ST-005, SP-001–SP-004
-- **MVP Roadmap**: Phase 0 (SP-004) + Phase 1 (ST-005) complete. See `docs/mvp-roadmap.md`
-- **Next**: ST-006 (Multi-Input Seeding + Enhanced Generation)
-- **Test count**: 176 backend tests, 12 frontend tests — all passing
+- **Branch**: `feature/st-006-enhanced-generation` (PR #3 open, CI fix in progress)
+- **Completed**: UC-001, ST-001, ST-003, ST-004, ST-005, ST-006, SP-001–SP-004
+- **MVP Roadmap**: Phase 0 (SP-004) + Phase 1 (ST-005) + Phase 2 (ST-006) complete. See `docs/mvp-roadmap.md`
+- **Next**: AWS deployment, then ST-007 (Conversational Refinement)
+- **Test count**: 268 backend tests, 47 frontend tests (315 total) — all passing
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`
 
 ## Context-Specific Rules

@@ -39,6 +39,14 @@ paths:
 - **Merge dependencies before branching**: Merge all pending PRs to main before creating the next feature branch.
 - **Git worktrees for cross-branch fixes**: Fixed ST-004 E2E tests on a worktree while ST-005 builders ran undisturbed.
 
+## ST-006
+- **Devil's advocate on task plans is highest-ROI quality step**: 3 CRITICAL issues caught before any builder started (ContentBlock name collision, missing test pool migration, scope creep). Cost to fix at plan time: minutes. Mid-implementation: hours of rework across multiple builders.
+- **Combine tasks that touch the same files into one builder**: T6+T8+T9 all touched `services/setlist.rs` and `routes/setlist.rs`. One builder handling all 3 sequentially was cleaner than 3 builders fighting over the same files.
+- **Plan-vs-code compliance check works**: Adding explicit postcondition checking to the critic prompt caught `compute_seed_match_count` being defined and tested but never called — postcondition 13 would have shipped unmet.
+- **Duplicate test helpers are a recurring trap**: `create_test_pool()` exists in both `db/mod.rs` and `tests/setlist_api_test.rs`. Adding a migration to one but not the other creates silent failures. Bitten in ST-005 and ST-006. Need single canonical implementation.
+- **Commit per-phase, not monolithic**: 27 files and ~5,600 lines in one commit makes bisect impossible and PR review painful. Each phase or builder should produce its own commit.
+- **Shut down idle builders proactively**: Builders that finish their phase and sit idle consume notification bandwidth and cause confusion. Shut them down as soon as their tasks complete.
+
 ## Spike Findings Summary
 
 | Spike | Hypothesis | Result | Key Decision |

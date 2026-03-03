@@ -121,6 +121,8 @@ async fn main() -> anyhow::Result<()> {
     sqlx::raw_sql(migration_004).execute(&pool).await?;
     let migration_005 = include_str!("../migrations/005_enrichment.sql");
     sqlx::raw_sql(migration_005).execute(&pool).await?;
+    let migration_006 = include_str!("../migrations/006_import_tracks.sql");
+    sqlx::raw_sql(migration_006).execute(&pool).await?;
     sqlx::raw_sql("PRAGMA foreign_keys = ON")
         .execute(&pool)
         .await?;
@@ -166,16 +168,17 @@ async fn main() -> anyhow::Result<()> {
     };
 
     // --- Import routes state ---
+    // --- Claude client (shared) ---
+    let claude_client: Arc<dyn ethnomusicology_backend::api::claude::ClaudeClientTrait> =
+        Arc::new(ClaudeClient::new(&cfg.anthropic_api_key));
+
     let import_state = Arc::new(ImportState {
         spotify: spotify_client,
         repo: Arc::new(SqliteImportRepository::new(pool.clone())),
         pool: pool.clone(),
         encryption_key,
+        claude: claude_client.clone(),
     });
-
-    // --- Claude client (shared) ---
-    let claude_client: Arc<dyn ethnomusicology_backend::api::claude::ClaudeClientTrait> =
-        Arc::new(ClaudeClient::new(&cfg.anthropic_api_key));
 
     // --- Setlist routes state ---
     let setlist_state = Arc::new(SetlistRouteState {

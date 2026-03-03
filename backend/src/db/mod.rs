@@ -26,6 +26,9 @@ pub async fn create_test_pool() -> SqlitePool {
     let migration_005 = include_str!("../../migrations/005_enrichment.sql");
     sqlx::raw_sql(migration_005).execute(&pool).await.unwrap();
 
+    let migration_006 = include_str!("../../migrations/006_import_tracks.sql");
+    sqlx::raw_sql(migration_006).execute(&pool).await.unwrap();
+
     // Enable foreign keys for SQLite
     sqlx::raw_sql("PRAGMA foreign_keys = ON")
         .execute(&pool)

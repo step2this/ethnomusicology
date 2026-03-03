@@ -97,4 +97,15 @@ impl ImportRepository for SqliteImportRepository {
 
         Ok(())
     }
+
+    async fn insert_import_track_link(
+        &self,
+        import_id: &str,
+        track_id: &str,
+    ) -> Result<(), ImportError> {
+        imports::insert_import_track(&self.pool, import_id, track_id)
+            .await
+            .map_err(|e| ImportError::Database(e.to_string()))?;
+        Ok(())
+    }
 }

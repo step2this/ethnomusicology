@@ -76,6 +76,7 @@ pub struct SetlistRow {
     pub model: String,
     pub notes: Option<String>,
     pub harmonic_flow_score: Option<f64>,
+    pub energy_profile: Option<String>,
     pub created_at: Option<NaiveDateTime>,
 }
 

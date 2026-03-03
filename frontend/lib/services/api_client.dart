@@ -79,17 +79,38 @@ class ApiClient {
   // Setlist Generation
   // -------------------------------------------------------------------------
 
-  Future<Setlist> generateSetlist(String prompt, {int? trackCount}) async {
+  Future<Setlist> generateSetlist(
+    String prompt, {
+    int? trackCount,
+    String? energyProfile,
+    String? sourcePlaylistId,
+    String? seedTracklist,
+    bool? creativeMode,
+    double? bpmMin,
+    double? bpmMax,
+  }) async {
     final data = <String, dynamic>{'prompt': prompt};
-    if (trackCount != null) {
-      data['track_count'] = trackCount;
+    if (trackCount != null) data['track_count'] = trackCount;
+    if (energyProfile != null) data['energy_profile'] = energyProfile;
+    if (sourcePlaylistId != null) {
+      data['source_playlist_id'] = sourcePlaylistId;
+    }
+    if (seedTracklist != null) data['seed_tracklist'] = seedTracklist;
+    if (creativeMode != null) data['creative_mode'] = creativeMode;
+    if (bpmMin != null && bpmMax != null) {
+      data['bpm_range'] = {'min': bpmMin, 'max': bpmMax};
     }
     final response = await _dio.post('/setlists/generate', data: data);
     return Setlist.fromJson(response.data as Map<String, dynamic>);
   }
 
-  Future<Setlist> arrangeSetlist(String id) async {
-    final response = await _dio.post('/setlists/$id/arrange');
+  Future<Setlist> arrangeSetlist(String id, {String? energyProfile}) async {
+    final data = <String, dynamic>{};
+    if (energyProfile != null) data['energy_profile'] = energyProfile;
+    final response = await _dio.post(
+      '/setlists/$id/arrange',
+      data: data.isNotEmpty ? data : null,
+    );
     return Setlist.fromJson(response.data as Map<String, dynamic>);
   }
 
