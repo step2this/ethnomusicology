@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audio Crossfade PoC — Deezer Previews</title>
+    <style>
+        body { font-family: system-ui; max-width: 600px; margin: 40px auto; background: #1a1a1a; color: #eee; }
+        button { padding: 12px 24px; font-size: 16px; cursor: pointer; background: #E8963A; color: #000; border: none; border-radius: 6px; margin: 8px; }
+        button:disabled { opacity: 0.4; cursor: not-allowed; }
+        .track { padding: 12px; margin: 8px 0; background: #2a2a2a; border-radius: 8px; }
+        .track .title { font-weight: bold; color: #E8963A; }
+        .track .artist { color: #aaa; }
+        #status { padding: 16px; margin: 16px 0; background: #333; border-radius: 8px; min-height: 40px; }
+        input[type=range] { width: 200px; }
+        label { display: block; margin: 8px 0; }
+    </style>
+</head>
+<body>
+    <h1>Audio Crossfade PoC</h1>
+    <p>Tests Deezer 30s preview playback + Web Audio API crossfade</p>
+
+    <label>Track A: <input id="searchA" value="Kokoroko Just Can't Wait" style="width:300px"></label>
+    <label>Track B: <input id="searchB" value="Greentea Peng Prisoners Round" style="width:300px"></label>
+    <label>Crossfade duration: <input type="range" id="fadeDur" min="1" max="8" value="4"> <span id="fadeDurVal">4</span>s</label>
+
+    <div>
+        <button onclick="loadTracks()">Load Tracks</button>
+        <button id="playBtn" onclick="playCrossfade()" disabled>Play Crossfade</button>
+        <button onclick="stopAll()">Stop</button>
+    </div>
+
+    <div id="trackA" class="track">Track A: (not loaded)</div>
+    <div id="trackB" class="track">Track B: (not loaded)</div>
+    <div id="status">Ready</div>
+
+    <script>
+        let audioCtx = null;
+        let bufferA = null, bufferB = null;
+        let sourceA = null, sourceB = null, gainA = null, gainB = null;
+        let trackInfoA = null, trackInfoB = null;
+
+        document.getElementById('fadeDur').oninput = e => {
+            document.getElementById('fadeDurVal').textContent = e.target.value;
+        };
+
+        async function searchDeezer(query) {
+            // Use our backend proxy to avoid CORS on the Deezer search API
+            const resp = await fetch(`/api/audio/deezer-search?q=${encodeURIComponent(query)}&limit=1`);
+            const data = await resp.json();
+            if (data.error) throw new Error(data.error.message || 'Deezer search failed');
+            if (!data.data || data.data.length === 0) throw new Error(`No results for: ${query}`);
+            return data.data[0];
+        }
+
+        async function loadAudio(url) {
+            if (!audioCtx) audioCtx = new AudioContext();
+            const resp = await fetch(url);
+            const arrayBuf = await resp.arrayBuffer();
+            return await audioCtx.decodeAudioData(arrayBuf);
+        }
+
+        async function loadTracks() {
+            const status = document.getElementById('status');
+            try {
+                status.textContent = 'Searching Deezer...';
+
+                const queryA = document.getElementById('searchA').value;
+                const queryB = document.getElementById('searchB').value;
+
+                const [resultA, resultB] = await Promise.all([
+                    searchDeezer(queryA),
+                    searchDeezer(queryB)
+                ]);
+
+                trackInfoA = resultA;
+                trackInfoB = resultB;
+
+                document.getElementById('trackA').innerHTML =
+                    `<div class="title">${resultA.title}</div><div class="artist">${resultA.artist.name}</div><div>Duration: ${resultA.duration}s | Preview: ${resultA.preview ? 'YES' : 'NO'}</div>`;
+                document.getElementById('trackB').innerHTML =
+                    `<div class="title">${resultB.title}</div><div class="artist">${resultB.artist.name}</div><div>Duration: ${resultB.duration}s | Preview: ${resultB.preview ? 'YES' : 'NO'}</div>`;
+
+                status.textContent = 'Loading audio buffers...';
+
+                [bufferA, bufferB] = await Promise.all([
+                    loadAudio(resultA.preview),
+                    loadAudio(resultB.preview)
+                ]);
+
+                status.textContent = `Loaded! Track A: ${bufferA.duration.toFixed(1)}s, Track B: ${bufferB.duration.toFixed(1)}s. Hit Play Crossfade.`;
+                document.getElementById('playBtn').disabled = false;
+
+            } catch (err) {
+                status.textContent = `Error: ${err.message}`;
+                console.error(err);
+            }
+        }
+
+        function playCrossfade() {
+            if (!bufferA || !bufferB || !audioCtx) return;
+
+            stopAll();
+
+            const fadeDuration = parseFloat(document.getElementById('fadeDur').value);
+            const now = audioCtx.currentTime;
+
+            // Track A: play last fadeDuration seconds
+            sourceA = audioCtx.createBufferSource();
+            sourceA.buffer = bufferA;
+            gainA = audioCtx.createGain();
+            sourceA.connect(gainA).connect(audioCtx.destination);
+
+            // Track B: play from beginning
+            sourceB = audioCtx.createBufferSource();
+            sourceB.buffer = bufferB;
+            gainB = audioCtx.createGain();
+            sourceB.connect(gainB).connect(audioCtx.destination);
+
+            // Start positions
+            const startA = Math.max(0, bufferA.duration - fadeDuration - 2); // 2s of Track A before fade starts
+            const fadeStartTime = now + 2; // 2 seconds of Track A solo, then fade begins
+
+            // Equal-power crossfade curves
+            // Track A: full volume for 2s, then fade out over fadeDuration
+            gainA.gain.setValueAtTime(1.0, now);
+            gainA.gain.setValueAtTime(1.0, fadeStartTime);
+            gainA.gain.linearRampToValueAtTime(0.0, fadeStartTime + fadeDuration);
+
+            // Track B: silent for 2s, then fade in over fadeDuration
+            gainB.gain.setValueAtTime(0.0, now);
+            gainB.gain.setValueAtTime(0.0, fadeStartTime);
+            gainB.gain.linearRampToValueAtTime(1.0, fadeStartTime + fadeDuration);
+
+            // Play
+            sourceA.start(now, startA);
+            sourceB.start(fadeStartTime); // Track B starts when fade begins
+
+            const totalTime = 2 + fadeDuration + 3; // 2s solo A + fade + 3s solo B
+            document.getElementById('status').textContent =
+                `Playing crossfade: ${trackInfoA.title} → ${trackInfoB.title} (${fadeDuration}s fade)`;
+
+            // Auto-stop after playback
+            setTimeout(() => {
+                document.getElementById('status').textContent = 'Crossfade complete!';
+            }, totalTime * 1000);
+        }
+
+        function stopAll() {
+            try { sourceA?.stop(); } catch(e) {}
+            try { sourceB?.stop(); } catch(e) {}
+            sourceA = null;
+            sourceB = null;
+        }
+    </script>
+</body>
+</html>

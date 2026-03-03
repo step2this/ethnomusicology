@@ -1,3 +1,4 @@
+pub mod audio;
 pub mod auth;
 pub mod dev;
 pub mod enrich;

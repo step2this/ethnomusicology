@@ -235,7 +235,8 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api", routes::import::import_router(import_state))
         .nest("/api", routes::setlist::setlist_router(setlist_state))
         .nest("/api", routes::enrich::enrich_router(enrich_state))
-        .nest("/api", routes::tracks::tracks_router(pool.clone()));
+        .nest("/api", routes::tracks::tracks_router(pool.clone()))
+        .nest("/api", routes::audio::audio_router());
 
     // Dev routes (conditionally added when DEV_MODE=true)
     if cfg.dev_mode {
