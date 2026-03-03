@@ -15,6 +15,7 @@ paths:
 | Cost cap allows overshoot | ST-005 critic HIGH-2 | Low | Cap checked once before processing; doesn't subtract already-used from fetch limit. |
 | API info endpoint has pre-pivot description | Audit | Low | `main.rs` api_info() still says "occasions, African and Middle Eastern traditions" instead of DJ-first. |
 | ST-004 retrospective not written | Audit | Low | ST-003 and ST-005 have retros but ST-004 does not. |
+| Duplicate `create_test_pool()` in integration tests | ST-006 retro #5 | High | `tests/setlist_api_test.rs` has its own `create_test_pool()` that diverges from `db/mod.rs`. Bitten twice (ST-005, ST-006). Refactor to single canonical pool builder, `pub` exported for integration tests. |
 | `build_enhanced_system_prompt` uses string not EnergyProfile enum | ST-006 critic MEDIUM-2 | Medium | Takes `Option<&str>` and matches string literals instead of `Option<&EnergyProfile>`. Works but bypasses compiler enforcement. |
 | No HTTP integration test for source_playlist_id filtering | ST-006 critic MEDIUM-3 | Medium | Service-level tests exist but no full HTTP round-trip test for import → generate with source_playlist_id. |
 | `score_breakdown` not returned from `get_setlist` | ST-006 critic MEDIUM-4 | Medium | After arrangement, refreshing the page loses score_breakdown (not persisted to DB). Recomputation or new columns needed. |
