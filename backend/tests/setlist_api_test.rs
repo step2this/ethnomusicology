@@ -5,7 +5,9 @@ use axum::http::Request;
 use sqlx::SqlitePool;
 use tower::ServiceExt;
 
-use ethnomusicology_backend::api::claude::{ClaudeClientTrait, ClaudeError};
+use ethnomusicology_backend::api::claude::{
+    CacheMetrics, ClaudeClientTrait, ClaudeError, RequestContentBlock,
+};
 use ethnomusicology_backend::routes::setlist::{setlist_router, SetlistRouteState};
 
 // ---------------------------------------------------------------------------
@@ -27,6 +29,16 @@ impl ClaudeClientTrait for MockClaude {
     ) -> Result<String, ClaudeError> {
         Ok(self.response.clone())
     }
+
+    async fn generate_with_blocks(
+        &self,
+        _system_blocks: Vec<RequestContentBlock>,
+        _user_blocks: Vec<RequestContentBlock>,
+        _model: &str,
+        _max_tokens: u32,
+    ) -> Result<(String, CacheMetrics), ClaudeError> {
+        Ok((self.response.clone(), CacheMetrics::default()))
+    }
 }
 
 struct ErrorClaude;
@@ -40,6 +52,16 @@ impl ClaudeClientTrait for ErrorClaude {
         _model: &str,
         _max_tokens: u32,
     ) -> Result<String, ClaudeError> {
+        Err(ClaudeError::Api("Service unavailable".to_string()))
+    }
+
+    async fn generate_with_blocks(
+        &self,
+        _system_blocks: Vec<RequestContentBlock>,
+        _user_blocks: Vec<RequestContentBlock>,
+        _model: &str,
+        _max_tokens: u32,
+    ) -> Result<(String, CacheMetrics), ClaudeError> {
         Err(ClaudeError::Api("Service unavailable".to_string()))
     }
 }
@@ -59,6 +81,18 @@ impl ClaudeClientTrait for RateLimitedClaude {
             retry_after_secs: 10,
         })
     }
+
+    async fn generate_with_blocks(
+        &self,
+        _system_blocks: Vec<RequestContentBlock>,
+        _user_blocks: Vec<RequestContentBlock>,
+        _model: &str,
+        _max_tokens: u32,
+    ) -> Result<(String, CacheMetrics), ClaudeError> {
+        Err(ClaudeError::RateLimited {
+            retry_after_secs: 10,
+        })
+    }
 }
 
 struct TimeoutClaude;
@@ -72,6 +106,16 @@ impl ClaudeClientTrait for TimeoutClaude {
         _model: &str,
         _max_tokens: u32,
     ) -> Result<String, ClaudeError> {
+        Err(ClaudeError::Timeout)
+    }
+
+    async fn generate_with_blocks(
+        &self,
+        _system_blocks: Vec<RequestContentBlock>,
+        _user_blocks: Vec<RequestContentBlock>,
+        _model: &str,
+        _max_tokens: u32,
+    ) -> Result<(String, CacheMetrics), ClaudeError> {
         Err(ClaudeError::Timeout)
     }
 }
@@ -94,6 +138,12 @@ async fn create_test_pool() -> SqlitePool {
 
     let migration_004 = include_str!("../migrations/004_setlists.sql");
     sqlx::raw_sql(migration_004).execute(&pool).await.unwrap();
+
+    let migration_005 = include_str!("../migrations/005_enrichment.sql");
+    sqlx::raw_sql(migration_005).execute(&pool).await.unwrap();
+
+    let migration_006 = include_str!("../migrations/006_import_tracks.sql");
+    sqlx::raw_sql(migration_006).execute(&pool).await.unwrap();
 
     sqlx::raw_sql("PRAGMA foreign_keys = ON")
         .execute(&pool)

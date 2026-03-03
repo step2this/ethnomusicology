@@ -38,7 +38,12 @@ Widget buildTestWidget({SetlistState? initialState}) {
   );
 }
 
-Setlist sampleSetlist({bool arranged = false}) {
+Setlist sampleSetlist({
+  bool arranged = false,
+  double? catalogPercentage,
+  String? catalogWarning,
+  List<BpmWarning>? bpmWarnings,
+}) {
   return Setlist(
     id: 'test-id',
     prompt: 'chill house vibes',
@@ -75,16 +80,29 @@ Setlist sampleSetlist({bool arranged = false}) {
     notes: 'A chill set',
     harmonicFlowScore: arranged ? 82.0 : null,
     createdAt: '2026-03-02T12:00:00Z',
+    catalogPercentage: catalogPercentage,
+    catalogWarning: catalogWarning,
+    bpmWarnings: bpmWarnings ?? const [],
   );
 }
 
 void main() {
-  testWidgets('Prompt input renders', (tester) async {
-    await tester.pumpWidget(buildTestWidget());
+  // -----------------------------------------------------------------------
+  // Existing tests (adapted for new tab-based layout)
+  // -----------------------------------------------------------------------
 
-    expect(find.byType(TextField), findsOneWidget);
+  testWidgets('Prompt input renders in Describe a Vibe tab', (tester) async {
+    await tester.pumpWidget(buildTestWidget());
+    await tester.pumpAndSettle();
+
+    // Tab bar should be visible
+    expect(find.text('Describe a Vibe'), findsOneWidget);
+    expect(find.text('From Spotify'), findsOneWidget);
+    expect(find.text('From Tracklist'), findsOneWidget);
+
+    // First tab should show prompt input and generate button
+    expect(find.text('Describe your ideal setlist...'), findsOneWidget);
     expect(find.text('Generate'), findsOneWidget);
-    expect(find.text('Describe your ideal set'), findsOneWidget);
   });
 
   testWidgets('Loading indicator shows during generation', (tester) async {
@@ -151,5 +169,129 @@ void main() {
 
     expect(find.byIcon(Icons.error_outline), findsOneWidget);
     expect(find.text('Try Again'), findsOneWidget);
+  });
+
+  // -----------------------------------------------------------------------
+  // T11 new tests
+  // -----------------------------------------------------------------------
+
+  testWidgets('All three tabs render', (tester) async {
+    await tester.pumpWidget(buildTestWidget());
+    await tester.pumpAndSettle();
+
+    expect(find.text('Describe a Vibe'), findsOneWidget);
+    expect(find.text('From Spotify'), findsOneWidget);
+    expect(find.text('From Tracklist'), findsOneWidget);
+
+    // Tap From Spotify tab
+    await tester.tap(find.text('From Spotify'));
+    await tester.pumpAndSettle();
+    expect(find.text('Spotify Playlist URL'), findsOneWidget);
+    expect(find.text('Import & Generate'), findsOneWidget);
+
+    // Tap From Tracklist tab
+    await tester.tap(find.text('From Tracklist'));
+    await tester.pumpAndSettle();
+    expect(find.text('Generate from Tracklist'), findsOneWidget);
+  });
+
+  testWidgets('Energy profile chips are tappable', (tester) async {
+    await tester.pumpWidget(buildTestWidget());
+    await tester.pumpAndSettle();
+
+    // All 4 profiles should be visible
+    expect(find.text('Warm-Up'), findsOneWidget);
+    expect(find.text('Peak-Time'), findsOneWidget);
+    expect(find.text('Journey'), findsOneWidget);
+    expect(find.text('Steady'), findsOneWidget);
+
+    // Tap Journey chip
+    await tester.tap(find.text('Journey'));
+    await tester.pumpAndSettle();
+
+    // The chip should be selected (ChoiceChip changes appearance)
+    final chip = tester.widget<ChoiceChip>(
+      find.ancestor(
+        of: find.text('Journey'),
+        matching: find.byType(ChoiceChip),
+      ),
+    );
+    expect(chip.selected, isTrue);
+  });
+
+  testWidgets('Creative mode toggle changes state', (tester) async {
+    await tester.pumpWidget(buildTestWidget());
+    await tester.pumpAndSettle();
+
+    // Should find the switch tile
+    expect(find.text('Creative Mode'), findsOneWidget);
+    expect(find.text('Unexpected but compatible combinations'),
+        findsOneWidget);
+
+    // Toggle it on
+    await tester.tap(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+
+    final switchTile = tester.widget<SwitchListTile>(
+      find.byType(SwitchListTile),
+    );
+    expect(switchTile.value, isTrue);
+  });
+
+  testWidgets('Set length slider in range 5-30', (tester) async {
+    await tester.pumpWidget(buildTestWidget());
+    await tester.pumpAndSettle();
+
+    // Default should show 15 tracks
+    expect(find.text('15 tracks'), findsOneWidget);
+    expect(find.text('Set Length'), findsOneWidget);
+
+    final slider = tester.widget<Slider>(find.byType(Slider));
+    expect(slider.min, 5);
+    expect(slider.max, 30);
+    expect(slider.value, 15);
+  });
+
+  testWidgets('BPM warning badge renders for flagged transitions',
+      (tester) async {
+    await tester.pumpWidget(buildTestWidget(
+      initialState: SetlistState(
+        setlist: sampleSetlist(
+          bpmWarnings: [
+            const BpmWarning(
+                fromPosition: 1, toPosition: 2, bpmDelta: 26.0),
+          ],
+        ),
+      ),
+    ));
+
+    // Both positions 1 and 2 should show the warning
+    expect(find.text('Large BPM jump'), findsNWidgets(2));
+    expect(find.byIcon(Icons.warning_amber), findsNWidgets(2));
+  });
+
+  testWidgets('Catalog percentage displays correctly', (tester) async {
+    await tester.pumpWidget(buildTestWidget(
+      initialState: SetlistState(
+        setlist: sampleSetlist(catalogPercentage: 75.0),
+      ),
+    ));
+
+    expect(find.text('Catalog: 75%'), findsOneWidget);
+  });
+
+  testWidgets('Catalog percentage shows warning color when low',
+      (tester) async {
+    await tester.pumpWidget(buildTestWidget(
+      initialState: SetlistState(
+        setlist: sampleSetlist(
+          catalogPercentage: 20.0,
+          catalogWarning: 'Low catalog match',
+        ),
+      ),
+    ));
+
+    expect(find.text('Catalog: 20%'), findsOneWidget);
+    expect(find.text('Low catalog match'), findsOneWidget);
   });
 }

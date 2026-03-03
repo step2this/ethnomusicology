@@ -8,7 +8,7 @@ use crate::db::models::{SetlistRow, SetlistTrackRow, TrackRow};
 
 pub async fn insert_setlist(pool: &SqlitePool, row: &SetlistRow) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO setlists (id, user_id, prompt, model, notes, harmonic_flow_score) VALUES (?, ?, ?, ?, ?, ?)"
+        "INSERT INTO setlists (id, user_id, prompt, model, notes, harmonic_flow_score, energy_profile) VALUES (?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(&row.id)
     .bind(&row.user_id)
@@ -16,6 +16,7 @@ pub async fn insert_setlist(pool: &SqlitePool, row: &SetlistRow) -> Result<(), s
     .bind(&row.model)
     .bind(&row.notes)
     .bind(row.harmonic_flow_score)
+    .bind(&row.energy_profile)
     .execute(pool)
     .await?;
     Ok(())
@@ -53,10 +54,12 @@ pub async fn insert_setlist_track(
 // ---------------------------------------------------------------------------
 
 pub async fn get_setlist(pool: &SqlitePool, id: &str) -> Result<Option<SetlistRow>, sqlx::Error> {
-    sqlx::query_as::<_, SetlistRow>("SELECT * FROM setlists WHERE id = ?")
-        .bind(id)
-        .fetch_optional(pool)
-        .await
+    sqlx::query_as::<_, SetlistRow>(
+        "SELECT id, user_id, prompt, model, notes, harmonic_flow_score, energy_profile, created_at FROM setlists WHERE id = ?",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await
 }
 
 pub async fn get_setlist_tracks(
@@ -64,7 +67,7 @@ pub async fn get_setlist_tracks(
     setlist_id: &str,
 ) -> Result<Vec<SetlistTrackRow>, sqlx::Error> {
     sqlx::query_as::<_, SetlistTrackRow>(
-        "SELECT * FROM setlist_tracks WHERE setlist_id = ? ORDER BY position ASC",
+        "SELECT id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info FROM setlist_tracks WHERE setlist_id = ? ORDER BY position ASC",
     )
     .bind(setlist_id)
     .fetch_all(pool)
@@ -143,6 +146,7 @@ mod tests {
             model: "claude-sonnet-4-20250514".to_string(),
             notes: Some("A relaxing set".to_string()),
             harmonic_flow_score: None,
+            energy_profile: None,
             created_at: None,
         };
 
@@ -173,6 +177,7 @@ mod tests {
             model: "test".to_string(),
             notes: None,
             harmonic_flow_score: None,
+            energy_profile: None,
             created_at: None,
         };
         insert_setlist(&pool, &setlist).await.unwrap();
@@ -214,6 +219,7 @@ mod tests {
             model: "test".to_string(),
             notes: None,
             harmonic_flow_score: None,
+            energy_profile: None,
             created_at: None,
         };
         insert_setlist(&pool, &setlist).await.unwrap();
@@ -237,6 +243,7 @@ mod tests {
             model: "test".to_string(),
             notes: None,
             harmonic_flow_score: None,
+            energy_profile: None,
             created_at: None,
         };
         insert_setlist(&pool, &setlist).await.unwrap();
@@ -305,5 +312,47 @@ mod tests {
         assert_eq!(tracks[0].artist.as_deref(), Some("DJ Test"));
         assert_eq!(tracks[0].bpm, Some(128.0));
         assert_eq!(tracks[0].camelot_key.as_deref(), Some("8A"));
+    }
+
+    #[tokio::test]
+    async fn test_insert_setlist_with_energy_profile() {
+        let pool = crate::db::create_test_pool().await;
+
+        let row = SetlistRow {
+            id: "sl-ep".to_string(),
+            user_id: "user-1".to_string(),
+            prompt: "Peak time techno".to_string(),
+            model: "test".to_string(),
+            notes: None,
+            harmonic_flow_score: None,
+            energy_profile: Some("peak-time".to_string()),
+            created_at: None,
+        };
+
+        insert_setlist(&pool, &row).await.unwrap();
+
+        let fetched = get_setlist(&pool, "sl-ep").await.unwrap().unwrap();
+        assert_eq!(fetched.energy_profile.as_deref(), Some("peak-time"));
+    }
+
+    #[tokio::test]
+    async fn test_insert_setlist_with_none_energy_profile() {
+        let pool = crate::db::create_test_pool().await;
+
+        let row = SetlistRow {
+            id: "sl-none".to_string(),
+            user_id: "user-1".to_string(),
+            prompt: "Whatever vibes".to_string(),
+            model: "test".to_string(),
+            notes: None,
+            harmonic_flow_score: None,
+            energy_profile: None,
+            created_at: None,
+        };
+
+        insert_setlist(&pool, &row).await.unwrap();
+
+        let fetched = get_setlist(&pool, "sl-none").await.unwrap().unwrap();
+        assert!(fetched.energy_profile.is_none());
     }
 }

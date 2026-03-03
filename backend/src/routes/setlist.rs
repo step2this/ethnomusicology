@@ -2,12 +2,15 @@ use axum::extract::{Path, State};
 use axum::http::HeaderMap;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::Arc;
 
 use crate::api::claude::ClaudeClientTrait;
-use crate::services::setlist::{self, SetlistError, SetlistResponse};
+use crate::services::camelot::EnergyProfile;
+use crate::services::setlist::{
+    self, BpmRange, GenerateSetlistRequest, SetlistError, SetlistResponse,
+};
 
 // ---------------------------------------------------------------------------
 // State (M1: renamed from SetlistState to SetlistRouteState)
@@ -26,6 +29,39 @@ pub struct SetlistRouteState {
 pub struct GenerateRequest {
     pub prompt: String,
     pub track_count: Option<u32>,
+    #[serde(default)]
+    pub energy_profile: Option<String>,
+    #[serde(default)]
+    pub source_playlist_id: Option<String>,
+    #[serde(default)]
+    pub seed_tracklist: Option<String>,
+    #[serde(default)]
+    pub creative_mode: Option<bool>,
+    #[serde(default)]
+    pub bpm_range: Option<BpmRangeRequest>,
+}
+
+#[derive(Deserialize)]
+pub struct BpmRangeRequest {
+    pub min: f64,
+    pub max: f64,
+}
+
+#[derive(Deserialize)]
+pub struct ArrangeRequest {
+    #[serde(default)]
+    pub energy_profile: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Response types (extended for ST-006)
+// ---------------------------------------------------------------------------
+
+#[derive(Serialize)]
+pub struct BpmWarningResponse {
+    pub from_position: i32,
+    pub to_position: i32,
+    pub bpm_delta: f64,
 }
 
 // ---------------------------------------------------------------------------
@@ -42,24 +78,56 @@ async fn generate_setlist_handler(
         .and_then(|v| v.to_str().ok())
         .unwrap_or("dev-user");
 
-    let response = setlist::generate_setlist(
-        &state.pool,
-        state.claude.as_ref(),
-        user_id,
-        &req.prompt,
-        req.track_count,
-    )
-    .await?;
+    // Parse energy_profile string into enum
+    let energy_profile = match req.energy_profile {
+        Some(ref s) => Some(
+            s.parse::<EnergyProfile>()
+                .map_err(SetlistError::InvalidEnergyProfile)?,
+        ),
+        None => None,
+    };
+
+    let service_req = GenerateSetlistRequest {
+        user_id: user_id.to_string(),
+        prompt: req.prompt,
+        track_count: req.track_count,
+        energy_profile,
+        source_playlist_id: req.source_playlist_id,
+        seed_tracklist: req.seed_tracklist,
+        creative_mode: req.creative_mode,
+        bpm_range: req.bpm_range.map(|r| BpmRange {
+            min: r.min,
+            max: r.max,
+        }),
+    };
+
+    let response =
+        setlist::generate_setlist_from_request(&state.pool, state.claude.as_ref(), service_req)
+            .await?;
 
     Ok((axum::http::StatusCode::CREATED, Json(response)))
 }
 
 /// L1: Route handler now delegates entirely to service function.
+/// T8: Accepts optional JSON body with energy_profile for arrangement.
+/// Uses Option<Json<ArrangeRequest>> so clients sending no body don't get 400.
 async fn arrange_setlist_handler(
     State(state): State<Arc<SetlistRouteState>>,
     Path(id): Path<String>,
+    body: Option<Json<ArrangeRequest>>,
 ) -> Result<Json<SetlistResponse>, SetlistError> {
-    let response = setlist::arrange_setlist(&state.pool, &id).await?;
+    let energy_profile = match body {
+        Some(Json(req)) => match req.energy_profile {
+            Some(ref s) => Some(
+                s.parse::<EnergyProfile>()
+                    .map_err(SetlistError::InvalidEnergyProfile)?,
+            ),
+            None => None,
+        },
+        None => None,
+    };
+
+    let response = setlist::arrange_setlist(&state.pool, &id, energy_profile).await?;
     Ok(Json(response))
 }
 
@@ -153,6 +221,25 @@ mod tests {
                     .uri(uri)
                     .header("content-type", "application/json")
                     .body(Body::from(serde_json::to_vec(&body).unwrap()))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        let status = response.status().as_u16();
+        let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body_bytes).unwrap();
+        (status, json)
+    }
+
+    async fn post_empty(app: Router, uri: &str) -> (u16, serde_json::Value) {
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri(uri)
+                    .body(Body::empty())
                     .unwrap(),
             )
             .await
@@ -404,5 +491,207 @@ mod tests {
 
         assert_eq!(status, 404);
         assert_eq!(json["error"]["code"], "NOT_FOUND");
+    }
+
+    // -----------------------------------------------------------------------
+    // T8: Extended route tests
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn test_generate_with_all_new_params() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "peak time techno",
+                "track_count": 5,
+                "energy_profile": "peak-time",
+                "creative_mode": true,
+                "seed_tracklist": "1. Track A\n2. Track B",
+                "bpm_range": { "min": 130.0, "max": 145.0 }
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 201);
+        assert!(json["id"].is_string());
+        assert_eq!(json["energy_profile"], "peak-time");
+        assert!(json["catalog_percentage"].is_number());
+    }
+
+    #[tokio::test]
+    async fn test_generate_with_invalid_energy_profile() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "test",
+                "energy_profile": "invalid-profile"
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 400);
+        assert_eq!(json["error"]["code"], "INVALID_ENERGY_PROFILE");
+    }
+
+    #[tokio::test]
+    async fn test_generate_with_invalid_bpm_range() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "test",
+                "bpm_range": { "min": 50.0, "max": 130.0 }
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 400);
+        assert_eq!(json["error"]["code"], "INVALID_BPM_RANGE");
+    }
+
+    #[tokio::test]
+    async fn test_generate_with_nonexistent_playlist() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "test",
+                "source_playlist_id": "nonexistent-id"
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 404);
+        assert_eq!(json["error"]["code"], "PLAYLIST_NOT_FOUND");
+    }
+
+    #[tokio::test]
+    async fn test_arrange_with_energy_profile() {
+        let (_app, pool) = setup_app(&valid_llm_json()).await;
+
+        // Generate first
+        let (status, gen_json) = post_json(
+            setlist_router(Arc::new(SetlistRouteState {
+                pool: pool.clone(),
+                claude: Arc::new(MockClaude {
+                    response: valid_llm_json(),
+                }),
+            })),
+            "/setlists/generate",
+            serde_json::json!({ "prompt": "test" }),
+        )
+        .await;
+        assert_eq!(status, 201);
+        let setlist_id = gen_json["id"].as_str().unwrap();
+
+        // Arrange with energy_profile in body
+        let arrange_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (status, json) = post_json(
+            arrange_app,
+            &format!("/setlists/{setlist_id}/arrange"),
+            serde_json::json!({ "energy_profile": "warm-up" }),
+        )
+        .await;
+
+        assert_eq!(status, 200);
+        assert!(json["harmonic_flow_score"].is_number());
+    }
+
+    #[tokio::test]
+    async fn test_arrange_with_empty_body_backward_compat() {
+        let (_app, pool) = setup_app(&valid_llm_json()).await;
+
+        // Generate first
+        let (status, gen_json) = post_json(
+            setlist_router(Arc::new(SetlistRouteState {
+                pool: pool.clone(),
+                claude: Arc::new(MockClaude {
+                    response: valid_llm_json(),
+                }),
+            })),
+            "/setlists/generate",
+            serde_json::json!({ "prompt": "test" }),
+        )
+        .await;
+        assert_eq!(status, 201);
+        let setlist_id = gen_json["id"].as_str().unwrap();
+
+        // Arrange with NO body at all (backward compat)
+        let arrange_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (status, json) =
+            post_empty(arrange_app, &format!("/setlists/{setlist_id}/arrange")).await;
+
+        assert_eq!(status, 200);
+        assert!(json["harmonic_flow_score"].is_number());
+    }
+
+    #[tokio::test]
+    async fn test_get_setlist_includes_new_fields() {
+        let (_, pool) = setup_app(&valid_llm_json()).await;
+
+        // Generate with energy profile
+        let gen_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (_, gen_json) = post_json(
+            gen_app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "test",
+                "energy_profile": "journey"
+            }),
+        )
+        .await;
+        let setlist_id = gen_json["id"].as_str().unwrap();
+
+        // Get it back
+        let get_app = setlist_router(Arc::new(SetlistRouteState {
+            pool: pool.clone(),
+            claude: Arc::new(MockClaude {
+                response: valid_llm_json(),
+            }),
+        }));
+        let (status, json) = get_json(get_app, &format!("/setlists/{setlist_id}")).await;
+
+        assert_eq!(status, 200);
+        assert_eq!(json["energy_profile"], "journey");
+    }
+
+    #[tokio::test]
+    async fn test_generate_without_new_params_backward_compat() {
+        let (app, _) = setup_app(&valid_llm_json()).await;
+        let (status, json) = post_json(
+            app,
+            "/setlists/generate",
+            serde_json::json!({
+                "prompt": "just a basic prompt"
+            }),
+        )
+        .await;
+
+        assert_eq!(status, 201);
+        assert!(json["id"].is_string());
+        assert_eq!(json["prompt"], "just a basic prompt");
+        // energy_profile should not be present (None serialized as skip)
+        assert!(json.get("energy_profile").is_none() || json["energy_profile"].is_null());
     }
 }

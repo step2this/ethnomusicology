@@ -4,8 +4,13 @@ import '../models/setlist_track.dart';
 
 class SetlistTrackTile extends StatelessWidget {
   final SetlistTrack track;
+  final bool hasBpmWarning;
 
-  const SetlistTrackTile({super.key, required this.track});
+  const SetlistTrackTile({
+    super.key,
+    required this.track,
+    this.hasBpmWarning = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +82,22 @@ class SetlistTrackTile extends StatelessWidget {
                       ],
                     ],
                   ),
+                  if (hasBpmWarning) ...[
+                    const SizedBox(height: 4),
+                    Row(
+                      children: [
+                        Icon(Icons.warning_amber,
+                            size: 14, color: theme.colorScheme.error),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Large BPM jump',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   if (track.transitionNote != null) ...[
                     const SizedBox(height: 4),
                     Text(

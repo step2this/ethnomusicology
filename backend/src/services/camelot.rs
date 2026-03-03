@@ -1,4 +1,6 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::fmt;
+use std::str::FromStr;
 
 // ---------------------------------------------------------------------------
 // Camelot Key
@@ -13,6 +15,52 @@ pub struct CamelotKey {
 impl std::fmt::Display for CamelotKey {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}{}", self.number, self.letter)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Energy Profile
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum EnergyProfile {
+    WarmUp,   // 3→7: gentle build
+    PeakTime, // 7→9→7: high energy plateau
+    Journey,  // 3→9→4: full arc
+    Steady,   // 6→6: consistent energy
+}
+
+impl fmt::Display for EnergyProfile {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EnergyProfile::WarmUp => write!(f, "warm-up"),
+            EnergyProfile::PeakTime => write!(f, "peak-time"),
+            EnergyProfile::Journey => write!(f, "journey"),
+            EnergyProfile::Steady => write!(f, "steady"),
+        }
+    }
+}
+
+impl FromStr for EnergyProfile {
+    type Err = String;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "warm-up" => Ok(EnergyProfile::WarmUp),
+            "peak-time" => Ok(EnergyProfile::PeakTime),
+            "journey" => Ok(EnergyProfile::Journey),
+            "steady" => Ok(EnergyProfile::Steady),
+            _ => Err(format!("invalid energy profile: '{s}'")),
+        }
+    }
+}
+
+impl TryFrom<&str> for EnergyProfile {
+    type Error = String;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        s.parse()
     }
 }
 
@@ -223,6 +271,57 @@ pub fn energy_arc_score(energy: i32, position: usize, total: usize) -> f64 {
     } else {
         0.2
     }
+}
+
+/// Energy arc score parameterized by an energy profile.
+///
+/// Computes the ideal energy at each position based on the profile's target curve,
+/// then scores how close the actual energy is to the ideal.
+///
+/// Score = 1.0 - (|actual_energy - ideal_energy| / 10.0), clamped to [0.0, 1.0].
+pub fn energy_arc_score_with_profile(
+    energy: i32,
+    position: usize,
+    total: usize,
+    profile: EnergyProfile,
+) -> f64 {
+    if total <= 1 {
+        return 1.0;
+    }
+
+    let fraction = position as f64 / (total - 1) as f64;
+
+    let ideal_energy = match profile {
+        EnergyProfile::WarmUp => {
+            // Linear 3→7
+            3.0 + fraction * 4.0
+        }
+        EnergyProfile::PeakTime => {
+            // 7→9 at 40%, hold 9 at 40-60%, 9→7 from 60%
+            if fraction < 0.4 {
+                7.0 + (fraction / 0.4) * 2.0
+            } else if fraction <= 0.6 {
+                9.0
+            } else {
+                9.0 - ((fraction - 0.6) / 0.4) * 2.0
+            }
+        }
+        EnergyProfile::Journey => {
+            // 3→9 at 50%, 9→4 from 50%
+            if fraction < 0.5 {
+                3.0 + (fraction / 0.5) * 6.0
+            } else {
+                9.0 - ((fraction - 0.5) / 0.5) * 5.0
+            }
+        }
+        EnergyProfile::Steady => {
+            // Constant 6
+            6.0
+        }
+    };
+
+    let diff = (energy as f64 - ideal_energy).abs();
+    (1.0 - diff / 10.0).clamp(0.0, 1.0)
 }
 
 /// Neutral energy score used in pair-wise transition scoring.
@@ -593,5 +692,206 @@ mod tests {
     fn test_from_notation_invalid() {
         assert!(from_notation("X", "minor").is_none());
         assert!(from_notation("C", "lydian").is_none());
+    }
+
+    // --- EnergyProfile ---
+
+    #[test]
+    fn test_energy_profile_from_str_valid() {
+        assert_eq!(
+            "warm-up".parse::<EnergyProfile>().unwrap(),
+            EnergyProfile::WarmUp
+        );
+        assert_eq!(
+            "peak-time".parse::<EnergyProfile>().unwrap(),
+            EnergyProfile::PeakTime
+        );
+        assert_eq!(
+            "journey".parse::<EnergyProfile>().unwrap(),
+            EnergyProfile::Journey
+        );
+        assert_eq!(
+            "steady".parse::<EnergyProfile>().unwrap(),
+            EnergyProfile::Steady
+        );
+    }
+
+    #[test]
+    fn test_energy_profile_from_str_invalid() {
+        assert!("invalid".parse::<EnergyProfile>().is_err());
+        assert!("WARM-UP".parse::<EnergyProfile>().is_err());
+        assert!("warmup".parse::<EnergyProfile>().is_err());
+        assert!("".parse::<EnergyProfile>().is_err());
+    }
+
+    #[test]
+    fn test_energy_profile_try_from_str() {
+        assert_eq!(
+            EnergyProfile::try_from("warm-up").unwrap(),
+            EnergyProfile::WarmUp
+        );
+        assert!(EnergyProfile::try_from("invalid").is_err());
+    }
+
+    #[test]
+    fn test_energy_profile_display() {
+        assert_eq!(EnergyProfile::WarmUp.to_string(), "warm-up");
+        assert_eq!(EnergyProfile::PeakTime.to_string(), "peak-time");
+        assert_eq!(EnergyProfile::Journey.to_string(), "journey");
+        assert_eq!(EnergyProfile::Steady.to_string(), "steady");
+    }
+
+    #[test]
+    fn test_energy_profile_serde_roundtrip() {
+        let profiles = [
+            (EnergyProfile::WarmUp, "\"warm-up\""),
+            (EnergyProfile::PeakTime, "\"peak-time\""),
+            (EnergyProfile::Journey, "\"journey\""),
+            (EnergyProfile::Steady, "\"steady\""),
+        ];
+        for (profile, expected_json) in &profiles {
+            let serialized = serde_json::to_string(profile).unwrap();
+            assert_eq!(&serialized, expected_json);
+            let deserialized: EnergyProfile = serde_json::from_str(&serialized).unwrap();
+            assert_eq!(&deserialized, profile);
+        }
+    }
+
+    // --- energy_arc_score_with_profile ---
+
+    #[test]
+    fn test_warmup_profile_start_middle_end() {
+        // WarmUp: 3→7 linear
+        // Start (pos 0): ideal = 3.0
+        let start = energy_arc_score_with_profile(3, 0, 10, EnergyProfile::WarmUp);
+        assert!(
+            start > 0.9,
+            "WarmUp start with energy=3 should score high: {start}"
+        );
+
+        // Middle (pos 5): ideal = 3.0 + (5/9)*4.0 ≈ 5.22
+        let mid = energy_arc_score_with_profile(5, 5, 10, EnergyProfile::WarmUp);
+        assert!(
+            mid > 0.9,
+            "WarmUp middle with energy=5 should score high: {mid}"
+        );
+
+        // End (pos 9): ideal = 7.0
+        let end = energy_arc_score_with_profile(7, 9, 10, EnergyProfile::WarmUp);
+        assert!(
+            end > 0.9,
+            "WarmUp end with energy=7 should score high: {end}"
+        );
+    }
+
+    #[test]
+    fn test_peaktime_profile_start_middle_end() {
+        // PeakTime: 7→9 at 40%, hold 9, 9→7 from 60%
+        // Start (pos 0): ideal = 7.0
+        let start = energy_arc_score_with_profile(7, 0, 10, EnergyProfile::PeakTime);
+        assert!(
+            start > 0.9,
+            "PeakTime start with energy=7 should score high: {start}"
+        );
+
+        // Middle (pos 5, fraction=0.556): ideal = 9.0 (in plateau)
+        let mid = energy_arc_score_with_profile(9, 5, 10, EnergyProfile::PeakTime);
+        assert!(
+            mid > 0.9,
+            "PeakTime middle with energy=9 should score high: {mid}"
+        );
+
+        // End (pos 9): ideal = 7.0
+        let end = energy_arc_score_with_profile(7, 9, 10, EnergyProfile::PeakTime);
+        assert!(
+            end > 0.9,
+            "PeakTime end with energy=7 should score high: {end}"
+        );
+    }
+
+    #[test]
+    fn test_journey_profile_start_middle_end() {
+        // Journey: 3→9 at 50%, 9→4 from 50%
+        // Start (pos 0): ideal = 3.0
+        let start = energy_arc_score_with_profile(3, 0, 10, EnergyProfile::Journey);
+        assert!(
+            start > 0.9,
+            "Journey start with energy=3 should score high: {start}"
+        );
+
+        // Middle (pos 4, fraction=0.444): ideal = 3 + (0.444/0.5)*6 ≈ 8.33
+        let mid = energy_arc_score_with_profile(8, 4, 10, EnergyProfile::Journey);
+        assert!(
+            mid > 0.9,
+            "Journey middle with energy=8 should score high: {mid}"
+        );
+
+        // End (pos 9): ideal = 4.0
+        let end = energy_arc_score_with_profile(4, 9, 10, EnergyProfile::Journey);
+        assert!(
+            end > 0.9,
+            "Journey end with energy=4 should score high: {end}"
+        );
+    }
+
+    #[test]
+    fn test_steady_profile_constant() {
+        // Steady: constant 6
+        for pos in 0..10 {
+            let score = energy_arc_score_with_profile(6, pos, 10, EnergyProfile::Steady);
+            assert!(
+                score > 0.9,
+                "Steady with energy=6 at pos {pos} should score high: {score}"
+            );
+        }
+    }
+
+    #[test]
+    fn test_energy_profile_score_penalizes_mismatch() {
+        // WarmUp start should penalize high energy
+        let score = energy_arc_score_with_profile(9, 0, 10, EnergyProfile::WarmUp);
+        // ideal=3, actual=9, diff=6, score = 1.0 - 6/10 = 0.4
+        assert!((score - 0.4).abs() < 0.01, "Expected ~0.4, got {score}");
+
+        // Steady should penalize energy far from 6
+        let score = energy_arc_score_with_profile(1, 5, 10, EnergyProfile::Steady);
+        // ideal=6, actual=1, diff=5, score = 1.0 - 5/10 = 0.5
+        assert!((score - 0.5).abs() < 0.01, "Expected ~0.5, got {score}");
+    }
+
+    #[test]
+    fn test_energy_profile_single_track() {
+        // Single track should always score 1.0 regardless of profile
+        for profile in [
+            EnergyProfile::WarmUp,
+            EnergyProfile::PeakTime,
+            EnergyProfile::Journey,
+            EnergyProfile::Steady,
+        ] {
+            let score = energy_arc_score_with_profile(5, 0, 1, profile);
+            assert_eq!(
+                score, 1.0,
+                "Single track should score 1.0 for {:?}",
+                profile
+            );
+        }
+    }
+
+    #[test]
+    fn test_energy_profile_two_tracks() {
+        // WarmUp with 2 tracks: pos 0 → ideal 3, pos 1 → ideal 7
+        let start = energy_arc_score_with_profile(3, 0, 2, EnergyProfile::WarmUp);
+        let end = energy_arc_score_with_profile(7, 1, 2, EnergyProfile::WarmUp);
+        assert!(start > 0.9, "WarmUp 2-track start: {start}");
+        assert!(end > 0.9, "WarmUp 2-track end: {end}");
+    }
+
+    #[test]
+    fn test_energy_profile_score_clamped() {
+        // Score should never go below 0.0 even with extreme mismatch
+        // energy=10, ideal=3.0 for WarmUp start, diff=7, score=0.3 (positive)
+        let score = energy_arc_score_with_profile(10, 0, 10, EnergyProfile::WarmUp);
+        assert!(score >= 0.0, "Score should be non-negative: {score}");
+        assert!(score <= 1.0, "Score should not exceed 1.0: {score}");
     }
 }

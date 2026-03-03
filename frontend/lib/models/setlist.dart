@@ -1,5 +1,23 @@
 import 'setlist_track.dart';
 
+class BpmWarning {
+  final int fromPosition;
+  final int toPosition;
+  final double bpmDelta;
+
+  const BpmWarning({
+    required this.fromPosition,
+    required this.toPosition,
+    required this.bpmDelta,
+  });
+
+  factory BpmWarning.fromJson(Map<String, dynamic> json) => BpmWarning(
+        fromPosition: json['from_position'] as int,
+        toPosition: json['to_position'] as int,
+        bpmDelta: (json['bpm_delta'] as num).toDouble(),
+      );
+}
+
 class ScoreBreakdown {
   final double keyCompatibility;
   final double bpmContinuity;
@@ -29,6 +47,10 @@ class Setlist {
   final double? harmonicFlowScore;
   final ScoreBreakdown? scoreBreakdown;
   final String? createdAt;
+  final String? energyProfile;
+  final double? catalogPercentage;
+  final String? catalogWarning;
+  final List<BpmWarning> bpmWarnings;
 
   const Setlist({
     required this.id,
@@ -39,6 +61,10 @@ class Setlist {
     this.harmonicFlowScore,
     this.scoreBreakdown,
     this.createdAt,
+    this.energyProfile,
+    this.catalogPercentage,
+    this.catalogWarning,
+    this.bpmWarnings = const [],
   });
 
   factory Setlist.fromJson(Map<String, dynamic> json) {
@@ -56,6 +82,15 @@ class Setlist {
               json['score_breakdown'] as Map<String, dynamic>)
           : null,
       createdAt: json['created_at'] as String?,
+      energyProfile: json['energy_profile'] as String?,
+      catalogPercentage:
+          (json['catalog_percentage'] as num?)?.toDouble(),
+      catalogWarning: json['catalog_warning'] as String?,
+      bpmWarnings: (json['bpm_warnings'] as List<dynamic>?)
+              ?.map(
+                  (w) => BpmWarning.fromJson(w as Map<String, dynamic>))
+              .toList() ??
+          const [],
     );
   }
 
