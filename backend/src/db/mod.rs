@@ -7,34 +7,16 @@ pub mod tracks;
 
 use sqlx::SqlitePool;
 
+/// Run all migrations using sqlx's built-in migration system.
+/// Tracks applied migrations in `_sqlx_migrations` table — never re-runs them.
+pub async fn run_migrations(pool: &SqlitePool) -> Result<(), sqlx::migrate::MigrateError> {
+    sqlx::migrate!("./migrations").run(pool).await
+}
+
 /// Create an in-memory SQLite pool with all migrations applied. For tests only.
 pub async fn create_test_pool() -> SqlitePool {
     let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
-
-    let migration_001 = include_str!("../../migrations/001_initial_schema.sql");
-    sqlx::raw_sql(migration_001).execute(&pool).await.unwrap();
-
-    let migration_002 = include_str!("../../migrations/002_spotify_imports.sql");
-    sqlx::raw_sql(migration_002).execute(&pool).await.unwrap();
-
-    let migration_003 = include_str!("../../migrations/003_dj_metadata.sql");
-    sqlx::raw_sql(migration_003).execute(&pool).await.unwrap();
-
-    let migration_004 = include_str!("../../migrations/004_setlists.sql");
-    sqlx::raw_sql(migration_004).execute(&pool).await.unwrap();
-
-    let migration_005 = include_str!("../../migrations/005_enrichment.sql");
-    sqlx::raw_sql(migration_005).execute(&pool).await.unwrap();
-
-    let migration_006 = include_str!("../../migrations/006_import_tracks.sql");
-    sqlx::raw_sql(migration_006).execute(&pool).await.unwrap();
-
-    // Enable foreign keys for SQLite
-    sqlx::raw_sql("PRAGMA foreign_keys = ON")
-        .execute(&pool)
-        .await
-        .unwrap();
-
+    run_migrations(&pool).await.unwrap();
     pool
 }
 

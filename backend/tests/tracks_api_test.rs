@@ -4,23 +4,8 @@ use sqlx::SqlitePool;
 use tower::ServiceExt;
 
 async fn create_test_pool() -> SqlitePool {
-    let pool = SqlitePool::connect("sqlite::memory:").await.unwrap();
-
-    let migration_001 = include_str!("../migrations/001_initial_schema.sql");
-    sqlx::raw_sql(migration_001).execute(&pool).await.unwrap();
-
-    let migration_002 = include_str!("../migrations/002_spotify_imports.sql");
-    sqlx::raw_sql(migration_002).execute(&pool).await.unwrap();
-
-    let migration_003 = include_str!("../migrations/003_dj_metadata.sql");
-    sqlx::raw_sql(migration_003).execute(&pool).await.unwrap();
-
-    sqlx::raw_sql("PRAGMA foreign_keys = ON")
-        .execute(&pool)
-        .await
-        .unwrap();
-
-    pool
+    // Use the shared migration runner — single source of truth in db/mod.rs
+    ethnomusicology_backend::db::create_test_pool().await
 }
 
 fn build_app(pool: SqlitePool) -> axum::Router {

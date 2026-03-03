@@ -17,7 +17,7 @@ Use the Forge (`.claude/` directory) for all development:
 8. `/verify-uc` — Validate implementation against postconditions
 9. `/grade-work` — Score completed work
 10. **Retrospective** — Write `docs/retrospectives/st-NNN-slug.md`, update action items, feed lessons into CLAUDE.md
-11. `/session-handoff` — Save state before ending sessions
+11. `/session-handoff` — **ALWAYS update `docs/session-handoff.md` when finishing a milestone or ending a session.** This is the primary cross-session continuity mechanism.
 
 ## Agent Teams
 

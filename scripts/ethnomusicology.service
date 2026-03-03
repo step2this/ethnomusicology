@@ -1,0 +1,17 @@
+[Unit]
+Description=Ethnomusicology DJ API
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/ethnomusicology
+ExecStart=/opt/ethnomusicology/ethnomusicology-backend-current
+Restart=on-failure
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+EnvironmentFile=/etc/ethnomusicology/env
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use axum::{routing::get, Json, Router};
+use axum::{response::IntoResponse, routing::get, Json, Router};
 use base64::Engine;
 use serde::Serialize;
 use sqlx::sqlite::SqlitePoolOptions;
@@ -80,10 +80,54 @@ async fn api_info() -> Json<ApiInfo> {
     Json(ApiInfo {
         name: "Ethnomusicology API".to_string(),
         description:
-            "Music playlist curation for occasions, featuring African and Middle Eastern traditions"
+            "DJ-first music platform — LLM-powered setlist generation with harmonic mixing"
                 .to_string(),
         endpoints: vec!["GET /api/health".to_string(), "GET /api".to_string()],
     })
+}
+
+async fn health_ready(
+    axum::extract::State(pool): axum::extract::State<sqlx::SqlitePool>,
+) -> axum::response::Response {
+    match sqlx::query("SELECT 1").execute(&pool).await {
+        Ok(_) => axum::Json(serde_json::json!({
+            "status": "ok",
+            "db": "ok",
+            "version": env!("CARGO_PKG_VERSION")
+        }))
+        .into_response(),
+        Err(e) => (
+            axum::http::StatusCode::SERVICE_UNAVAILABLE,
+            axum::Json(serde_json::json!({"status": "error", "db": e.to_string()})),
+        )
+            .into_response(),
+    }
+}
+
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!("Shutdown signal received, draining connections...");
 }
 
 fn api_router() -> Router {
@@ -110,22 +154,8 @@ async fn main() -> anyhow::Result<()> {
         .connect(&cfg.database_url)
         .await?;
 
-    // Run migrations
-    let migration_001 = include_str!("../migrations/001_initial_schema.sql");
-    sqlx::raw_sql(migration_001).execute(&pool).await?;
-    let migration_002 = include_str!("../migrations/002_spotify_imports.sql");
-    sqlx::raw_sql(migration_002).execute(&pool).await?;
-    let migration_003 = include_str!("../migrations/003_dj_metadata.sql");
-    sqlx::raw_sql(migration_003).execute(&pool).await?;
-    let migration_004 = include_str!("../migrations/004_setlists.sql");
-    sqlx::raw_sql(migration_004).execute(&pool).await?;
-    let migration_005 = include_str!("../migrations/005_enrichment.sql");
-    sqlx::raw_sql(migration_005).execute(&pool).await?;
-    let migration_006 = include_str!("../migrations/006_import_tracks.sql");
-    sqlx::raw_sql(migration_006).execute(&pool).await?;
-    sqlx::raw_sql("PRAGMA foreign_keys = ON")
-        .execute(&pool)
-        .await?;
+    // Run migrations (shared with test pool — single source of truth in db/mod.rs)
+    ethnomusicology_backend::db::run_migrations(&pool).await?;
     tracing::info!("Database migrations applied");
 
     // Ensure dev-user exists (temporary until UC-008 adds real auth)
@@ -192,9 +222,15 @@ async fn main() -> anyhow::Result<()> {
         claude: claude_client.clone(),
     });
 
+    // --- Health readiness router (needs DB pool) ---
+    let health_router = Router::new()
+        .route("/api/health/ready", get(health_ready))
+        .with_state(pool.clone());
+
     // --- Router ---
     let mut app = Router::new()
         .nest("/api", api_router())
+        .merge(health_router)
         .nest("/api", routes::auth::auth_routes(auth_state))
         .nest("/api", routes::import::import_router(import_state))
         .nest("/api", routes::setlist::setlist_router(setlist_state))
@@ -220,14 +256,35 @@ async fn main() -> anyhow::Result<()> {
     }
 
     let app = app
-        .layer(CorsLayer::permissive())
+        .layer({
+            use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin};
+
+            let origins = if cfg.dev_mode {
+                AllowOrigin::any()
+            } else {
+                AllowOrigin::list([
+                    "https://salamic-vibes.duckdns.org"
+                        .parse::<axum::http::HeaderValue>()
+                        .unwrap(),
+                    "http://localhost:3000"
+                        .parse::<axum::http::HeaderValue>()
+                        .unwrap(),
+                ])
+            };
+            CorsLayer::new()
+                .allow_origin(origins)
+                .allow_methods(AllowMethods::any())
+                .allow_headers(AllowHeaders::any())
+        })
         .layer(TraceLayer::new_for_http());
 
     let addr = format!("{}:{}", cfg.bind_address, cfg.server_port);
     tracing::info!("Backend listening on {}", addr);
 
     let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app).await?;
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
 
     Ok(())
 }

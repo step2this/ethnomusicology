@@ -1,0 +1,64 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    # Only deploy if the E2E workflow is not required to pass first;
+    # the E2E check runs as a separate status check on PRs.
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # Rust cache for faster builds
+      - uses: actions/cache@v4
+        with:
+          path: |
+            backend/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: deploy-rust-${{ hashFiles('backend/Cargo.lock') }}
+          restore-keys: deploy-rust-
+
+      - name: Build backend (release)
+        working-directory: backend
+        run: cargo build --release
+
+      - name: Build frontend (web)
+        working-directory: frontend
+        run: flutter build web --release
+
+      - name: Deploy to EC2
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+          TIMESTAMP=$(date +%s)
+          SSH="ssh -i ~/.ssh/deploy_key ubuntu@$EC2_HOST"
+          SCP="scp -i ~/.ssh/deploy_key"
+
+          # Upload binary
+          $SCP \
+            backend/target/release/ethnomusicology-backend \
+            ubuntu@$EC2_HOST:/opt/ethnomusicology/ethnomusicology-backend-$TIMESTAMP
+
+          # Upload frontend to timestamped directory (atomic swap)
+          $SSH "mkdir -p /opt/ethnomusicology/frontend-$TIMESTAMP"
+          $SCP -r \
+            frontend/build/web/* \
+            ubuntu@$EC2_HOST:/opt/ethnomusicology/frontend-$TIMESTAMP/
+
+          # Run deploy script (handles symlink swap, restart, health check, rollback)
+          $SSH "TIMESTAMP=$TIMESTAMP /opt/ethnomusicology/scripts/deploy.sh"
