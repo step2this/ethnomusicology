@@ -1,103 +1,78 @@
-# Session Handoff — 2026-02-28
+# Session Handoff — 2026-03-03
 
 ## What Was Accomplished This Session
 
-### 1. UC-001 Git Cleanup (Complete)
-- Fixed 3 quality gate issues on the feature branch:
-  - `cargo fmt` formatting in `main.rs` and `repo.rs`
-  - Clippy: removed unnecessary `i64` cast in `repo.rs`
-  - Fixed `test_import_with_mock_spotify`: pre-populated encrypted tokens and `X-User-Id` header
-  - Replaced `package:web` with `url_launcher` in `spotify_import_screen.dart` (web package fails in Flutter test VM)
-- All 49 backend tests + 1 frontend test pass
-- Merged `feature/uc-001-spotify-import` → `main` (fast-forward)
-- Pushed to GitHub, deleted feature branch
+### 1. ST-006 Wrap-up
+- PR #3 CI fixed (background `/fix-ci` agent — E2E test updated for tabbed UI)
+- PR #3 merged to main (squash)
+- ST-006 retrospective written: `docs/retrospectives/st-006-multi-input-enhanced-generation.md`
+- Known debt and lessons learned updated in `.claude/rules/`
 
-### 2. DJ-First Pivot — Research & Planning (Complete)
-- Researched Beatport API v4, SoundCloud API (OAuth 2.1), Bandcamp (no public API — skipped)
-- Researched audio analysis: essentia (recommended), librosa, Camelot wheel system
-- Researched LLM music knowledge: Claude Sonnet with prompt engineering (not fine-tuning, not RAG)
-- Wrote comprehensive research notes: `docs/research/dj-platform-research.md`
-- Created evolution plan: `.claude/plans/golden-questing-lollipop.md`
+### 2. AWS Deployment (tarab.studio)
+- systemd service: auto-restart, env file for secrets, `DEV_MODE=false`
+- `sqlx::migrate!()`: proper migration tracking (replaces raw SQL runner)
+- Route53 domain: `tarab.studio` with auto-HTTPS via Caddy
+- SQLite backups: VACUUM INTO + integrity check → S3 every 6 hours
+- Deploy scripts: symlink-based rollback + exponential backoff health check
+- GitHub Actions deploy workflow (needs EC2_SSH_KEY + EC2_HOST secrets to activate)
+- CORS locked to explicit origins, graceful shutdown on SIGTERM
+- `/api/health/ready` endpoint with DB connectivity check
+- Fixed API description to reflect DJ-first pivot
 
-### 3. Key Decisions Locked
-- **App identity**: DJ-first pivot. Occasion features secondary.
-- **LLM model**: Claude Sonnet default, Opus for complex refinements
-- **Bandcamp**: Skipped entirely. Focus on Spotify + Beatport + SoundCloud.
-- **Playback**: Crossfade preview (3-5s). Full beat-matching is P3 stretch.
-- **UX/Design**: `design-crit` plugin installed for structured design critiques
+### 3. Audio Playback Spike (SP-005)
+- Deezer search API: free, no auth, returns 30s MP3 preview URLs
+- Deezer CDN: `Access-Control-Allow-Origin: *` on MP3s
+- Backend proxy: `GET /api/audio/deezer-search?q=...` (Deezer search API lacks CORS)
+- PoC: `tarab.studio/audio-poc.html` — Web Audio API crossfade between two Deezer previews
+- **Result: Audio playback in browser is PROVEN. Crossfade works.**
 
-### 4. CLAUDE.md Updated
-- Reflects DJ-first vision, new integrations, design-crit plugin, current state
-
-### 5. Settings Configured
-- `.claude/settings.json` updated with auto-approve permissions for all dev tools
-- Pre-commit quality gate hook preserved
+### 4. UC-019 Planning (approved, ready to build)
+- Full task decomposition at `docs/tasks/uc-019-tasks.md`
+- Critic review found 3 critical issues: dart:web_audio doesn't exist (use package:web), CORS needs backend MP3 proxy, dart:html breaks non-web platforms
+- 6 tasks, 4 builders + lead, clean file boundaries
 
 ## Current State
 
 ### Git
-- **Branch**: `main` (clean, up to date with origin)
-- **Latest commit**: `2e77def` — Configure auto-approve permissions
-- **No uncommitted changes** (except this handoff file, to be committed)
-- **GitHub**: `git@github.com:step2this/ethnomusicology.git`
+- **Branch**: `main` (clean, pushed)
+- **Latest commit**: `3c3e7e6` — audio spike
+- **Tests**: 268 backend + 47 frontend = 315 total (all passing)
 
-### Tests
-- Backend: **49 passed**, 0 failed
-- Frontend: **1 passed**, 0 failed (widget_test only)
+### Deployment
+- **URL**: `https://tarab.studio` (basic auth: reviewer / password)
+- **Backend**: systemd service `ethnomusicology.service` (active, running)
+- **Frontend**: `/opt/ethnomusicology/frontend-current` symlink
+- **Database**: `/opt/ethnomusicology/data/ethnomusicology.db` (all 6 migrations + _sqlx_migrations)
+- **Backups**: S3 `ethnomusicology-backups` bucket, cron every 6 hours
+- **Domain**: Route53 hosted zone `tarab.studio` → EIP 52.72.57.136
+
+### IAM (incomplete)
+- `sst-deployer` still has `AdministratorAccess` — scoped S3 policy created but not yet swapped
+- Do this AFTER activating GitHub Actions CI/CD
 
 ## What the Next Session Should Do
 
-### Immediate: Create DJ Use Cases via the Forge
+### Immediate: Build UC-019
+1. Read plan: `docs/tasks/uc-019-tasks.md`
+2. T0 (Lead): Add `package:web` to pubspec.yaml, define abstract interfaces
+3. Spawn team: backend-builder (T1), api-builder (T2), audio-builder (T3), ui-builder (T5)
+4. Wire, test, deploy
+5. Critic review before merge
 
-Read the evolution plan first:
-```
-Read .claude/plans/golden-questing-lollipop.md
-```
+### After UC-019
+- Ember Crate / TR-808 design implementation (design-crit outputs at `.design-crit/`)
+- Activate GitHub Actions CI/CD (add SSH key secrets)
+- Scope down IAM
+- ST-007 conversational refinement (post-MVP)
 
-Then create each use case in order using `/uc-create`:
-
-**Tier 1 — DJ Core (P0):**
-1. UC-013: Import Tracks from Beatport
-2. UC-014: Import Tracks from SoundCloud
-3. UC-015: Detect BPM and Musical Key for Track
-4. UC-016: Generate Setlist from Natural Language Prompt
-5. UC-017: Arrange Setlist by Harmonic Compatibility
-
-**Tier 2 — Enhanced (P1):**
-6. UC-018: Enrich Track with DJ Metadata (energy, mood, genre)
-7. UC-019: Crossfade Preview Between Tracks
-8. UC-020: Generate Purchase Links for Tracks
-9. UC-021: Browse by DJ Scene and Era
-
-**Tier 3 — Polish (P2-P3):**
-10. UC-023: Refine Setlist with Conversational Feedback
-11. UC-024: Export Setlist with Transition Notes
-12. UC-025: Full Browser-Based DJ Mix Playback (aspirational)
-
-After creating each UC, run `/uc-review` to catch gaps. Then run `/prd-from-usecases` to synthesize the full PRD.
-
-### Architecture Prep (can parallel with UC creation)
-- Define `MusicSourceClient` trait (follows `ImportRepository` pattern from UC-001)
-- Plan DB migrations: `003_dj_metadata.sql`, `004_multi_source.sql`
-- Create Forge skills: `camelot-reference.md`, `llm-prompt-template.md`
-
-## Key Reference Files
-
+## Key Files
 | File | Purpose |
 |------|---------|
-| `CLAUDE.md` | Standing orders, architecture, current state |
-| `.claude/plans/golden-questing-lollipop.md` | Full DJ pivot plan with locked decisions |
-| `docs/research/dj-platform-research.md` | Beatport/SoundCloud/essentia/Camelot research |
-| `docs/project-plan.md` | Original project plan (UC-001 through UC-012) |
-| `docs/use-cases/uc-001-import-seed-catalog-from-spotify.md` | Reference pattern for new UCs |
-| `docs/tasks/uc-001-tasks.md` | Task decomposition pattern reference |
-| `.claude/settings.json` | Auto-approve permissions + pre-commit hooks |
-
-## Blockers
-- None. All systems green, all tests passing, GitHub up to date.
-
-## Lessons Learned This Session
-- `package:web` (`dart:js_interop`) is web-only — fails in Flutter test VM. Use `url_launcher` instead.
-- Import route tests need encrypted tokens pre-populated in test DB before calling the handler.
-- Beatport API v4 requires OAuth — apply for access early before building the client.
-- SoundCloud is migrating to OAuth 2.1 and AAC HLS — use `urn` field not `id` field (deadline June 2025).
+| `docs/tasks/uc-019-tasks.md` | UC-019 task plan (approved) |
+| `.claude/plans/declarative-swimming-twilight.md` | Same plan (Claude Code plan file) |
+| `docs/spikes/audio-crossfade-poc.html` | Working audio crossfade PoC |
+| `backend/src/routes/audio.rs` | Deezer search proxy endpoint |
+| `docs/steel-threads/st-aws-deployment-plan.md` | Full deployment plan with devil's advocate findings |
+| `.design-crit/decisions.md` | Ember Crate design system (10 decisions locked) |
+| `CLAUDE.md` | Standing orders |
+| `~/.claude/projects/-home-ubuntu-ethnomusicology/memory/MEMORY.md` | Cross-session memory |
