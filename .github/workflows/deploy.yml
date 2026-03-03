@@ -34,7 +34,10 @@ jobs:
 
       - name: Build frontend (web)
         working-directory: frontend
-        run: flutter build web --release
+        run: |
+          flutter clean
+          flutter pub get
+          flutter build web --release
 
       - name: Deploy to EC2
         env:
