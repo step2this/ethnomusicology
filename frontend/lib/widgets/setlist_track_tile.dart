@@ -5,11 +5,21 @@ import '../models/setlist_track.dart';
 class SetlistTrackTile extends StatelessWidget {
   final SetlistTrack track;
   final bool hasBpmWarning;
+  final VoidCallback? onPlay;
+  final VoidCallback? onStop;
+  final bool isPlaying;
+  final bool isLoading;
+  final bool hasPreview;
 
   const SetlistTrackTile({
     super.key,
     required this.track,
     this.hasBpmWarning = false,
+    this.onPlay,
+    this.onStop,
+    this.isPlaying = false,
+    this.isLoading = false,
+    this.hasPreview = false,
   });
 
   @override
@@ -40,6 +50,7 @@ class SetlistTrackTile extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Row(
                     children: [
@@ -111,6 +122,39 @@ class SetlistTrackTile extends StatelessWidget {
                 ],
               ),
             ),
+            const SizedBox(width: 12),
+
+            // Play/Stop button
+            if (hasPreview)
+              IconButton(
+                icon: isLoading
+                    ? SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.primary,
+                          ),
+                        ),
+                      )
+                    : Icon(
+                        isPlaying ? Icons.stop : Icons.play_arrow,
+                        color: theme.colorScheme.primary,
+                      ),
+                onPressed: isPlaying ? onStop : onPlay,
+              )
+            else
+              Tooltip(
+                message: 'No preview available',
+                child: IconButton(
+                  icon: Icon(
+                    Icons.music_off,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  onPressed: null,
+                ),
+              ),
           ],
         ),
       ),

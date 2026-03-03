@@ -118,4 +118,106 @@ void main() {
           contains('/setlists/set-abc/arrange'));
     });
   });
+
+  group('searchDeezerPreview', () {
+    test('returns proxied URL on successful search', () async {
+      final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
+      dio.interceptors.add(_DeezerSuccessInterceptor());
+      final client = ApiClient(dio: dio);
+
+      final result = await client.searchDeezerPreview('Lovely Day', 'Bill Withers');
+
+      expect(result, isNotNull);
+      expect(result, contains('/api/audio/proxy?url='));
+      expect(result, contains('https%3A%2F%2F')); // URL-encoded https://
+    });
+
+    test('returns null on empty results', () async {
+      final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
+      dio.interceptors.add(_DeezerEmptyInterceptor());
+      final client = ApiClient(dio: dio);
+
+      final result =
+          await client.searchDeezerPreview('NonexistentTrack', 'NonexistentArtist');
+
+      expect(result, isNull);
+    });
+
+    test('returns null on error', () async {
+      final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
+      dio.interceptors.add(_DeezerErrorInterceptor());
+      final client = ApiClient(dio: dio);
+
+      final result = await client.searchDeezerPreview('AnyTrack', 'AnyArtist');
+
+      expect(result, isNull);
+    });
+
+    test('passes correct query parameters', () async {
+      final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
+      final interceptor = _DeezerQueryCaptureInterceptor();
+      dio.interceptors.add(interceptor);
+      final client = ApiClient(dio: dio);
+
+      await client.searchDeezerPreview('Song Title', 'Artist Name');
+
+      expect(interceptor.lastQueryParams?['q'], 'Artist Name Song Title');
+      expect(interceptor.lastQueryParams?['limit'], '1');
+    });
+  });
+}
+
+class _DeezerSuccessInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    handler.resolve(Response(
+      requestOptions: options,
+      statusCode: 200,
+      data: {
+        'data': [
+          {'preview': 'https://cdns-files.dzcdn.net/stream/abc123.preview.mp3'}
+        ]
+      },
+    ));
+  }
+}
+
+class _DeezerEmptyInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    handler.resolve(Response(
+      requestOptions: options,
+      statusCode: 200,
+      data: {'data': []},
+    ));
+  }
+}
+
+class _DeezerErrorInterceptor extends Interceptor {
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    handler.reject(DioException(
+      requestOptions: options,
+      error: 'Network error',
+      type: DioExceptionType.connectionTimeout,
+    ));
+  }
+}
+
+class _DeezerQueryCaptureInterceptor extends Interceptor {
+  Map<String, dynamic>? lastQueryParams;
+
+  @override
+  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
+    lastQueryParams = options.queryParameters;
+    handler.resolve(Response(
+      requestOptions: options,
+      statusCode: 200,
+      data: {
+        'data': [
+          {'preview': 'https://cdns-files.dzcdn.net/stream/test.preview.mp3'}
+        ]
+      },
+    ));
+  }
 }

@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/setlist.dart';
+import '../providers/api_provider.dart';
+import '../providers/audio_provider.dart';
+import '../providers/deezer_provider.dart';
 import '../providers/setlist_provider.dart';
 import '../providers/spotify_import_provider.dart';
 import '../widgets/setlist_track_tile.dart';
@@ -51,6 +54,16 @@ class _SetlistGenerationScreenState
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(setlistProvider);
+
+    // Trigger Deezer prefetch when setlist is first displayed
+    ref.listen(setlistProvider, (previous, next) {
+      if ((previous?.hasSetlist ?? false) == false && next.hasSetlist) {
+        ref.read(deezerPreviewProvider.notifier).prefetchForSetlist(
+              next.setlist!.tracks,
+              ref.read(apiClientProvider),
+            );
+      }
+    });
 
     return Scaffold(
       appBar: AppBar(
@@ -384,6 +397,8 @@ class _SetlistGenerationScreenState
 
   Widget _buildSetlistResult(SetlistState state) {
     final setlist = state.setlist!;
+    final audioState = ref.watch(audioPlaybackProvider);
+    final deezerState = ref.watch(deezerPreviewProvider);
 
     return Column(
       children: [
@@ -431,6 +446,44 @@ class _SetlistGenerationScreenState
             ],
           ),
         ),
+        // Playback controls
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              // Stop button
+              IconButton(
+                icon: const Icon(Icons.stop),
+                onPressed: () => ref.read(audioPlaybackProvider.notifier).stop(),
+              ),
+              const SizedBox(width: 8),
+              // Crossfade duration
+              Text('Crossfade: '),
+              SizedBox(
+                width: 120,
+                child: Slider(
+                  value: audioState.crossfadeDuration,
+                  min: 1,
+                  max: 8,
+                  divisions: 7,
+                  label: '${audioState.crossfadeDuration.round()}s',
+                  onChanged: (v) => ref
+                      .read(audioPlaybackProvider.notifier)
+                      .setCrossfadeDuration(v),
+                ),
+              ),
+              Text('${audioState.crossfadeDuration.round()}s'),
+              const Spacer(),
+              // Status text
+              if (audioState.statusText != null)
+                Text(
+                  audioState.statusText!,
+                  style: Theme.of(context).textTheme.bodySmall,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+          ),
+        ),
         // Catalog warning
         if (setlist.catalogWarning != null)
           Padding(
@@ -460,9 +513,37 @@ class _SetlistGenerationScreenState
               final hasBpmWarning = setlist.bpmWarnings.any((w) =>
                   w.fromPosition == track.position ||
                   w.toPosition == track.position);
+              final hasPreview =
+                  deezerState.previewUrls[previewKey(track)] != null;
+
               return SetlistTrackTile(
                 track: track,
                 hasBpmWarning: hasBpmWarning,
+                isPlaying: audioState.currentTrackIndex == index,
+                isLoading: audioState.isLoading &&
+                    audioState.currentTrackIndex == index,
+                hasPreview: hasPreview,
+                onPlay: () {
+                  final notifier =
+                      ref.read(audioPlaybackProvider.notifier);
+                  // If there's a next track, crossfade; otherwise single play
+                  if (index < setlist.tracks.length - 1) {
+                    notifier.playCrossfade(
+                      index,
+                      index + 1,
+                      setlist.tracks,
+                      deezerState,
+                    );
+                  } else {
+                    notifier.playTrack(
+                      index,
+                      setlist.tracks,
+                      deezerState,
+                    );
+                  }
+                },
+                onStop: () =>
+                    ref.read(audioPlaybackProvider.notifier).stop(),
               );
             },
           ),
@@ -575,6 +656,7 @@ class _SetlistGenerationScreenState
 
   void _resetAll() {
     ref.read(setlistProvider.notifier).reset();
+    ref.read(audioPlaybackProvider.notifier).stop();
     _promptController.clear();
     _spotifyUrlController.clear();
     _tracklistController.clear();

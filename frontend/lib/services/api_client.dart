@@ -118,4 +118,27 @@ class ApiClient {
     final response = await _dio.get('/setlists/$id');
     return Setlist.fromJson(response.data as Map<String, dynamic>);
   }
+
+  // -------------------------------------------------------------------------
+  // Audio Preview (Deezer)
+  // -------------------------------------------------------------------------
+
+  /// Search Deezer for a track preview URL. Returns the proxied preview URL or null.
+  Future<String?> searchDeezerPreview(String title, String artist) async {
+    try {
+      final response = await _dio.get('/audio/deezer-search', queryParameters: {
+        'q': '$artist $title',
+        'limit': '1',
+      });
+      final data = response.data as Map<String, dynamic>;
+      final results = data['data'] as List?;
+      if (results == null || results.isEmpty) return null;
+      final preview = results[0]['preview'] as String?;
+      if (preview == null || preview.isEmpty) return null;
+      // Return proxied URL to avoid CORS issues
+      return '/api/audio/proxy?url=${Uri.encodeComponent(preview)}';
+    } catch (e) {
+      return null;
+    }
+  }
 }
