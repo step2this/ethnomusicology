@@ -20,7 +20,7 @@
 | UC-019 | Deezer field-specific search | ⬜ | Phase 4: `artist:"X" track:"Y" strict=on` — replaces freeform (~20-30% error rate on electronic) |
 | UC-019 | Deezer ISRC lookup | ⬜ | Phase 4: `GET /track/isrc:{ISRC}` — exact match when Spotify ISRC available |
 | UC-019 | Playback debugging infrastructure | 🔄 | Per-track Deezer search status indicators + search query tooltips |
-| UC-019 | iTunes Search API fallback | ⬜ | Phase 5: free, no auth, 100M+ catalog, 30s AAC previews |
+| UC-019 | iTunes Search API fallback | ✅ | ST-008: unified /api/audio/search, Deezer→iTunes fallback, Apple CDN proxy |
 | UC-019 | SoundCloud preview fallback | ⬜ | Phase 5.1: OAuth required, underground/indie catalog |
 | UC-019 | Track attribution links | 🔄 | Clickable title/artist → Google search, Spotify links for catalog tracks |
 | UC-019 | Waveform visualization | ⬜ | Deferred — post-MVP polish |
@@ -34,6 +34,6 @@
 Status: ⬜ backlog, 🔄 doing, ✅ done
 
 ## Test Counts (as of 2026-03-04)
-- Backend: 328 tests
-- Frontend: 104 tests
-- Total: 432 tests
+- Backend: 352 tests
+- Frontend: 150 tests
+- Total: 502 tests

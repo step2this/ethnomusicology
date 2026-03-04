@@ -2,54 +2,53 @@
 
 ## Branch: `main` (all work merged directly)
 
-### Active Sessions
+### Status: ST-008 COMPLETE
 
-| Session | Steel Thread | Status | Files Owned |
-|---------|-------------|--------|-------------|
-| Session A | ST-008 (iTunes Preview Fallback) | IN PROGRESS | backend/src/routes/audio.rs, backend/src/services/match_scoring.rs, backend/src/services/mod.rs, backend/src/main.rs, frontend/lib/services/api_client.dart, frontend/lib/providers/deezer_provider.dart, frontend/lib/widgets/setlist_track_tile.dart, docs/api/openapi.yaml |
-| Session B | SP-006 Spike + Process | COMPLETE | docs/spikes/, docs/steel-threads/, docs/tasks/, docs/research/ |
+### What Was Done This Session
 
-### T0 Status: COMPLETE
-- Commit `10226e0`: Renamed Deezer* types to Preview* across all frontend files
-- All consuming files updated (audio_provider, refinement_provider, setlist_result_view, setlist_track_tile, screens, tests)
+**ST-008: iTunes Preview Fallback (commit 6cfcc81):**
+- New unified `GET /api/audio/search?title=X&artist=Y` endpoint
+- Deezer (strict → fuzzy) → iTunes Search API fallback chain
+- Match scoring module (`services/match_scoring.rs`) for fuzzy title/artist validation
+- Proxy fix: forwards upstream Content-Type (was hardcoded audio/mpeg)
+- Proxy extended: Apple CDN hosts whitelisted (audio-ssl.itunes.apple.com, *.mzstatic.com)
+- Rate limiting: tokio::sync::Semaphore(20) for iTunes
+- Frontend: source-specific indicators (Deezer checkmark / Apple icon / red X)
+- Frontend: Apple Music link when source=itunes
+- Backward compat: `/api/audio/deezer-search` still works
+- OpenAPI spec updated with AudioSearchResponse schema
+- Critic review completed (fresh-context opus agent)
 
-### ST-008 Execution Plan
-- **Phase 1** (parallel): T1 (backend unified search + iTunes + proxy fix) + T2 (match scoring utility)
-- **Phase 2**: T3 (frontend provider + tile updates for multi-source)
-- **Phase 3**: T4 (tests)
-- **Phase 4**: C1 (critic review)
-
-### SP-006 SoundCloud Spike: CONDITIONAL PASS
-- `preview_mp3_128_url` confirmed NOT deprecated — our audio path for ST-009
-- HLS AAC migration only affects full streaming, not previews
-- Client Credentials flow sufficient (no user OAuth needed)
-- **Manual step required**: User must register SoundCloud app at `soundcloud.com/you/apps`
-- Set `SOUNDCLOUD_CLIENT_ID` and `SOUNDCLOUD_CLIENT_SECRET` env vars before ST-009
-
-### Forge Process Completed This Session
-- ST-008 + ST-009 steel threads written with devil's advocate review
-- SP-006 spike researched and documented
-- Task decompositions for both steel threads
-- T0 frontend rename complete
-- PRD, roadmap, progress, research docs all updated
-
-### Previous Session Summary
-
-**ST-007 Frontend (PR #5 — merged):**
-- Conversational refinement UI: chat input, conversation history, version history panel
-- Quick commands (!shuffle, !sort-by-bpm, !reverse, !undo)
-
-**Playback Simplification (PR #6 — merged):**
-- Removed crossfade, added admin wipe endpoint, Deezer search status indicators
-
-**Phase 4: Deezer Search Quality (direct to main):**
-- Field-specific search with 3-step fallback chain
+**T0 (commit 10226e0, done by prior session):**
+- Renamed Deezer* types to Preview* across all frontend files
 
 ### Test Counts
-- Backend: 332 tests
-- Frontend: 148 tests
-- **Total: 480 tests, all passing**
+- Backend: 352 tests (was 332, +20 new)
+- Frontend: 150 tests (was 148, +2 new)
+- **Total: 502 tests, all passing**
 
-### Current Deployment
-- `tarab.studio` — latest code deployed (Phase 4 Deezer search fix)
-- Catalog is EMPTY (wiped) — user needs to re-import Spotify playlist
+### Next Steps
+
+**ST-009: SoundCloud Preview Integration** (depends on ST-008 — now unblocked)
+- SoundCloud OAuth 2.1 Client Credentials flow
+- Extend unified search: Deezer → iTunes → SoundCloud
+- Manual prerequisite: register SoundCloud app at soundcloud.com/you/apps
+- Set SOUNDCLOUD_CLIENT_ID and SOUNDCLOUD_CLIENT_SECRET env vars
+- See `docs/steel-threads/st-009-soundcloud-preview-integration.md`
+
+**Other backlog:**
+- Phase 6: Purchase link panel (UC-020)
+- Granular generation progress indicators
+- iOS/mobile spike
+
+### Key Files Modified
+| Area | Files |
+|------|-------|
+| Backend search | `routes/audio.rs` (unified search + proxy fix) |
+| Backend scoring | `services/match_scoring.rs` (NEW), `services/mod.rs` |
+| Frontend API | `services/api_client.dart` (searchPreview method) |
+| Frontend provider | `providers/deezer_provider.dart` (source, externalUrl, searchQueries) |
+| Frontend UI | `widgets/setlist_track_tile.dart` (source icons, Apple Music link) |
+| Frontend wiring | `widgets/setlist_result_view.dart` (new field passthrough) |
+| Docs | `docs/api/openapi.yaml` (AudioSearchResponse schema) |
+| Tests | `test/providers/deezer_provider_test.dart`, `test/services/api_client_test.dart`, `test/providers/audio_provider_test.dart` |
