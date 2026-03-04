@@ -29,11 +29,14 @@ void main() {
     });
 
     test('prefetchForSetlist fetches URLs for tracks', () async {
-      // Mock Deezer search response
+      // Mock unified search response
       interceptor.responseOverride = {
-        'data': [
-          {'preview': 'https://cdns-preview.dzcdn.net/stream/track1.mp3'},
-        ],
+        'source': 'deezer',
+        'preview_url': '/api/audio/proxy?url=https%3A%2F%2Fcdns-preview.dzcdn.net%2Ftrack1.mp3',
+        'external_url': 'https://www.deezer.com/track/123',
+        'search_queries': ['artist:"Test Artist" track:"Test Track"'],
+        'deezer_id': 123,
+        'itunes_id': null,
       };
 
       final tracks = [
@@ -53,6 +56,37 @@ void main() {
       expect(state.isLoading, false);
       expect(state.trackInfo['track-1']?.previewUrl, isNotNull);
       expect(state.trackInfo['track-1']?.status, PreviewSearchStatus.found);
+      expect(state.trackInfo['track-1']?.source, 'deezer');
+      expect(state.trackInfo['track-1']?.externalUrl, 'https://www.deezer.com/track/123');
+    });
+
+    test('prefetchForSetlist handles iTunes fallback', () async {
+      interceptor.responseOverride = {
+        'source': 'itunes',
+        'preview_url': '/api/audio/proxy?url=https%3A%2F%2Faudio-ssl.itunes.apple.com%2Ftrack.m4a',
+        'external_url': 'https://music.apple.com/track/456',
+        'search_queries': ['artist:"Artist" track:"Track"', 'iTunes: Artist Track'],
+        'deezer_id': null,
+        'itunes_id': 456,
+      };
+
+      final tracks = [
+        const SetlistTrack(
+          position: 0,
+          title: 'Track',
+          artist: 'Artist',
+          originalPosition: 0,
+          source: 'catalog',
+          trackId: 'track-itunes',
+        ),
+      ];
+
+      await container.read(previewProvider.notifier).prefetchForSetlist(tracks);
+
+      final state = container.read(previewProvider);
+      expect(state.trackInfo['track-itunes']?.source, 'itunes');
+      expect(state.trackInfo['track-itunes']?.externalUrl, contains('apple.com'));
+      expect(state.trackInfo['track-itunes']?.searchQueries, hasLength(2));
     });
 
     test('prefetchForSetlist handles empty tracks list', () async {
@@ -63,9 +97,15 @@ void main() {
       expect(state.isLoading, false);
     });
 
-    test('prefetchForSetlist handles API errors gracefully', () async {
-      // API returns empty results — track has null preview URL
-      interceptor.responseOverride = {'data': []};
+    test('prefetchForSetlist handles no match', () async {
+      interceptor.responseOverride = {
+        'source': null,
+        'preview_url': null,
+        'external_url': null,
+        'search_queries': ['artist:"Unknown" track:"Missing"', 'iTunes: Unknown Missing'],
+        'deezer_id': null,
+        'itunes_id': null,
+      };
 
       final tracks = [
         const SetlistTrack(
@@ -81,16 +121,19 @@ void main() {
 
       final state = container.read(previewProvider);
       expect(state.isLoading, false);
-      // Track should have notFound status with null preview URL
       expect(state.trackInfo['unknown-0']?.previewUrl, isNull);
       expect(state.trackInfo['unknown-0']?.status, PreviewSearchStatus.notFound);
+      expect(state.trackInfo['unknown-0']?.source, isNull);
     });
 
     test('reset clears all state', () async {
       interceptor.responseOverride = {
-        'data': [
-          {'preview': 'https://example.com/preview.mp3'},
-        ],
+        'source': 'deezer',
+        'preview_url': '/api/audio/proxy?url=test',
+        'external_url': null,
+        'search_queries': ['query'],
+        'deezer_id': 1,
+        'itunes_id': null,
       };
 
       final tracks = [
@@ -118,7 +161,8 @@ void main() {
           'track-1': PreviewTrackInfo(
             previewUrl: '/api/audio/proxy?url=test',
             status: PreviewSearchStatus.found,
-            searchQuery: 'artist:"Artist" track:"Track"',
+            searchQueries: ['artist:"Artist" track:"Track"'],
+            source: 'deezer',
           ),
         },
       );
@@ -136,7 +180,7 @@ void main() {
           'track-1': PreviewTrackInfo(
             previewUrl: '/api/audio/proxy?url=test',
             status: PreviewSearchStatus.found,
-            searchQuery: 'artist:"Artist" track:"Track"',
+            searchQueries: ['artist:"Artist" track:"Track"'],
           ),
         },
       );
@@ -148,7 +192,7 @@ void main() {
         trackInfo: {
           'track-1': PreviewTrackInfo(
             status: PreviewSearchStatus.notFound,
-            searchQuery: 'artist:"Artist" track:"Track"',
+            searchQueries: ['artist:"Artist" track:"Track"'],
           ),
         },
       );
@@ -157,9 +201,12 @@ void main() {
 
     test('status transitions: loading → found when URL returned', () async {
       interceptor.responseOverride = {
-        'data': [
-          {'preview': 'https://example.com/preview.mp3'},
-        ],
+        'source': 'deezer',
+        'preview_url': '/api/audio/proxy?url=test',
+        'external_url': null,
+        'search_queries': ['artist:"Artist" track:"Track"'],
+        'deezer_id': 1,
+        'itunes_id': null,
       };
 
       final tracks = [
@@ -176,8 +223,6 @@ void main() {
       final notifier = container.read(previewProvider.notifier);
       final future = notifier.prefetchForSetlist(tracks);
 
-      // After calling prefetch, state should be isLoading=true
-      // (loading markers set synchronously before fetch)
       expect(container.read(previewProvider).isLoading, isTrue);
       expect(
         container.read(previewProvider).trackInfo['track-found']?.status,
@@ -189,11 +234,18 @@ void main() {
       final state = container.read(previewProvider);
       expect(state.isLoading, false);
       expect(state.trackInfo['track-found']?.status, PreviewSearchStatus.found);
-      expect(state.trackInfo['track-found']?.searchQuery, 'artist:"Artist" track:"Track"');
+      expect(state.trackInfo['track-found']?.searchQueries, ['artist:"Artist" track:"Track"']);
     });
 
     test('status transitions: loading → notFound when no URL returned', () async {
-      interceptor.responseOverride = {'data': []};
+      interceptor.responseOverride = {
+        'source': null,
+        'preview_url': null,
+        'external_url': null,
+        'search_queries': ['artist:"Nobody" track:"Missing"'],
+        'deezer_id': null,
+        'itunes_id': null,
+      };
 
       final tracks = [
         const SetlistTrack(
@@ -209,7 +261,7 @@ void main() {
 
       final state = container.read(previewProvider);
       expect(state.trackInfo['unknown-0']?.status, PreviewSearchStatus.notFound);
-      expect(state.trackInfo['unknown-0']?.searchQuery, 'artist:"Nobody" track:"Missing"');
+      expect(state.trackInfo['unknown-0']?.searchQueries, ['artist:"Nobody" track:"Missing"']);
     });
 
     test('previewKey uses trackId when available', () {

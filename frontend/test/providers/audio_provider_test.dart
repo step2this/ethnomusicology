@@ -27,7 +27,7 @@ _TestFixture _buildFixture({
     trackInfoMap[key] = PreviewTrackInfo(
       previewUrl: '/api/audio/proxy?url=track$i',
       status: PreviewSearchStatus.found,
-      searchQuery: 'Artist $i Track $i',
+      searchQueries: ['Artist $i Track $i'],
     );
   }
   final deezerState = PreviewState(trackInfo: trackInfoMap);

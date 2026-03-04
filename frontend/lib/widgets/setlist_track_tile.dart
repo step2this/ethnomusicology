@@ -14,7 +14,9 @@ class SetlistTrackTile extends StatelessWidget {
   final bool isLoading;
   final bool hasPreview;
   final PreviewSearchStatus? previewStatus;
-  final String? previewSearchQuery;
+  final List<String>? previewSearchQueries;
+  final String? previewSource;
+  final String? externalUrl;
   final String? spotifyUri;
 
   const SetlistTrackTile({
@@ -28,7 +30,9 @@ class SetlistTrackTile extends StatelessWidget {
     this.isLoading = false,
     this.hasPreview = false,
     this.previewStatus,
-    this.previewSearchQuery,
+    this.previewSearchQueries,
+    this.previewSource,
+    this.externalUrl,
     this.spotifyUri,
   });
 
@@ -89,6 +93,25 @@ class SetlistTrackTile extends StatelessWidget {
                                 Icons.open_in_new,
                                 size: 14,
                                 color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      if (externalUrl != null && previewSource == 'itunes')
+                        Tooltip(
+                          message: 'Open in Apple Music',
+                          child: InkWell(
+                            onTap: () => launchUrl(
+                              Uri.parse(externalUrl!),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.apple,
+                                size: 14,
+                                color: Colors.grey.shade700,
                               ),
                             ),
                           ),
@@ -232,14 +255,15 @@ class SetlistTrackTile extends StatelessWidget {
     final status = previewStatus;
     if (status == null) return const SizedBox.shrink();
 
-    final query = previewSearchQuery ?? '';
+    final queries = previewSearchQueries?.join(' → ') ?? '';
 
     IconData icon;
     Color color;
+    String tooltipLabel;
     switch (status) {
       case PreviewSearchStatus.loading:
         return Tooltip(
-          message: 'Searching Deezer: $query',
+          message: 'Searching: $queries',
           child: const SizedBox(
             width: 16,
             height: 16,
@@ -247,8 +271,20 @@ class SetlistTrackTile extends StatelessWidget {
           ),
         );
       case PreviewSearchStatus.found:
-        icon = Icons.check_circle;
-        color = Colors.green;
+        final src = previewSource ?? 'unknown';
+        if (src == 'itunes') {
+          icon = Icons.apple;
+          color = Colors.grey.shade700;
+          tooltipLabel = 'iTunes';
+        } else {
+          icon = Icons.check_circle;
+          color = Colors.green;
+          tooltipLabel = 'Deezer';
+        }
+        return Tooltip(
+          message: '$tooltipLabel: $queries',
+          child: Icon(icon, size: 16, color: color),
+        );
       case PreviewSearchStatus.notFound:
         icon = Icons.cancel;
         color = Colors.red;
@@ -258,7 +294,7 @@ class SetlistTrackTile extends StatelessWidget {
     }
 
     return Tooltip(
-      message: 'Deezer: "$query" → ${status.name}',
+      message: 'No preview: $queries',
       child: Icon(icon, size: 16, color: color),
     );
   }

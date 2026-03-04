@@ -185,7 +185,9 @@ class SetlistResultView extends ConsumerWidget {
                 isLoading: audioState.isLoading && isCurrentTrack,
                 hasPreview: previewState.hasPreview(trackKey),
                 previewStatus: trackInfo?.status,
-                previewSearchQuery: trackInfo?.searchQuery,
+                previewSearchQueries: trackInfo?.searchQueries,
+                previewSource: trackInfo?.source,
+                externalUrl: trackInfo?.externalUrl,
                 spotifyUri: track.spotifyUri,
                 onPlay: () => ref
                     .read(audioPlaybackProvider.notifier)

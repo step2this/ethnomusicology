@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/setlist_track.dart';
 import 'api_provider.dart';
 
-/// Consistent key for looking up a track's Deezer preview URL.
+/// Consistent key for looking up a track's preview URL.
 /// Handles both catalog tracks (have trackId) and LLM suggestions (trackId is null).
 String previewKey(SetlistTrack track) =>
     track.trackId ?? 'unknown-${track.position}';
@@ -13,16 +13,19 @@ enum PreviewSearchStatus { loading, found, notFound, error }
 class PreviewTrackInfo {
   final String? previewUrl;
   final PreviewSearchStatus status;
-  final String searchQuery;
+  final List<String> searchQueries;
+  final String? source;
+  final String? externalUrl;
 
   const PreviewTrackInfo({
     this.previewUrl,
     required this.status,
-    required this.searchQuery,
+    required this.searchQueries,
+    this.source,
+    this.externalUrl,
   });
 }
 
-// State for Deezer preview URLs
 class PreviewState {
   final Map<String, PreviewTrackInfo> trackInfo;
   final bool isLoading;
@@ -53,7 +56,7 @@ class PreviewNotifier extends Notifier<PreviewState> {
   @override
   PreviewState build() => const PreviewState();
 
-  /// Prefetch Deezer preview URLs for all tracks in a setlist in parallel
+  /// Prefetch preview URLs for all tracks in a setlist in parallel
   Future<void> prefetchForSetlist(List<SetlistTrack> tracks) async {
     if (tracks.isEmpty) return;
 
@@ -63,10 +66,9 @@ class PreviewNotifier extends Notifier<PreviewState> {
     final loadingInfo = <String, PreviewTrackInfo>{};
     for (final track in tracks) {
       final key = track.trackId ?? 'unknown-${track.position}';
-      final query = 'artist:"${track.artist}" track:"${track.title}"';
       loadingInfo[key] = PreviewTrackInfo(
         status: PreviewSearchStatus.loading,
-        searchQuery: query,
+        searchQueries: ['artist:"${track.artist}" track:"${track.title}"'],
       );
     }
     state = state.copyWith(
@@ -75,37 +77,38 @@ class PreviewNotifier extends Notifier<PreviewState> {
     );
 
     try {
-      // Build a map of trackId -> (title, artist, query) for fetching
-      final trackEntries = <String, (String, String, String)>{};
+      // Build a map of trackId -> (title, artist) for fetching
+      final trackEntries = <String, (String, String)>{};
       for (final track in tracks) {
         final trackId = track.trackId ?? 'unknown-${track.position}';
-        final query = 'artist:"${track.artist}" track:"${track.title}"';
-        trackEntries[trackId] = (track.title, track.artist, query);
+        trackEntries[trackId] = (track.title, track.artist);
       }
 
-      // Fetch all Deezer URLs in parallel
+      // Fetch all preview URLs in parallel via unified search endpoint
       final results = await Future.wait(
         trackEntries.entries.map((entry) async {
           final trackId = entry.key;
-          final (title, artist, query) = entry.value;
+          final (title, artist) = entry.value;
           try {
-            final previewUrl = await client.searchDeezerPreview(title, artist);
+            final result = await client.searchPreview(title, artist);
             return MapEntry(
               trackId,
               PreviewTrackInfo(
-                previewUrl: previewUrl,
-                status: previewUrl != null
+                previewUrl: result.previewUrl,
+                status: result.previewUrl != null
                     ? PreviewSearchStatus.found
                     : PreviewSearchStatus.notFound,
-                searchQuery: query,
+                searchQueries: result.searchQueries,
+                source: result.source,
+                externalUrl: result.externalUrl,
               ),
             );
           } on Exception catch (_) {
             return MapEntry(
               trackId,
-              PreviewTrackInfo(
+              const PreviewTrackInfo(
                 status: PreviewSearchStatus.error,
-                searchQuery: query,
+                searchQueries: [],
               ),
             );
           }

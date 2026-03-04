@@ -33,8 +33,51 @@ tags:
     description: Audio analysis (BPM, key, energy)
   - name: playback
     description: Audio preview and crossfade playback
+  - name: ST-008
+    description: "Steel Thread: iTunes Preview Fallback"
 
 paths:
+
+  /api/audio/search:
+    get:
+      operationId: audioSearch
+      summary: Unified audio preview search (Deezer → iTunes fallback)
+      description: |
+        Searches for a 30-second audio preview for the given track.
+        Tries Deezer field-specific search (strict then fuzzy) first.
+        Falls back to iTunes Search API if Deezer finds no match.
+        Returns a proxied preview URL safe for browser playback (CORS handled).
+        Per-source timeout is 2 seconds; global budget is 5 seconds.
+      tags:
+        - ST-008
+        - playback
+      parameters:
+        - name: title
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Track title
+          example: "Levels"
+        - name: artist
+          in: query
+          required: true
+          schema:
+            type: string
+          description: Artist name
+          example: "Avicii"
+      responses:
+        '200':
+          description: |
+            Search complete. `source` is null if no preview was found.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudioSearchResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+
   /api/tracks:
     get:
       operationId: listTracks
@@ -209,6 +252,46 @@ components:
       description: JWT authentication (UC-008, future)
 
   schemas:
+    AudioSearchResponse:
+      type: object
+      required:
+        - search_queries
+      properties:
+        source:
+          type: string
+          nullable: true
+          enum: [deezer, itunes, null]
+          description: Which source provided the preview, or null if none found
+          example: "itunes"
+        preview_url:
+          type: string
+          nullable: true
+          description: Proxied preview URL for browser playback (30s clip)
+          example: "/api/audio/proxy?url=https%3A%2F%2Faudio-ssl.itunes.apple.com%2F..."
+        external_url:
+          type: string
+          nullable: true
+          description: Link to the track on the source platform (iTunes store page, etc.)
+          example: "https://music.apple.com/us/album/levels/12345?i=67890"
+        search_queries:
+          type: array
+          items:
+            type: string
+          description: All search queries attempted (for debugging / UI tooltips)
+          example:
+            - 'artist:"Avicii" track:"Levels"'
+            - "Avicii Levels"
+        deezer_id:
+          type: integer
+          nullable: true
+          description: Deezer track ID if source is deezer
+          example: null
+        itunes_id:
+          type: integer
+          nullable: true
+          description: iTunes track ID if source is itunes
+          example: 1234567890
+
     ErrorResponse:
       type: object
       required:

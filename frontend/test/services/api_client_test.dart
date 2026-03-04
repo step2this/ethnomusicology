@@ -119,83 +119,111 @@ void main() {
     });
   });
 
-  group('searchDeezerPreview', () {
-    test('returns proxied URL on successful search', () async {
+  group('searchPreview', () {
+    test('returns Deezer result on successful search', () async {
       final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
-      dio.interceptors.add(_DeezerSuccessInterceptor());
+      dio.interceptors.add(_PreviewSuccessInterceptor('deezer'));
       final client = ApiClient(dio: dio);
 
-      final result = await client.searchDeezerPreview('Lovely Day', 'Bill Withers');
+      final result = await client.searchPreview('Lovely Day', 'Bill Withers');
 
-      expect(result, isNotNull);
-      expect(result, contains('/api/audio/proxy?url='));
-      expect(result, contains('https%3A%2F%2F')); // URL-encoded https://
+      expect(result.source, 'deezer');
+      expect(result.previewUrl, isNotNull);
+      expect(result.previewUrl, contains('/api/audio/proxy'));
+      expect(result.searchQueries, isNotEmpty);
     });
 
-    test('returns null on empty results', () async {
+    test('returns iTunes result as fallback', () async {
       final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
-      dio.interceptors.add(_DeezerEmptyInterceptor());
+      dio.interceptors.add(_PreviewSuccessInterceptor('itunes'));
       final client = ApiClient(dio: dio);
 
-      final result =
-          await client.searchDeezerPreview('NonexistentTrack', 'NonexistentArtist');
+      final result = await client.searchPreview('Track', 'Artist');
 
-      expect(result, isNull);
+      expect(result.source, 'itunes');
+      expect(result.externalUrl, contains('apple.com'));
     });
 
-    test('returns null on error', () async {
+    test('returns null source when no match found', () async {
       final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
-      dio.interceptors.add(_DeezerErrorInterceptor());
+      dio.interceptors.add(_PreviewNoMatchInterceptor());
       final client = ApiClient(dio: dio);
 
-      final result = await client.searchDeezerPreview('AnyTrack', 'AnyArtist');
+      final result = await client.searchPreview('Missing', 'Unknown');
 
-      expect(result, isNull);
+      expect(result.source, isNull);
+      expect(result.previewUrl, isNull);
+      expect(result.searchQueries, isNotEmpty);
     });
 
-    test('passes correct query parameters', () async {
+    test('returns empty result on error', () async {
       final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
-      final interceptor = _DeezerQueryCaptureInterceptor();
+      dio.interceptors.add(_PreviewErrorInterceptor());
+      final client = ApiClient(dio: dio);
+
+      final result = await client.searchPreview('AnyTrack', 'AnyArtist');
+
+      expect(result.source, isNull);
+      expect(result.previewUrl, isNull);
+      expect(result.searchQueries, isEmpty);
+    });
+
+    test('passes title and artist as query parameters', () async {
+      final dio = Dio(BaseOptions(baseUrl: 'http://localhost:3001/api'));
+      final interceptor = _PreviewQueryCaptureInterceptor();
       dio.interceptors.add(interceptor);
       final client = ApiClient(dio: dio);
 
-      await client.searchDeezerPreview('Song Title', 'Artist Name');
+      await client.searchPreview('Song Title', 'Artist Name');
 
-      // First attempt uses field-specific strict search
-      expect(interceptor.lastQueryParams?['q'], 'artist:"Artist Name" track:"Song Title"');
-      expect(interceptor.lastQueryParams?['limit'], '5');
-      expect(interceptor.lastQueryParams?['strict'], 'on');
+      expect(interceptor.lastQueryParams?['title'], 'Song Title');
+      expect(interceptor.lastQueryParams?['artist'], 'Artist Name');
     });
   });
 }
 
-class _DeezerSuccessInterceptor extends Interceptor {
+class _PreviewSuccessInterceptor extends Interceptor {
+  final String source;
+  _PreviewSuccessInterceptor(this.source);
+
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     handler.resolve(Response(
       requestOptions: options,
       statusCode: 200,
       data: {
-        'data': [
-          {'preview': 'https://cdns-files.dzcdn.net/stream/abc123.preview.mp3'}
-        ]
+        'source': source,
+        'preview_url': '/api/audio/proxy?url=https%3A%2F%2Fexample.com%2Fpreview.mp3',
+        'external_url': source == 'itunes'
+            ? 'https://music.apple.com/track/123'
+            : 'https://www.deezer.com/track/123',
+        'search_queries': ['artist:"Artist" track:"Track"'],
+        'deezer_id': source == 'deezer' ? 123 : null,
+        'itunes_id': source == 'itunes' ? 456 : null,
       },
     ));
   }
 }
 
-class _DeezerEmptyInterceptor extends Interceptor {
+class _PreviewNoMatchInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     handler.resolve(Response(
       requestOptions: options,
       statusCode: 200,
-      data: {'data': []},
+      data: {
+        'source': null,
+        'preview_url': null,
+        'external_url': null,
+        'search_queries': ['artist:"Unknown" track:"Missing"', 'iTunes: Unknown Missing'],
+        'deezer_id': null,
+        'itunes_id': null,
+      },
     ));
   }
 }
 
-class _DeezerErrorInterceptor extends Interceptor {
+class _PreviewErrorInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
     handler.reject(DioException(
@@ -206,7 +234,7 @@ class _DeezerErrorInterceptor extends Interceptor {
   }
 }
 
-class _DeezerQueryCaptureInterceptor extends Interceptor {
+class _PreviewQueryCaptureInterceptor extends Interceptor {
   Map<String, dynamic>? lastQueryParams;
 
   @override
@@ -216,9 +244,12 @@ class _DeezerQueryCaptureInterceptor extends Interceptor {
       requestOptions: options,
       statusCode: 200,
       data: {
-        'data': [
-          {'preview': 'https://cdns-files.dzcdn.net/stream/test.preview.mp3'}
-        ]
+        'source': 'deezer',
+        'preview_url': '/api/audio/proxy?url=test',
+        'external_url': null,
+        'search_queries': ['query'],
+        'deezer_id': 1,
+        'itunes_id': null,
       },
     ));
   }

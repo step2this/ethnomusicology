@@ -121,43 +121,34 @@ class ApiClient {
   }
 
   // -------------------------------------------------------------------------
-  // Audio Preview (Deezer)
+  // Audio Preview (unified: Deezer → iTunes fallback)
   // -------------------------------------------------------------------------
 
-  /// Search Deezer for a track preview URL using a fallback chain:
-  /// 1. Field-specific strict: artist:"X" track:"Y" strict=on
-  /// 2. Field-specific fuzzy: artist:"X" track:"Y"
-  /// 3. Freeform: "artist title" (last resort)
-  Future<String?> searchDeezerPreview(String title, String artist) async {
-    // Try field-specific strict first (best accuracy)
-    var preview = await _deezerSearch('artist:"$artist" track:"$title"', strict: true);
-    if (preview != null) return preview;
-
-    // Try field-specific without strict (allows fuzzy matching)
-    preview = await _deezerSearch('artist:"$artist" track:"$title"');
-    if (preview != null) return preview;
-
-    // Last resort: freeform search
-    return _deezerSearch('$artist $title');
-  }
-
-  Future<String?> _deezerSearch(String query, {bool strict = false}) async {
+  /// Unified preview search: backend tries Deezer then iTunes.
+  /// Returns a PreviewSearchResult with source, preview URL, and metadata.
+  Future<PreviewSearchResult> searchPreview(String title, String artist) async {
     try {
-      final params = <String, String>{
-        'q': query,
-        'limit': '5',
-      };
-      if (strict) params['strict'] = 'on';
-
-      final response = await _dio.get('/audio/deezer-search', queryParameters: params);
+      final response = await _dio.get('/audio/search', queryParameters: {
+        'title': title,
+        'artist': artist,
+      });
       final data = response.data as Map<String, dynamic>;
-      final results = data['data'] as List?;
-      if (results == null || results.isEmpty) return null;
-      final preview = results[0]['preview'] as String?;
-      if (preview == null || preview.isEmpty) return null;
-      return '/api/audio/proxy?url=${Uri.encodeComponent(preview)}';
+      return PreviewSearchResult(
+        source: data['source'] as String?,
+        previewUrl: data['preview_url'] as String?,
+        externalUrl: data['external_url'] as String?,
+        searchQueries: (data['search_queries'] as List?)
+                ?.map((e) => e as String)
+                .toList() ??
+            [],
+      );
     } catch (e) {
-      return null;
+      return const PreviewSearchResult(
+        source: null,
+        previewUrl: null,
+        externalUrl: null,
+        searchQueries: [],
+      );
     }
   }
 
@@ -182,4 +173,18 @@ class ApiClient {
     final response = await _dio.get('/setlists/$setlistId/history');
     return HistoryResponse.fromJson(response.data as Map<String, dynamic>);
   }
+}
+
+class PreviewSearchResult {
+  final String? source;
+  final String? previewUrl;
+  final String? externalUrl;
+  final List<String> searchQueries;
+
+  const PreviewSearchResult({
+    required this.source,
+    required this.previewUrl,
+    required this.externalUrl,
+    required this.searchQueries,
+  });
 }
