@@ -6,7 +6,9 @@ use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 
-use crate::api::claude::{strip_markdown_fences, ClaudeClientTrait, ClaudeError, ConversationMessage};
+use crate::api::claude::{
+    strip_markdown_fences, ClaudeClientTrait, ClaudeError, ConversationMessage,
+};
 use crate::db::models::{SetlistConversationRow, SetlistVersionRow, VersionTrackRow};
 use crate::db::refinement as db;
 use crate::db::setlists as db_setlists;
@@ -57,9 +59,11 @@ impl IntoResponse for RefinementError {
                 "TURN_LIMIT_EXCEEDED",
                 format!("Maximum of {limit} refinement turns reached"),
             ),
-            RefinementError::GenerationFailed(m) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, "GENERATION_FAILED", m.clone())
-            }
+            RefinementError::GenerationFailed(m) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "GENERATION_FAILED",
+                m.clone(),
+            ),
             RefinementError::Database(e) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR",
@@ -176,11 +180,10 @@ pub async fn refine_setlist(
 
     // 5. LLM path — bootstrap version 0 if no versions exist
     let latest_before_bootstrap = db::get_latest_version(pool, setlist_id).await?;
-    let current_tracks = if latest_before_bootstrap.is_none() {
-        bootstrap_version(pool, setlist_id).await?
-    } else {
-        let latest = latest_before_bootstrap.unwrap();
+    let current_tracks = if let Some(latest) = latest_before_bootstrap {
         db::get_version_tracks(pool, &latest.id).await?
+    } else {
+        bootstrap_version(pool, setlist_id).await?
     };
 
     // 6. Build message history for multi-turn context
@@ -195,7 +198,12 @@ pub async fn refine_setlist(
 
     // 8. Call Claude converse() — retry once on parse failure
     let llm_text = claude
-        .converse(&system_prompt, messages.clone(), REFINEMENT_MODEL, MAX_TOKENS)
+        .converse(
+            &system_prompt,
+            messages.clone(),
+            REFINEMENT_MODEL,
+            MAX_TOKENS,
+        )
         .await
         .map_err(RefinementError::from)?;
 
@@ -427,14 +435,8 @@ async fn handle_quick_command(
             tx.commit().await?;
 
             let explanation = format!("Applied quick command: {action_name}");
-            insert_conversation_pair(
-                pool,
-                setlist_id,
-                &new_version_id,
-                message,
-                &explanation,
-            )
-            .await?;
+            insert_conversation_pair(pool, setlist_id, &new_version_id, message, &explanation)
+                .await?;
 
             Ok(RefinementResponse {
                 version_number: next_version_num,
@@ -522,7 +524,7 @@ async fn insert_conversation_pair(
     Ok(())
 }
 
-fn renumber_version_tracks(tracks: &mut Vec<VersionTrackRow>) {
+fn renumber_version_tracks(tracks: &mut [VersionTrackRow]) {
     for (i, track) in tracks.iter_mut().enumerate() {
         track.position = (i + 1) as i32;
         track.transition_note = None;
@@ -530,9 +532,7 @@ fn renumber_version_tracks(tracks: &mut Vec<VersionTrackRow>) {
     }
 }
 
-fn conversations_to_messages(
-    conversations: &[SetlistConversationRow],
-) -> Vec<ConversationMessage> {
+fn conversations_to_messages(conversations: &[SetlistConversationRow]) -> Vec<ConversationMessage> {
     conversations
         .iter()
         .map(|c| ConversationMessage {
@@ -565,7 +565,11 @@ fn compute_harmonic_score(tracks: &[VersionTrackRow]) -> f64 {
             count += 1;
         }
     }
-    if count == 0 { 50.0 } else { total / count as f64 }
+    if count == 0 {
+        50.0
+    } else {
+        total / count as f64
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -625,10 +629,7 @@ pub fn parse_refinement_response(text: &str) -> Result<LlmRefinementResponse, Re
     })
 }
 
-pub fn validate_actions(
-    actions: &[LlmAction],
-    track_count: usize,
-) -> Result<(), RefinementError> {
+pub fn validate_actions(actions: &[LlmAction], track_count: usize) -> Result<(), RefinementError> {
     for action in actions {
         match action {
             LlmAction::Replace { position, .. } => {
@@ -857,16 +858,14 @@ mod tests {
 
     async fn insert_setlist(pool: &SqlitePool) -> String {
         let id = uuid::Uuid::new_v4().to_string();
-        sqlx::query(
-            "INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)",
-        )
-        .bind(&id)
-        .bind("user-1")
-        .bind("test prompt")
-        .bind("claude-test")
-        .execute(pool)
-        .await
-        .unwrap();
+        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+            .bind(&id)
+            .bind("user-1")
+            .bind("test prompt")
+            .bind("claude-test")
+            .execute(pool)
+            .await
+            .unwrap();
         id
     }
 
@@ -998,7 +997,10 @@ mod tests {
 
     #[test]
     fn test_apply_add_at_start() {
-        let tracks = vec![make_version_track(1, "Alpha"), make_version_track(2, "Beta")];
+        let tracks = vec![
+            make_version_track(1, "Alpha"),
+            make_version_track(2, "Beta"),
+        ];
         let actions = vec![LlmAction::Add {
             after_position: 0,
             title: "First".to_string(),
@@ -1251,7 +1253,9 @@ mod tests {
             .unwrap();
 
         // Should have v0 (bootstrap) + v1 (refine)
-        let versions = db::get_versions_by_setlist(&pool, &setlist_id).await.unwrap();
+        let versions = db::get_versions_by_setlist(&pool, &setlist_id)
+            .await
+            .unwrap();
         assert!(versions.len() >= 2);
         assert_eq!(versions[0].version_number, 0);
         assert_eq!(versions[0].action.as_deref(), Some("bootstrap"));
@@ -1327,7 +1331,9 @@ mod tests {
 
         // Create v0 + v1 via refine
         let claude = MockClaude::single(&replace_response(1, "V1 Track", "Artist"));
-        refine_setlist(&pool, &claude, &setlist_id, "user-1", "refine").await.unwrap();
+        refine_setlist(&pool, &claude, &setlist_id, "user-1", "refine")
+            .await
+            .unwrap();
 
         // Revert to v0
         let resp = revert_setlist(&pool, &setlist_id, 0).await.unwrap();
@@ -1350,7 +1356,11 @@ mod tests {
         let history = get_history(&pool, &setlist_id).await.unwrap();
         assert!(!history.versions.is_empty());
         assert!(!history.conversations.is_empty());
-        let user_convos: Vec<_> = history.conversations.iter().filter(|c| c.role == "user").collect();
+        let user_convos: Vec<_> = history
+            .conversations
+            .iter()
+            .filter(|c| c.role == "user")
+            .collect();
         assert!(!user_convos.is_empty());
     }
 
@@ -1373,9 +1383,11 @@ mod tests {
         }
 
         let claude = MockClaude::single("{}");
-        let result =
-            refine_setlist(&pool, &claude, &setlist_id, "user-1", "one more turn").await;
-        assert!(matches!(result, Err(RefinementError::TurnLimitExceeded { .. })));
+        let result = refine_setlist(&pool, &claude, &setlist_id, "user-1", "one more turn").await;
+        assert!(matches!(
+            result,
+            Err(RefinementError::TurnLimitExceeded { .. })
+        ));
     }
 
     #[tokio::test]
@@ -1392,8 +1404,7 @@ mod tests {
     async fn test_setlist_not_found() {
         let pool = create_test_pool().await;
         let claude = MockClaude::single("{}");
-        let result =
-            refine_setlist(&pool, &claude, "nonexistent-id", "user-1", "refine").await;
+        let result = refine_setlist(&pool, &claude, "nonexistent-id", "user-1", "refine").await;
         assert!(matches!(result, Err(RefinementError::NotFound(_))));
     }
 }
