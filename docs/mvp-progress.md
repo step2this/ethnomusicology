@@ -15,11 +15,11 @@
 | UC-017 | Energy arc parameterized | ✅ | ST-006 (EnergyProfile enum, energy_arc_score_with_profile) |
 | UC-018 | mood_tags, enriched_at | ✅ | ST-005 (enriched_at column + update; mood_tags post-MVP) |
 | UC-019 | Crossfade preview playback | ✅ | Deezer 30s previews + Web Audio API + backend proxy. 98/100 tracks enriched. |
-| UC-019 | Transport controls (prev/next/pause) | 🔄 | Phase 3: auto-advance, PlaybackStatus enum. Critic fixes in progress. |
+| UC-019 | Transport controls (prev/next/pause) | ✅ | Phase 3: auto-advance, PlaybackStatus enum. PR #4 merged. |
 | UC-019 | Waveform visualization | ⬜ | Deferred — post-MVP polish |
 | UC-019 | Purchase link fallback | ⬜ | Deferred — needs UC-020 |
-| UC-023 | Multi-turn refinement | ⬜ | ST-007 |
-| UC-023 | Version history + undo | ⬜ | ST-007 |
-| UC-023 | >50% change guard | ⬜ | ST-007 |
+| UC-023 | Multi-turn refinement | 🔄 | ST-007 backend in progress (API only, frontend after arch refactor) |
+| UC-023 | Version history + undo | 🔄 | ST-007 backend in progress |
+| UC-023 | >50% change guard | 🔄 | ST-007 backend in progress |
 
 Status: ⬜ backlog, 🔄 doing, ✅ done
