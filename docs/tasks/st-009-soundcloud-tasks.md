@@ -39,12 +39,22 @@ All tasks are sequential — each builds on the previous.
   - Add SoundCloud CDN hosts to proxy whitelist (from spike findings)
   - Response shape: add `"soundcloud"` as source option + `soundcloud_id`
 
-### T3: Frontend source indicator for SoundCloud (~20 lines) — `frontend-builder`
+### T2.5: Backend response must include uploader_name for SC tracks (~5 lines) — `backend-builder`
+**In `routes/audio.rs` SoundCloud response path:**
+- Extract `user.username` from SoundCloud track API response
+- Return as `uploader_name` field in AudioSearchResponse (null for Deezer/iTunes)
+
+### T3: Frontend source indicator + attribution for SoundCloud (~40 lines) — `frontend-builder`
 **Files:**
 - `frontend/lib/widgets/setlist_track_tile.dart` (MODIFY):
   - Add SoundCloud icon when source="soundcloud"
-  - SoundCloud permalink as external_url
-- `frontend/lib/providers/deezer_provider.dart` (MODIFY if needed — by now it's preview_provider)
+  - Show "via SoundCloud" text label + uploader name (compliance: attribution)
+  - Clickable backlink to SoundCloud permalink (compliance: backlink)
+  - Also add "via Apple Music" / "via Deezer" labels for consistency
+- `frontend/lib/providers/deezer_provider.dart` (MODIFY):
+  - Add `uploaderName` field to `PreviewTrackInfo`
+- `frontend/lib/services/api_client.dart` (MODIFY):
+  - Parse `uploader_name` from unified search response into `PreviewSearchResult`
 
 ### T4: Tests (~60 lines) — `test-builder`
 - `backend/src/services/soundcloud.rs` (inline tests): token management, circuit breaker

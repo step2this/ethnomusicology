@@ -122,6 +122,28 @@ Add `"soundcloud"` as a possible `source` value:
 7. **[API]** Token refresh works transparently without user intervention
 8. **[API]** Fuzzy match filtering prevents wrong-track playback
 
+## API Terms Compliance (MANDATORY)
+
+Per [SoundCloud API Terms of Use](https://developers.soundcloud.com/docs/api/terms-of-use):
+
+### Attribution (required for every SC-sourced track)
+1. **Uploader credit**: display uploader username from API response
+2. **Source credit**: show "via SoundCloud" label
+3. **Backlink**: clickable link to track's `permalink_url` on soundcloud.com
+
+### Architecture Constraints
+- **Playback-only**: SoundCloud metadata MUST NOT be included in LLM prompts or catalog. SC is a preview source, not a generation input.
+- **Session-only caching**: preview URLs stored in-memory only (Riverpod state). Never persist SC preview URLs to database.
+- **No content modification**: play audio as-is via proxy, no remixing or processing.
+
+### Branding
+- Display as "SoundCloud" (capital S, capital C)
+- Cannot use in app name or suggest endorsement
+
+### Backend Response Must Include
+- `uploader_name` (String) — for attribution display
+- `external_url` (String) — permalink to soundcloud.com for backlink
+
 ## Does NOT Prove
 
 - SoundCloud user authentication (we use app-level Client Credentials, not user OAuth)
@@ -150,5 +172,8 @@ Add `"soundcloud"` as a possible `source` value:
 - [ ] Fallback chain: Deezer → iTunes → SoundCloud → none
 - [ ] Graceful degradation when SoundCloud credentials not configured
 - [ ] Fuzzy match filtering prevents wrong-track playback
+- [ ] SoundCloud attribution: uploader name + "via SoundCloud" + backlink displayed
+- [ ] SoundCloud metadata NOT used in any LLM prompt or catalog
+- [ ] Preview URLs NOT persisted to database (session-only)
 - [ ] All quality gates pass
 - [ ] Critic agent approves
