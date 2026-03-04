@@ -16,6 +16,7 @@ class PreviewTrackInfo {
   final List<String> searchQueries;
   final String? source;
   final String? externalUrl;
+  final String? uploaderName;
 
   const PreviewTrackInfo({
     this.previewUrl,
@@ -23,6 +24,7 @@ class PreviewTrackInfo {
     required this.searchQueries,
     this.source,
     this.externalUrl,
+    this.uploaderName,
   });
 }
 
@@ -101,6 +103,7 @@ class PreviewNotifier extends Notifier<PreviewState> {
                 searchQueries: result.searchQueries,
                 source: result.source,
                 externalUrl: result.externalUrl,
+                uploaderName: result.uploaderName,
               ),
             );
           } on Exception catch (_) {

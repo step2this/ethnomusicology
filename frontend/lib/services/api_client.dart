@@ -141,6 +141,7 @@ class ApiClient {
                 ?.map((e) => e as String)
                 .toList() ??
             [],
+        uploaderName: data['uploader_name'] as String?,
       );
     } catch (e) {
       return const PreviewSearchResult(
@@ -148,6 +149,7 @@ class ApiClient {
         previewUrl: null,
         externalUrl: null,
         searchQueries: [],
+        uploaderName: null,
       );
     }
   }
@@ -180,11 +182,13 @@ class PreviewSearchResult {
   final String? previewUrl;
   final String? externalUrl;
   final List<String> searchQueries;
+  final String? uploaderName;
 
   const PreviewSearchResult({
     required this.source,
     required this.previewUrl,
     required this.externalUrl,
     required this.searchQueries,
+    this.uploaderName,
   });
 }

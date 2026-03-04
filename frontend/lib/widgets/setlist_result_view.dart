@@ -189,6 +189,7 @@ class SetlistResultView extends ConsumerWidget {
                 previewSource: trackInfo?.source,
                 externalUrl: trackInfo?.externalUrl,
                 spotifyUri: track.spotifyUri,
+                uploaderName: trackInfo?.uploaderName,
                 onPlay: () => ref
                     .read(audioPlaybackProvider.notifier)
                     .playFromIndex(index, setlist.tracks, previewState),

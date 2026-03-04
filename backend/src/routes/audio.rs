@@ -10,14 +10,21 @@ use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::OnceLock;
 use std::time::Duration;
-use tokio::sync::Semaphore;
+use tokio::sync::{Mutex, Semaphore};
 use tokio::time::timeout;
+
+use crate::services::soundcloud::SoundCloudClient;
 
 // ---------------------------------------------------------------------------
 // Static resources
 // ---------------------------------------------------------------------------
 
 static ITUNES_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
+static SOUNDCLOUD_CLIENT: OnceLock<Mutex<Option<SoundCloudClient>>> = OnceLock::new();
+
+fn soundcloud_client() -> &'static Mutex<Option<SoundCloudClient>> {
+    SOUNDCLOUD_CLIENT.get_or_init(|| Mutex::new(SoundCloudClient::new_from_env()))
+}
 
 fn itunes_semaphore() -> &'static Semaphore {
     ITUNES_SEMAPHORE.get_or_init(|| Semaphore::new(20))
@@ -81,6 +88,8 @@ pub struct AudioSearchResponse {
     search_queries: Vec<String>,
     deezer_id: Option<u64>,
     itunes_id: Option<u64>,
+    soundcloud_id: Option<String>,
+    uploader_name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -117,6 +126,10 @@ fn is_allowed_host(host: &str) -> bool {
         return true;
     }
     if host == "mzstatic.com" || host.ends_with(".mzstatic.com") {
+        return true;
+    }
+    // SoundCloud CDN (stream_url is resolved to CDN URL server-side in soundcloud.rs)
+    if host == "cf-preview-media.sndcdn.com" || host.ends_with(".sndcdn.com") {
         return true;
     }
     false
@@ -248,6 +261,8 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
             search_queries,
             deezer_id: Some(deezer_id),
             itunes_id: None,
+            soundcloud_id: None,
+            uploader_name: None,
         })
         .into_response();
     }
@@ -262,6 +277,8 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
             search_queries,
             deezer_id: Some(deezer_id),
             itunes_id: None,
+            soundcloud_id: None,
+            uploader_name: None,
         })
         .into_response();
     }
@@ -278,11 +295,36 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
             search_queries,
             deezer_id: None,
             itunes_id: Some(itunes_id),
+            soundcloud_id: None,
+            uploader_name: None,
         })
         .into_response();
     }
 
-    // 4. No match found
+    // 4. Try SoundCloud
+    {
+        let mut sc_guard = soundcloud_client().lock().await;
+        if let Some(ref mut sc) = *sc_guard {
+            let sc_query = format!("{} {}", artist, title);
+            if let Some(m) = sc.search_track(&client, title, artist).await {
+                search_queries.push(format!("SoundCloud: {sc_query}"));
+                return Json(AudioSearchResponse {
+                    source: Some("soundcloud".to_string()),
+                    preview_url: Some(build_proxy_url(&m.stream_url)),
+                    external_url: Some(m.permalink_url),
+                    search_queries,
+                    deezer_id: None,
+                    itunes_id: None,
+                    soundcloud_id: Some(m.soundcloud_id),
+                    uploader_name: Some(m.uploader_name),
+                })
+                .into_response();
+            }
+            search_queries.push(format!("SoundCloud: {sc_query}"));
+        }
+    }
+
+    // 5. No match found
     Json(AudioSearchResponse {
         source: None,
         preview_url: None,
@@ -290,6 +332,8 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
         search_queries,
         deezer_id: None,
         itunes_id: None,
+        soundcloud_id: None,
+        uploader_name: None,
     })
     .into_response()
 }
@@ -502,6 +546,14 @@ mod tests {
     }
 
     #[test]
+    fn test_is_allowed_host_soundcloud() {
+        // api.soundcloud.com NOT whitelisted — stream_url resolved to CDN server-side
+        assert!(!is_allowed_host("api.soundcloud.com"));
+        assert!(is_allowed_host("cf-preview-media.sndcdn.com"));
+        assert!(is_allowed_host("a1.sndcdn.com"));
+    }
+
+    #[test]
     fn test_is_allowed_host_blocked() {
         assert!(!is_allowed_host("evil.com"));
         assert!(!is_allowed_host("itunes.apple.com"));
@@ -526,11 +578,35 @@ mod tests {
             search_queries: vec!["Avicii Levels".to_string()],
             deezer_id: None,
             itunes_id: Some(123456789),
+            soundcloud_id: None,
+            uploader_name: None,
         };
         let json = serde_json::to_value(&resp).unwrap();
         assert_eq!(json["source"], "itunes");
         assert_eq!(json["itunes_id"], 123456789);
         assert!(json["deezer_id"].is_null());
+        assert!(json["soundcloud_id"].is_null());
+        assert!(json["uploader_name"].is_null());
+    }
+
+    #[test]
+    fn test_audio_search_response_soundcloud() {
+        let resp = AudioSearchResponse {
+            source: Some("soundcloud".to_string()),
+            preview_url: Some("/api/audio/proxy?url=https%3A%2F%2Fcf-preview-media.sndcdn.com%2Fpreview%2F0%2F30%2Ftest.128.mp3".to_string()),
+            external_url: Some("https://soundcloud.com/artist/track".to_string()),
+            search_queries: vec!["SoundCloud: Paperclip People Throw".to_string()],
+            deezer_id: None,
+            itunes_id: None,
+            soundcloud_id: Some("soundcloud:tracks:1066423924".to_string()),
+            uploader_name: Some("Paperclip People".to_string()),
+        };
+        let json = serde_json::to_value(&resp).unwrap();
+        assert_eq!(json["source"], "soundcloud");
+        assert_eq!(json["soundcloud_id"], "soundcloud:tracks:1066423924");
+        assert_eq!(json["uploader_name"], "Paperclip People");
+        assert!(json["deezer_id"].is_null());
+        assert!(json["itunes_id"].is_null());
     }
 
     #[test]
@@ -545,6 +621,8 @@ mod tests {
             ],
             deezer_id: None,
             itunes_id: None,
+            soundcloud_id: None,
+            uploader_name: None,
         };
         let json = serde_json::to_value(&resp).unwrap();
         assert!(json["source"].is_null());
