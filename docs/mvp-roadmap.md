@@ -19,6 +19,11 @@ Natural language chat to iterate on generated setlists. Version history.
 SP-004 (done) → ST-005 (done) → ST-006 → ST-007
 ```
 
+## UC-019 Phase 3: Audio UX — Transport Controls + Auto-Advance
+Transport bar (prev/next/pause/stop), auto-advance with crossfade between tracks, PlaybackStatus enum.
+Branch: `feature/audio-ux-improvements`. Critic review complete, fixes in progress.
+See: `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md`
+
 ## MVP Milestone
 After Phase 2: Import playlist → describe vibe → get harmonically arranged setlist with real BPM/key.
 

@@ -1,66 +1,62 @@
-# Session Handoff — 2026-03-03
+# Session Handoff — 2026-03-04
 
 ## What Was Accomplished This Session
 
-### 1. ST-006 Wrap-up
-- PR #3 CI fixed (background `/fix-ci` agent — E2E test updated for tabbed UI)
-- PR #3 merged to main (squash)
-- ST-006 retrospective written: `docs/retrospectives/st-006-multi-input-enhanced-generation.md`
-- Known debt and lessons learned updated in `.claude/rules/`
+### 1. UC-019 Phase 3: Audio UX Improvements (implementation complete, pre-commit)
+- **Branch**: `feature/audio-ux-improvements` (unstaged, 7 files, +369/-115 lines)
+- Transport bar: Previous, Play/Pause, Stop, Next buttons
+- Auto-advance: crossfade to next playable track when current ends
+- `PlaybackStatus` enum replaces boolean `isPlaying`/`isLoading` flags
+- Pause/resume via `AudioContext.suspend()/resume()`
+- `onTrackEnded` callback replaces timer-based auto-stop
+- Race-condition guard on stale ended callbacks
+- "Set complete" state when last track finishes
+- 20 new tests (audio_provider_test.dart) — all passing
+- Quality gates pass: `flutter analyze` clean, 67 frontend tests pass
 
-### 2. AWS Deployment (tarab.studio)
-- systemd service: auto-restart, env file for secrets, `DEV_MODE=false`
-- `sqlx::migrate!()`: proper migration tracking (replaces raw SQL runner)
-- Route53 domain: `tarab.studio` with auto-HTTPS via Caddy
-- SQLite backups: VACUUM INTO + integrity check → S3 every 6 hours
-- Deploy scripts: symlink-based rollback + exponential backoff health check
-- GitHub Actions deploy workflow (needs EC2_SSH_KEY + EC2_HOST secrets to activate)
-- CORS locked to explicit origins, graceful shutdown on SIGTERM
-- `/api/health/ready` endpoint with DB connectivity check
-- Fixed API description to reflect DJ-first pivot
+### 2. Parallel Critic Review (3 critics, fresh context)
+- **State Management Critic**: 2 CRITICAL, 3 HIGH, 6 MEDIUM, 4 LOW
+- **Audio Service Critic**: 0 CRITICAL, 3 HIGH, 3 MEDIUM, 4 LOW
+- **UI/Widget Critic**: 0 CRITICAL, 3 HIGH, 4 MEDIUM, 4 LOW
+- Findings documented in task plan
 
-### 3. Audio Playback Spike (SP-005)
-- Deezer search API: free, no auth, returns 30s MP3 preview URLs
-- Deezer CDN: `Access-Control-Allow-Origin: *` on MP3s
-- Backend proxy: `GET /api/audio/deezer-search?q=...` (Deezer search API lacks CORS)
-- PoC: `tarab.studio/audio-poc.html` — Web Audio API crossfade between two Deezer previews
-- **Result: Audio playback in browser is PROVEN. Crossfade works.**
-
-### 4. UC-019 Planning (approved, ready to build)
-- Full task decomposition at `docs/tasks/uc-019-tasks.md`
-- Critic review found 3 critical issues: dart:web_audio doesn't exist (use package:web), CORS needs backend MP3 proxy, dart:html breaks non-web platforms
-- 6 tasks, 4 builders + lead, clean file boundaries
+### 3. Task Decomposition for Critic Fixes
+- Plan: `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md`
+- 10 tasks (T1-T10), 3 parallel builders, non-overlapping files
+- MVP progress and roadmap updated
 
 ## Current State
 
 ### Git
-- **Branch**: `main` (clean, pushed)
-- **Latest commit**: `3c3e7e6` — audio spike
-- **Tests**: 268 backend + 47 frontend = 315 total (all passing)
+- **Branch**: `feature/audio-ux-improvements` (all changes unstaged)
+- **Tests**: 268 backend + 67 frontend = 335 total (all passing)
+- **Quality gates**: `flutter analyze` clean, `flutter test` 67/67 pass
+
+### What's In Progress
+- **Critic fix pass**: 10 tasks identified, 3 builders planned in parallel
+  - provider-builder: T1 (previous skip unplayable), T2 (catchError), T3 (stop cleanup), T9 (test containers), T10 (statusText)
+  - service-builder: T6 (disconnect + generation counter), T7 (HTTP status check), T8 (comment fix)
+  - ui-builder: T4 (idle icon fix), T5 (dead onStop removal)
 
 ### Deployment
-- **URL**: `https://tarab.studio` (basic auth: reviewer / password)
-- **Backend**: systemd service `ethnomusicology.service` (active, running)
-- **Frontend**: `/opt/ethnomusicology/frontend-current` symlink
-- **Database**: `/opt/ethnomusicology/data/ethnomusicology.db` (all 6 migrations + _sqlx_migrations)
-- **Backups**: S3 `ethnomusicology-backups` bucket, cron every 6 hours
-- **Domain**: Route53 hosted zone `tarab.studio` → EIP 52.72.57.136
-
-### IAM (incomplete)
-- `sst-deployer` still has `AdministratorAccess` — scoped S3 policy created but not yet swapped
-- Do this AFTER activating GitHub Actions CI/CD
+- **URL**: `https://tarab.studio`
+- **Backend**: systemd service (active, running)
+- Phase 3 changes NOT deployed yet (need commit + deploy)
 
 ## What the Next Session Should Do
 
-### Immediate: Build UC-019
-1. Read plan: `docs/tasks/uc-019-tasks.md`
-2. T0 (Lead): Add `package:web` to pubspec.yaml, define abstract interfaces
-3. Spawn team: backend-builder (T1), api-builder (T2), audio-builder (T3), ui-builder (T5)
-4. Wire, test, deploy
-5. Critic review before merge
+### Immediate: Execute Critic Fix Team
+1. Read plan: `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md`
+2. Spawn 3 builders in parallel (provider-builder, service-builder, ui-builder)
+3. Run quality gates: `flutter analyze && flutter test`
+4. Commit all changes on `feature/audio-ux-improvements`
+5. Deploy to tarab.studio
+6. Write retrospective
 
-### After UC-019
-- Ember Crate / TR-808 design implementation (design-crit outputs at `.design-crit/`)
+### After UC-019 Phase 3
+- Merge `feature/audio-ux-improvements` to main (PR or direct)
+- Update MVP progress: transport controls → ✅
+- Ember Crate / TR-808 design implementation
 - Activate GitHub Actions CI/CD (add SSH key secrets)
 - Scope down IAM
 - ST-007 conversational refinement (post-MVP)
@@ -68,11 +64,10 @@
 ## Key Files
 | File | Purpose |
 |------|---------|
-| `docs/tasks/uc-019-tasks.md` | UC-019 task plan (approved) |
-| `.claude/plans/declarative-swimming-twilight.md` | Same plan (Claude Code plan file) |
-| `docs/spikes/audio-crossfade-poc.html` | Working audio crossfade PoC |
-| `backend/src/routes/audio.rs` | Deezer search proxy endpoint |
-| `docs/steel-threads/st-aws-deployment-plan.md` | Full deployment plan with devil's advocate findings |
-| `.design-crit/decisions.md` | Ember Crate design system (10 decisions locked) |
+| `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md` | Critic fix task plan (10 tasks, 3 builders) |
+| `docs/tasks/uc-019-tasks.md` | Original UC-019 Phase 1 task plan |
+| `docs/tasks/uc-019-phase2-deezer-enrichment.md` | Phase 2 task plan |
+| `docs/mvp-progress.md` | MVP postcondition matrix |
+| `docs/mvp-roadmap.md` | Roadmap (updated with Phase 3) |
 | `CLAUDE.md` | Standing orders |
 | `~/.claude/projects/-home-ubuntu-ethnomusicology/memory/MEMORY.md` | Cross-session memory |

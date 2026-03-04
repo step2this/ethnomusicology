@@ -111,7 +111,7 @@ void main() {
     ));
 
     expect(find.byType(CircularProgressIndicator), findsWidgets);
-    expect(find.text('Generating your setlist...'), findsOneWidget);
+    expect(find.text('Generating your setlist with Claude...'), findsOneWidget);
   });
 
   testWidgets('Setlist renders with track fields', (tester) async {

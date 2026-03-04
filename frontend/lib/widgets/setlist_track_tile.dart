@@ -6,8 +6,9 @@ class SetlistTrackTile extends StatelessWidget {
   final SetlistTrack track;
   final bool hasBpmWarning;
   final VoidCallback? onPlay;
-  final VoidCallback? onStop;
+  final VoidCallback? onPause;
   final bool isPlaying;
+  final bool isPaused;
   final bool isLoading;
   final bool hasPreview;
 
@@ -16,8 +17,9 @@ class SetlistTrackTile extends StatelessWidget {
     required this.track,
     this.hasBpmWarning = false,
     this.onPlay,
-    this.onStop,
+    this.onPause,
     this.isPlaying = false,
+    this.isPaused = false,
     this.isLoading = false,
     this.hasPreview = false,
   });
@@ -139,10 +141,14 @@ class SetlistTrackTile extends StatelessWidget {
                         ),
                       )
                     : Icon(
-                        isPlaying ? Icons.stop : Icons.play_arrow,
+                        (isPlaying && !isPaused)
+                            ? Icons.pause
+                            : Icons.play_arrow,
                         color: theme.colorScheme.primary,
                       ),
-                onPressed: isPlaying ? onStop : onPlay,
+                onPressed: isLoading
+                    ? null
+                    : (isPlaying ? onPause : onPlay),
               )
             else
               Tooltip(
