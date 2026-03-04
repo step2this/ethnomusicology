@@ -73,7 +73,7 @@ Add `"soundcloud"` as a possible `source` value:
 ### SoundCloud-specific backend internals (not exposed as API):
 - Token management: `POST https://api.soundcloud.com/oauth2/token` (Client Credentials)
 - Search: `GET https://api.soundcloud.com/tracks?q={query}&limit=5`
-- Stream: track response includes `preview_mp3_128_url` or `stream_url`
+- Audio: use `preview_mp3_128_url` (confirmed NOT deprecated per SP-006). Do NOT use HLS streams.
 
 ## Main Success Scenario
 
@@ -83,7 +83,7 @@ Add `"soundcloud"` as a possible `source` value:
 4. **[API → SoundCloud]** Ensure valid OAuth token (cache or refresh)
 5. **[API → SoundCloud]** `GET /tracks?q={artist} {title}&limit=5`
 6. **[API]** Parse response, find best match by title/artist similarity
-7. **[API]** Extract `preview_mp3_128_url` (or `stream_url` with token)
+7. **[API]** Extract `preview_mp3_128_url` (confirmed available per SP-006)
 8. **[API → Frontend]** Return `source: "soundcloud"`, proxied URL, SoundCloud permalink
 9. **[Frontend]** Show SoundCloud icon as source indicator
 10. **[Frontend]** User clicks play → proxy fetches from SoundCloud CDN
