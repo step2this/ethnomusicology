@@ -1,9 +1,10 @@
 # fix-ci
 
-Fix CI failures in a background worktree by pulling GitHub CI logs, fixing locally, pushing, and repeating until CI passes.
+Fix CI failures in a background worktree by pulling GitHub CI logs, fixing locally, pushing, and repeating until CI passes. Also available as `/ralph-loop` (alias).
 
 ## Usage
 Invoke: `/fix-ci` or `/fix-ci <branch-name-or-pr-url>`
+Alias: `/ralph-loop` (same behavior)
 
 ## Why Remote CI?
 Playwright E2E tests cannot run locally on this EC2 instance (headless browser setup is fragile). GitHub Actions runs them for us. So the loop is: pull failure logs from GitHub → fix locally → push → wait for new CI run → check again.
@@ -14,7 +15,7 @@ When invoked, the lead agent should:
 
 1. **Determine the branch or PR.** If an argument is provided, use it. Otherwise, use the current branch. Resolve PR URLs to branch names via `gh pr view`.
 
-2. **Spawn a worktree-isolated background agent** using the Agent tool with `isolation: "worktree"` and `run_in_background: true`.
+2. **Spawn a worktree-isolated background agent** using the Agent tool with `isolation: "worktree"`, `run_in_background: true`, and `model: "sonnet"`.
 
 3. **Give it the prompt below** (fill in `{BRANCH}` with the actual branch name):
 

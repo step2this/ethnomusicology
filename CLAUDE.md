@@ -33,7 +33,7 @@ Use the Forge (`.claude/` directory) for all development:
 
 - **Backend agents work in the same repo** — assign non-overlapping module directories
 - Use traits/interfaces at boundaries so parallel agents don't block each other
-- Use Haiku agents for research tasks (API evaluation, tool research)
+- Use **sonnet for all coding agents**, **opus for critics and complex planning**. **Never use haiku.**
 - **Pure-function modules** (scoring, algorithms, parsers) are ideal subagent targets — isolated, testable, no coordination overhead
 - **Integration/wiring modules** (main.rs, routes, mod.rs) stay with the lead since they depend on all other modules
 
@@ -65,10 +65,7 @@ When you encounter a technology or integration you haven't used before, **STOP a
 
 ## Shell Command Style
 
-**Chain commands with `&&`** to avoid repeated permission prompts:
-```bash
-cd backend && cargo fmt --check && cargo clippy -- -D warnings && cargo test
-```
+**Use separate Bash tool calls** for each command so auto-approve works without repeated permission prompts. Do NOT chain with `&&`.
 
 ## Key Commands
 
@@ -91,12 +88,31 @@ cd frontend && flutter analyze && flutter test  # Lint + test
 
 ## Current State
 
-- **Branch**: `feature/st-006-enhanced-generation` (PR #3 open, CI fix in progress)
-- **Completed**: UC-001, ST-001, ST-003, ST-004, ST-005, ST-006, SP-001–SP-004
-- **MVP Roadmap**: Phase 0 (SP-004) + Phase 1 (ST-005) + Phase 2 (ST-006) complete. See `docs/mvp-roadmap.md`
-- **Next**: AWS deployment, then ST-007 (Conversational Refinement)
-- **Test count**: 268 backend tests, 47 frontend tests (315 total) — all passing
+> **Live status lives in `MEMORY.md` and `docs/mvp-progress.md`. Do NOT duplicate here.**
+> **Session-specific state lives in `docs/session-handoff.md`.**
+
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`
+- **Deployed**: `tarab.studio` (Caddy + systemd + SQLite + Route53)
+
+## Parallel Session Protocol
+
+When multiple Claude Code sessions work simultaneously:
+1. Read `docs/session-handoff.md` FIRST — it lists active work and file ownership
+2. Claim your files in the handoff doc before starting
+3. NEVER modify a file owned by another session
+4. Commit after every completed task (crash recovery)
+5. Shared files (main.rs, mod.rs, pubspec.yaml) → only one session touches them
+6. See `.claude/rules/parallel-sessions.md` for full protocol
+
+## Post-Milestone Checklist (MANDATORY)
+
+After every ST/UC completion, before creating a PR:
+1. `/retrospective` — capture lessons
+2. Update `docs/mvp-progress.md` — mark postconditions
+3. Update `MEMORY.md` — test counts, current state
+4. Update `.claude/rules/known-debt.md` — add accepted critic findings
+5. Update `docs/api/openapi.yaml` — if new endpoints
+6. `/session-handoff` — write handoff
 
 ## Context-Specific Rules
 

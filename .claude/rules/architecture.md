@@ -13,7 +13,7 @@ paths:
 | Backend API | `backend/` | Rust, Axum 0.8, SQLx |
 | Frontend | `frontend/` | Flutter/Dart, Riverpod, GoRouter |
 | Landing | `landing/` | Static HTML + Tailwind |
-| Database | SQLite (dev) | PostgreSQL (prod) via SQLx |
+| Database | SQLite (dev + prod) | via SQLx, `sqlx::migrate!()` for versioned migrations. S3 backup cron every 6 hours. |
 | LLM | Claude Sonnet API | Setlist generation, music knowledge, track enrichment (BPM/key/energy estimation) |
 | Audio Analysis | essentia (async sidecar) | Post-MVP: audio-accurate BPM/key. 1-2 GB container, Starlette/FastAPI, async queue |
 | E2E Tests | `e2e/` | Playwright, GitHub Actions CI (ST-004). DEV_MODE=true enables `/api/dev/seed` for test data. |
@@ -35,8 +35,9 @@ paths:
 
 | Service | Purpose | API Status |
 |---------|---------|-----------|
-| Spotify | Music import (UC-001, done) | Integrated, OAuth. Preview URLs may return null; CORS risk on web (SP-002) |
-| Beatport | DJ track source (BPM/key native) | v4 API, OAuth2 w/ public client_id workaround. No official dev access. Rate limits unknown (SP-001) |
-| SoundCloud | Discovery + streaming | Public API, OAuth 2.1. CORS issues with streaming URL 302 redirects (SP-002) |
-| Anthropic/Claude | Setlist generation + track enrichment | Claude Sonnet default. Enrichment: batch estimation of BPM/key/energy from title+artist (ST-005). Daily cap: 250 tracks/user. |
-| essentia | Audio analysis (BPM, key) | Post-MVP. Python sidecar (1-2 GB), async queue. Key → Camelot via `from_notation()` (ready in ST-005) |
+| Spotify | Music import + metadata (UC-001) | Integrated, OAuth. Audio Features API DEPRECATED Nov 2024 — do NOT use. Import and catalog only. |
+| Deezer | 30s preview playback (UC-019) | Search API (no auth). Backend proxies MP3 streams to avoid CORS. `deezer_preview_url` persisted on tracks table. |
+| Beatport | DJ track source (deferred) | v4 API, OAuth2 w/ public client_id workaround. No official dev access. Rate limits unknown (SP-001) |
+| SoundCloud | Discovery + streaming (deferred) | Public API, OAuth 2.1. CORS issues with streaming URL 302 redirects (SP-002) |
+| Anthropic/Claude | Setlist generation + enrichment + refinement | Sonnet default, Opus for complex refinement. Enrichment: batch BPM/key/energy estimation (ST-005). Refinement: multi-turn converse() (ST-007). |
+| essentia | Audio analysis (deferred post-MVP) | Python sidecar (1-2 GB), async queue. Key → Camelot via `from_notation()` (ready in ST-005) |
