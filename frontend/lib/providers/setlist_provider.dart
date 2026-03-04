@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/setlist.dart';
+import '../models/setlist_track.dart';
 import 'api_provider.dart';
 
 // State for setlist generation flow
@@ -116,6 +117,13 @@ class SetlistNotifier extends Notifier<SetlistState> {
 
   void reset() {
     state = const SetlistState();
+  }
+
+  void updateTracks(List<SetlistTrack> newTracks) {
+    if (state.setlist == null) return;
+    state = state.copyWith(
+      setlist: () => state.setlist!.copyWith(tracks: newTracks),
+    );
   }
 
   String _parseError(dynamic e) {

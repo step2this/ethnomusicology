@@ -67,6 +67,36 @@ class Setlist {
     this.bpmWarnings = const [],
   });
 
+  Setlist copyWith({
+    String? id,
+    String? prompt,
+    String? model,
+    List<SetlistTrack>? tracks,
+    String? Function()? notes,
+    double? Function()? harmonicFlowScore,
+    ScoreBreakdown? Function()? scoreBreakdown,
+    String? Function()? createdAt,
+    String? Function()? energyProfile,
+    double? Function()? catalogPercentage,
+    String? Function()? catalogWarning,
+    List<BpmWarning>? bpmWarnings,
+  }) {
+    return Setlist(
+      id: id ?? this.id,
+      prompt: prompt ?? this.prompt,
+      model: model ?? this.model,
+      tracks: tracks ?? this.tracks,
+      notes: notes != null ? notes() : this.notes,
+      harmonicFlowScore: harmonicFlowScore != null ? harmonicFlowScore() : this.harmonicFlowScore,
+      scoreBreakdown: scoreBreakdown != null ? scoreBreakdown() : this.scoreBreakdown,
+      createdAt: createdAt != null ? createdAt() : this.createdAt,
+      energyProfile: energyProfile != null ? energyProfile() : this.energyProfile,
+      catalogPercentage: catalogPercentage != null ? catalogPercentage() : this.catalogPercentage,
+      catalogWarning: catalogWarning != null ? catalogWarning() : this.catalogWarning,
+      bpmWarnings: bpmWarnings ?? this.bpmWarnings,
+    );
+  }
+
   factory Setlist.fromJson(Map<String, dynamic> json) {
     return Setlist(
       id: json['id'] as String,

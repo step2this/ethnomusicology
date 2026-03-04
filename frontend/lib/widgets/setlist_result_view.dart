@@ -5,6 +5,9 @@ import '../config/constants.dart';
 import '../models/setlist.dart';
 import '../providers/audio_provider.dart';
 import '../providers/deezer_provider.dart';
+import '../providers/refinement_provider.dart';
+import 'conversation_history.dart';
+import 'refinement_chat_input.dart';
 import 'setlist_track_tile.dart';
 import 'transport_controls.dart';
 
@@ -22,6 +25,7 @@ class SetlistResultView extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final audioState = ref.watch(audioPlaybackProvider);
     final deezerState = ref.watch(deezerPreviewProvider);
+    final refinementState = ref.watch(refinementProvider);
 
     return Column(
       children: [
@@ -45,6 +49,13 @@ class SetlistResultView extends ConsumerWidget {
                 '${setlist.tracks.length} tracks',
                 style: Theme.of(context).textTheme.labelLarge,
               ),
+              if (refinementState.currentVersion != null) ...[
+                const SizedBox(width: 8),
+                Chip(
+                  label: Text('v${refinementState.currentVersion}'),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
               if (setlist.isArranged) ...[
                 const SizedBox(width: 12),
                 Chip(
@@ -57,6 +68,17 @@ class SetlistResultView extends ConsumerWidget {
                 _buildCatalogBadge(context),
               ],
               const Spacer(),
+              if (refinementState.currentVersion != null && refinementState.currentVersion! > 1)
+                IconButton(
+                  icon: const Icon(Icons.undo),
+                  tooltip: 'Undo last refinement',
+                  onPressed: refinementState.isRefining
+                      ? null
+                      : () => ref.read(refinementProvider.notifier).refineSetlist(
+                            setlist.id,
+                            '!undo',
+                          ),
+                ),
               if (!setlist.isArranged)
                 FilledButton.icon(
                   onPressed: onArrange,
@@ -102,8 +124,49 @@ class SetlistResultView extends ConsumerWidget {
               ),
             ),
           ),
-        // Track list
+        // Refinement change warning
+        if (refinementState.changeWarning != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Card(
+              color: Theme.of(context).colorScheme.tertiaryContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.tertiary),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(refinementState.changeWarning!)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        // Refinement error
+        if (refinementState.error != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Card(
+              color: Theme.of(context).colorScheme.errorContainer,
+              child: Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.error),
+                    const SizedBox(width: 8),
+                    Expanded(child: Text(refinementState.error!)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        // Track list (3/4 of remaining space)
         Expanded(
+          flex: 3,
           child: ListView.builder(
             itemCount: setlist.tracks.length,
             itemBuilder: (context, index) {
@@ -131,6 +194,20 @@ class SetlistResultView extends ConsumerWidget {
               );
             },
           ),
+        ),
+        const Divider(height: 1),
+        // Conversation history (1/4 of remaining space)
+        Expanded(
+          flex: 1,
+          child: ConversationHistory(
+            messages: refinementState.conversation,
+            isRefining: refinementState.isRefining,
+          ),
+        ),
+        // Chat input
+        RefinementChatInput(
+          setlistId: setlist.id,
+          isRefining: refinementState.isRefining,
         ),
       ],
     );
