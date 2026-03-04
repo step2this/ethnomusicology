@@ -543,10 +543,11 @@ fn conversations_to_messages(conversations: &[SetlistConversationRow]) -> Vec<Co
 }
 
 fn truncate(s: &str, max_chars: usize) -> String {
-    if s.len() <= max_chars {
+    if s.chars().count() <= max_chars {
         s.to_string()
     } else {
-        format!("{}...", &s[..max_chars.saturating_sub(3)])
+        let truncated: String = s.chars().take(max_chars.saturating_sub(3)).collect();
+        format!("{truncated}...")
     }
 }
 
