@@ -358,9 +358,7 @@ pub async fn generate_setlist_from_request(
         db::load_catalog_tracks(pool).await?
     };
 
-    if catalog.is_empty() {
-        return Err(SetlistError::EmptyCatalog);
-    }
+    // Empty catalog is OK — LLM will generate purely from suggestions
 
     // Build catalog IDs set for validation
     let catalog_ids: std::collections::HashSet<String> =
@@ -1112,13 +1110,18 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_empty_catalog_returns_error() {
-        let pool = crate::db::create_test_pool().await; // empty
+    async fn test_empty_catalog_generates_suggestions() {
+        let pool = crate::db::create_test_pool().await; // empty catalog
         let claude = MockClaude {
-            response: "{}".to_string(),
+            response: valid_llm_json(None), // track_id=null → all suggestions
         };
         let result = generate_setlist(&pool, &claude, "user1", "chill vibes", None).await;
-        assert!(matches!(result, Err(SetlistError::EmptyCatalog)));
+        let resp = result.unwrap();
+        assert!(!resp.tracks.is_empty());
+        // All tracks should be suggestions since catalog is empty
+        for track in &resp.tracks {
+            assert_eq!(track.source, "suggestion");
+        }
     }
 
     #[tokio::test]

@@ -383,10 +383,14 @@ Respond with ONLY valid JSON (no markdown fences, no explanation):
 }"#,
     );
 
-    let catalog_block = format!(
-        "## Available Catalog\nUse tracks from this catalog when possible (set source to \"catalog\" and use exact track_id). You may suggest tracks not in the catalog (set source to \"suggestion\", track_id to null).\n\n{}",
-        catalog_text
-    );
+    let catalog_block = if catalog_text.is_empty() {
+        "## No Catalog Available\nNo imported tracks are available. Generate all tracks as suggestions (set source to \"suggestion\", track_id to null). Use your knowledge of music to create an excellent setlist.".to_string()
+    } else {
+        format!(
+            "## Available Catalog\nUse tracks from this catalog when possible (set source to \"catalog\" and use exact track_id). You may suggest tracks not in the catalog (set source to \"suggestion\", track_id to null).\n\n{}",
+            catalog_text
+        )
+    };
 
     vec![
         RequestContentBlock::Text {

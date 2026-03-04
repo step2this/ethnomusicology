@@ -300,7 +300,7 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_generate_no_catalog_returns_400() {
+    async fn test_generate_no_catalog_returns_suggestions() {
         let pool = crate::db::create_test_pool().await;
         let state = Arc::new(SetlistRouteState {
             pool: pool.clone(),
@@ -319,8 +319,13 @@ mod tests {
         )
         .await;
 
-        assert_eq!(status, 400);
-        assert_eq!(json["error"]["code"], "EMPTY_CATALOG");
+        assert_eq!(status, 201);
+        // All tracks should be suggestions since catalog is empty
+        let tracks = json["tracks"].as_array().unwrap();
+        assert!(!tracks.is_empty());
+        for track in tracks {
+            assert_eq!(track["source"], "suggestion");
+        }
     }
 
     #[tokio::test]
