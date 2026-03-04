@@ -14,12 +14,15 @@ PREVIOUS_FRONTEND=$(readlink -f "$CURRENT_FRONTEND_LINK" 2>/dev/null || echo "")
 chmod +x "$NEW_BINARY"
 
 # Swap both symlinks atomically
+# NOTE: must use mv -Tf (no-target-directory) because mv -f follows
+# the existing symlink if it points to a directory, moving the .tmp
+# file INTO the directory instead of replacing the symlink.
 ln -sf "$NEW_BINARY" "${CURRENT_BINARY_LINK}.tmp"
-mv -f "${CURRENT_BINARY_LINK}.tmp" "$CURRENT_BINARY_LINK"
+mv -Tf "${CURRENT_BINARY_LINK}.tmp" "$CURRENT_BINARY_LINK"
 
 if [ -d "$NEW_FRONTEND" ]; then
   ln -sfn "$NEW_FRONTEND" "${CURRENT_FRONTEND_LINK}.tmp"
-  mv -f "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
+  mv -Tf "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
 fi
 
 # Restart service (Caddy picks up new frontend via symlink, no restart needed)
@@ -43,11 +46,11 @@ done
 echo "HEALTH CHECK FAILED — rolling back" >&2
 if [ -n "$PREVIOUS_BINARY" ] && [ -f "$PREVIOUS_BINARY" ]; then
   ln -sf "$PREVIOUS_BINARY" "${CURRENT_BINARY_LINK}.tmp"
-  mv -f "${CURRENT_BINARY_LINK}.tmp" "$CURRENT_BINARY_LINK"
+  mv -Tf "${CURRENT_BINARY_LINK}.tmp" "$CURRENT_BINARY_LINK"
 fi
 if [ -n "$PREVIOUS_FRONTEND" ] && [ -d "$PREVIOUS_FRONTEND" ]; then
   ln -sfn "$PREVIOUS_FRONTEND" "${CURRENT_FRONTEND_LINK}.tmp"
-  mv -f "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
+  mv -Tf "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
 fi
 sudo systemctl restart ethnomusicology
 echo "Rollback complete. Previous binary + frontend restored."
