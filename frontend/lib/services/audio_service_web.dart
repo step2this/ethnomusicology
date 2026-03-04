@@ -87,7 +87,7 @@ class WebAudioPlaybackService implements AudioPlaybackService {
       // Set up onended callback for track finish detection
       _sourceA!.addEventListener(
         'ended',
-        (event) {
+        (web.Event event) {
           if (gen != _playGeneration) return;
           _isPlaying = false;
           _onTrackEnded?.call();
@@ -158,7 +158,7 @@ class WebAudioPlaybackService implements AudioPlaybackService {
       // Set up onended callback for Track B finish (end of crossfade)
       _sourceB!.addEventListener(
         'ended',
-        (event) {
+        (web.Event event) {
           if (gen != _playGeneration) return;
           _isPlaying = false;
           _onTrackEnded?.call();
