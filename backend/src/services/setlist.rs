@@ -196,6 +196,7 @@ pub struct SetlistTrackResponse {
     pub original_position: i32,
     pub source: String,
     pub track_id: Option<String>,
+    pub spotify_uri: Option<String>,
 }
 
 impl From<SetlistTrackRow> for SetlistTrackResponse {
@@ -213,6 +214,7 @@ impl From<SetlistTrackRow> for SetlistTrackResponse {
             original_position: row.original_position,
             source: row.source,
             track_id: row.track_id,
+            spotify_uri: row.spotify_uri,
         }
     }
 }
@@ -504,6 +506,7 @@ pub async fn generate_setlist_from_request(
             transition_score: None,
             source: source.clone(),
             acquisition_info: None,
+            spotify_uri: None,
         };
 
         // M4: Only attempt track DB write if setlist was persisted
@@ -527,6 +530,7 @@ pub async fn generate_setlist_from_request(
             original_position: position,
             source,
             track_id: validated_track_id,
+            spotify_uri: None,
         });
     }
 
@@ -567,6 +571,7 @@ pub async fn generate_setlist_from_request(
                 transition_score: r.transition_score,
                 source: r.source.clone(),
                 acquisition_info: None,
+                spotify_uri: None,
             })
             .collect();
         let match_count = compute_seed_match_count(seed_text, &track_rows);
@@ -780,6 +785,7 @@ pub async fn arrange_setlist(
             original_position: track.original_position,
             source: track.source.clone(),
             track_id: track.track_id.clone(),
+            spotify_uri: track.spotify_uri.clone(),
         });
     }
 
@@ -1396,6 +1402,7 @@ mod tests {
                 transition_score: None,
                 source: "suggestion".to_string(),
                 acquisition_info: None,
+                spotify_uri: None,
             };
             db::insert_setlist_track(&pool, &track_row).await.unwrap();
         }
@@ -1954,6 +1961,7 @@ mod tests {
                 transition_score: None,
                 source: "suggestion".into(),
                 acquisition_info: None,
+                spotify_uri: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -1971,6 +1979,7 @@ mod tests {
                 transition_score: None,
                 source: "suggestion".into(),
                 acquisition_info: None,
+                spotify_uri: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -1999,6 +2008,7 @@ mod tests {
                 transition_score: None,
                 source: "suggestion".into(),
                 acquisition_info: None,
+                spotify_uri: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2016,6 +2026,7 @@ mod tests {
                 transition_score: None,
                 source: "suggestion".into(),
                 acquisition_info: None,
+                spotify_uri: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2044,6 +2055,7 @@ mod tests {
                 transition_score: None,
                 source: "suggestion".into(),
                 acquisition_info: None,
+                spotify_uri: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2061,6 +2073,7 @@ mod tests {
                 transition_score: None,
                 source: "suggestion".into(),
                 acquisition_info: None,
+                spotify_uri: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2082,6 +2095,7 @@ mod tests {
             original_position: 1,
             source: "catalog".into(),
             track_id: Some("t1".into()),
+            spotify_uri: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 100.0);
     }
@@ -2101,6 +2115,7 @@ mod tests {
             original_position: 1,
             source: "suggestion".into(),
             track_id: None,
+            spotify_uri: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 0.0);
     }
@@ -2135,6 +2150,7 @@ mod tests {
             transition_score: None,
             source: "suggestion".into(),
             acquisition_info: None,
+            spotify_uri: None,
         }];
         assert_eq!(compute_seed_match_count("Desert Rose", &tracks), 1);
     }
@@ -2157,6 +2173,7 @@ mod tests {
             transition_score: None,
             source: "suggestion".into(),
             acquisition_info: None,
+            spotify_uri: None,
         }];
         assert_eq!(
             compute_seed_match_count("desert rose", &tracks),
@@ -2183,6 +2200,7 @@ mod tests {
             transition_score: None,
             source: "suggestion".into(),
             acquisition_info: None,
+            spotify_uri: None,
         }];
         assert_eq!(compute_seed_match_count("Desert Rose", &tracks), 0);
     }

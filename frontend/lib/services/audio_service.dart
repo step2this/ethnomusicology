@@ -8,15 +8,6 @@ abstract class AudioPlaybackService {
   /// The URL should be a backend-proxied path (e.g., /api/audio/proxy?url=...).
   Future<void> loadAndPlay(String proxyUrl);
 
-  /// Play crossfade between two audio URLs.
-  /// Uses linear gain ramps (equal-power deferred) per UC-019 spec.
-  /// [fadeDuration] in seconds (1-8).
-  Future<void> playCrossfade(
-    String proxyUrlA,
-    String proxyUrlB,
-    double fadeDuration,
-  );
-
   /// Stop all current playback and release audio buffers.
   void stop();
 
@@ -47,13 +38,6 @@ abstract class AudioPlaybackService {
 class NoOpAudioPlaybackService implements AudioPlaybackService {
   @override
   Future<void> loadAndPlay(String proxyUrl) async {}
-
-  @override
-  Future<void> playCrossfade(
-    String proxyUrlA,
-    String proxyUrlB,
-    double fadeDuration,
-  ) async {}
 
   @override
   void stop() {}

@@ -101,8 +101,6 @@ class SetlistResultView extends ConsumerWidget {
           onNext: () => ref
               .read(audioPlaybackProvider.notifier)
               .next(setlist.tracks, deezerState),
-          onCrossfadeChanged: (v) =>
-              ref.read(audioPlaybackProvider.notifier).setCrossfadeDuration(v),
         ),
         // Catalog warning
         if (setlist.catalogWarning != null)
@@ -174,8 +172,8 @@ class SetlistResultView extends ConsumerWidget {
               final hasBpmWarning = setlist.bpmWarnings.any((w) =>
                   w.fromPosition == track.position ||
                   w.toPosition == track.position);
-              final hasPreview =
-                  deezerState.previewUrls[previewKey(track)] != null;
+              final trackKey = previewKey(track);
+              final trackInfo = deezerState.trackInfo[trackKey];
 
               final isCurrentTrack = audioState.currentTrackIndex == index;
               return SetlistTrackTile(
@@ -185,7 +183,10 @@ class SetlistResultView extends ConsumerWidget {
                     (audioState.isPlaying || audioState.isPaused),
                 isPaused: audioState.isPaused && isCurrentTrack,
                 isLoading: audioState.isLoading && isCurrentTrack,
-                hasPreview: hasPreview,
+                hasPreview: deezerState.hasPreview(trackKey),
+                deezerStatus: trackInfo?.status,
+                deezerSearchQuery: trackInfo?.searchQuery,
+                spotifyUri: track.spotifyUri,
                 onPlay: () => ref
                     .read(audioPlaybackProvider.notifier)
                     .playFromIndex(index, setlist.tracks, deezerState),

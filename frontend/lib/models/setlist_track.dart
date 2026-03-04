@@ -11,6 +11,7 @@ class SetlistTrack {
   final int originalPosition;
   final String source;
   final String? trackId;
+  final String? spotifyUri;
 
   const SetlistTrack({
     required this.position,
@@ -25,6 +26,7 @@ class SetlistTrack {
     required this.originalPosition,
     required this.source,
     this.trackId,
+    this.spotifyUri,
   });
 
   factory SetlistTrack.fromJson(Map<String, dynamic> json) {
@@ -41,6 +43,7 @@ class SetlistTrack {
       originalPosition: json['original_position'] as int,
       source: json['source'] as String? ?? 'suggestion',
       trackId: json['track_id'] as String?,
+      spotifyUri: json['spotify_uri'] as String?,
     );
   }
 

@@ -107,7 +107,7 @@ class RefinementNotifier extends Notifier<RefinementState> {
       final deezerState = ref.read(deezerPreviewProvider);
       final uncachedTracks = response.tracks.where((t) {
         final key = t.trackId ?? 'unknown-${t.position}';
-        return !deezerState.previewUrls.containsKey(key);
+        return !deezerState.trackInfo.containsKey(key);
       }).toList();
       if (uncachedTracks.isNotEmpty) {
         ref.read(deezerPreviewProvider.notifier).prefetchForSetlist(uncachedTracks);
@@ -161,7 +161,7 @@ class RefinementNotifier extends Notifier<RefinementState> {
       final deezerState = ref.read(deezerPreviewProvider);
       final uncachedTracks = response.tracks.where((t) {
         final key = t.trackId ?? 'unknown-${t.position}';
-        return !deezerState.previewUrls.containsKey(key);
+        return !deezerState.trackInfo.containsKey(key);
       }).toList();
       if (uncachedTracks.isNotEmpty) {
         ref.read(deezerPreviewProvider.notifier).prefetchForSetlist(uncachedTracks);

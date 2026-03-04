@@ -8,31 +8,45 @@ import 'api_provider.dart';
 String previewKey(SetlistTrack track) =>
     track.trackId ?? 'unknown-${track.position}';
 
+enum DeezerSearchStatus { loading, found, notFound, error }
+
+class DeezerTrackInfo {
+  final String? previewUrl;
+  final DeezerSearchStatus status;
+  final String searchQuery;
+
+  const DeezerTrackInfo({
+    this.previewUrl,
+    required this.status,
+    required this.searchQuery,
+  });
+}
+
 // State for Deezer preview URLs
 class DeezerPreviewState {
-  final Map<String, String?> previewUrls;
+  final Map<String, DeezerTrackInfo> trackInfo;
   final bool isLoading;
 
   const DeezerPreviewState({
-    this.previewUrls = const {},
+    this.trackInfo = const {},
     this.isLoading = false,
   });
 
   DeezerPreviewState copyWith({
-    Map<String, String?>? previewUrls,
+    Map<String, DeezerTrackInfo>? trackInfo,
     bool? isLoading,
   }) {
     return DeezerPreviewState(
-      previewUrls: previewUrls ?? this.previewUrls,
+      trackInfo: trackInfo ?? this.trackInfo,
       isLoading: isLoading ?? this.isLoading,
     );
   }
 
-  /// Get preview URL for a specific track by ID, or null if not found/loading
-  String? getPreviewUrl(String trackId) => previewUrls[trackId];
+  /// Get preview URL for a specific track key, or null if not found/loading
+  String? getPreviewUrl(String key) => trackInfo[key]?.previewUrl;
 
-  /// Check if we have a preview URL cached for a track
-  bool hasPreview(String trackId) => previewUrls.containsKey(trackId);
+  /// Check if we have a non-null preview URL for a track
+  bool hasPreview(String key) => trackInfo[key]?.previewUrl != null;
 }
 
 class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
@@ -44,34 +58,63 @@ class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
     if (tracks.isEmpty) return;
 
     final client = ref.read(apiClientProvider);
-    state = state.copyWith(isLoading: true);
+
+    // Mark all tracks as loading first
+    final loadingInfo = <String, DeezerTrackInfo>{};
+    for (final track in tracks) {
+      final key = track.trackId ?? 'unknown-${track.position}';
+      final query = '${track.artist} ${track.title}';
+      loadingInfo[key] = DeezerTrackInfo(
+        status: DeezerSearchStatus.loading,
+        searchQuery: query,
+      );
+    }
+    state = state.copyWith(
+      trackInfo: {...state.trackInfo, ...loadingInfo},
+      isLoading: true,
+    );
 
     try {
-      // Build a map of trackId -> (title, artist) for fetching
-      final trackMap = <String, (String, String)>{};
+      // Build a map of trackId -> (title, artist, query) for fetching
+      final trackEntries = <String, (String, String, String)>{};
       for (final track in tracks) {
         final trackId = track.trackId ?? 'unknown-${track.position}';
-        trackMap[trackId] = (track.title, track.artist);
+        final query = '${track.artist} ${track.title}';
+        trackEntries[trackId] = (track.title, track.artist, query);
       }
 
       // Fetch all Deezer URLs in parallel
       final results = await Future.wait(
-        trackMap.entries.map((entry) async {
+        trackEntries.entries.map((entry) async {
           final trackId = entry.key;
-          final (title, artist) = entry.value;
+          final (title, artist, query) = entry.value;
           try {
             final previewUrl = await client.searchDeezerPreview(title, artist);
-            return MapEntry(trackId, previewUrl);
+            return MapEntry(
+              trackId,
+              DeezerTrackInfo(
+                previewUrl: previewUrl,
+                status: previewUrl != null
+                    ? DeezerSearchStatus.found
+                    : DeezerSearchStatus.notFound,
+                searchQuery: query,
+              ),
+            );
           } on Exception catch (_) {
-            return MapEntry(trackId, null);
+            return MapEntry(
+              trackId,
+              DeezerTrackInfo(
+                status: DeezerSearchStatus.error,
+                searchQuery: query,
+              ),
+            );
           }
         }),
       );
 
-      // Update state with all results
-      final newUrls = Map<String, String?>.fromEntries(results);
+      final newInfo = Map<String, DeezerTrackInfo>.fromEntries(results);
       state = state.copyWith(
-        previewUrls: {...state.previewUrls, ...newUrls},
+        trackInfo: {...state.trackInfo, ...newInfo},
         isLoading: false,
       );
     } on Exception catch (_) {

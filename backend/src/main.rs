@@ -247,7 +247,8 @@ async fn main() -> anyhow::Result<()> {
             routes::refinement::refinement_router(refinement_state),
         )
         .nest("/api", routes::tracks::tracks_router(pool.clone()))
-        .nest("/api", routes::audio::audio_router(pool.clone()));
+        .nest("/api", routes::audio::audio_router(pool.clone()))
+        .nest("/api", routes::admin::admin_router(pool.clone()));
 
     // Dev routes (conditionally added when DEV_MODE=true)
     if cfg.dev_mode {

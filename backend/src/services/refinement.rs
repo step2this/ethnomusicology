@@ -485,6 +485,7 @@ async fn bootstrap_version(
             transition_score: st.transition_score,
             source: st.source.clone(),
             acquisition_info: st.acquisition_info.clone(),
+            spotify_uri: st.spotify_uri.clone(),
         })
         .collect();
 
@@ -723,6 +724,7 @@ pub fn apply_actions(
                     transition_score: None,
                     source: "suggestion".to_string(),
                     acquisition_info: None,
+                    spotify_uri: None,
                 };
                 tracks.insert(*after_position, new_track);
             }
@@ -947,6 +949,7 @@ mod tests {
             transition_score: None,
             source: "suggestion".to_string(),
             acquisition_info: None,
+            spotify_uri: None,
         }
     }
 

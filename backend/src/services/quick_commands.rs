@@ -97,6 +97,7 @@ mod tests {
             transition_score: Some(80.0),
             source: "suggestion".to_string(),
             acquisition_info: None,
+            spotify_uri: None,
         }
     }
 

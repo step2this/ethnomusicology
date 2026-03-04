@@ -20,13 +20,17 @@ _TestFixture _buildFixture({
       source: 'suggestion',
     ),
   );
-  // Build a previewUrls map keyed by previewKey(track)
-  final Map<String, String?> urls = {};
+  // Build a trackInfo map keyed by previewKey(track)
+  final trackInfoMap = <String, DeezerTrackInfo>{};
   for (final i in withUrlIndices) {
     final key = previewKey(tracks[i]);
-    urls[key] = '/api/audio/proxy?url=track$i';
+    trackInfoMap[key] = DeezerTrackInfo(
+      previewUrl: '/api/audio/proxy?url=track$i',
+      status: DeezerSearchStatus.found,
+      searchQuery: 'Artist $i Track $i',
+    );
   }
-  final deezerState = DeezerPreviewState(previewUrls: urls);
+  final deezerState = DeezerPreviewState(trackInfo: trackInfoMap);
   return _TestFixture(tracks: tracks, deezerState: deezerState);
 }
 
@@ -52,7 +56,6 @@ void main() {
       final state = container.read(audioPlaybackProvider);
       expect(state.status, PlaybackStatus.idle);
       expect(state.currentTrackIndex, isNull);
-      expect(state.crossfadeDuration, 4.0);
       expect(state.error, isNull);
       expect(state.statusText, isNull);
       expect(state.totalTracks, 0);
@@ -279,22 +282,6 @@ void main() {
       expect(state.status, PlaybackStatus.playing);
     });
 
-    test('setCrossfadeDuration clamps to 1-8 range', () {
-      final notifier = container.read(audioPlaybackProvider.notifier);
-
-      // Test lower bound
-      notifier.setCrossfadeDuration(0.5);
-      expect(container.read(audioPlaybackProvider).crossfadeDuration, 1.0);
-
-      // Test upper bound
-      notifier.setCrossfadeDuration(10.0);
-      expect(container.read(audioPlaybackProvider).crossfadeDuration, 8.0);
-
-      // Test valid value
-      notifier.setCrossfadeDuration(5.0);
-      expect(container.read(audioPlaybackProvider).crossfadeDuration, 5.0);
-    });
-
     test('isPlaying getter returns true when status is playing', () {
       container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(status: PlaybackStatus.playing));
@@ -321,7 +308,7 @@ void main() {
 
     // --- Auto-advance tests ---
 
-    test('auto-advance: track end triggers crossfade to next track', () async {
+    test('auto-advance: track end triggers next track', () async {
       // Set up 2 tracks both with preview URLs so auto-advance can proceed.
       final fixture = _buildFixture(trackCount: 2, withUrlIndices: [0, 1]);
       final notifier = container.read(audioPlaybackProvider.notifier);
@@ -332,15 +319,13 @@ void main() {
       expect(container.read(audioPlaybackProvider).status, PlaybackStatus.playing);
       expect(container.read(audioPlaybackProvider).currentTrackIndex, 0);
 
-      // Simulate track 0 ending. _handleTrackEnded finds track 1 and starts
-      // a crossfade (also a no-op with the stub service).
+      // Simulate track 0 ending. _handleTrackEnded finds track 1 and loads it.
       notifier.triggerTrackEndedForTest(0);
 
-      // Before the async .then() fires, currentTrackIndex is already 1
-      // and status is loading.
+      // currentTrackIndex is already 1 and status is loading.
       expect(container.read(audioPlaybackProvider).currentTrackIndex, 1);
 
-      // Allow the Future.then() from playCrossfade to resolve so that
+      // Allow the async _playCurrentTrack to resolve so that
       // status transitions from loading → playing.
       await Future<void>.microtask(() {});
 

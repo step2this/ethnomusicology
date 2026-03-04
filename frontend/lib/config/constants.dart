@@ -2,13 +2,6 @@
 class AppConstants {
   AppConstants._();
 
-  // Audio / crossfade
-  static const double defaultCrossfadeDuration = 4.0;
-  static const double minCrossfadeDuration = 1.0;
-  static const double maxCrossfadeDuration = 8.0;
-  static const int crossfadeDivisions = 7;
-  static const double crossfadeSoloSeconds = 2.0;
-
   // Setlist generation
   static const double defaultTrackCount = 15;
   static const double minTrackCount = 5;

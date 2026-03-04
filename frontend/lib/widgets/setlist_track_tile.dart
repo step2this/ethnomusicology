@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/setlist_track.dart';
+import '../providers/deezer_provider.dart';
 
 class SetlistTrackTile extends StatelessWidget {
   final SetlistTrack track;
@@ -11,6 +13,9 @@ class SetlistTrackTile extends StatelessWidget {
   final bool isPaused;
   final bool isLoading;
   final bool hasPreview;
+  final DeezerSearchStatus? deezerStatus;
+  final String? deezerSearchQuery;
+  final String? spotifyUri;
 
   const SetlistTrackTile({
     super.key,
@@ -22,6 +27,9 @@ class SetlistTrackTile extends StatelessWidget {
     this.isPaused = false,
     this.isLoading = false,
     this.hasPreview = false,
+    this.deezerStatus,
+    this.deezerSearchQuery,
+    this.spotifyUri,
   });
 
   @override
@@ -57,24 +65,48 @@ class SetlistTrackTile extends StatelessWidget {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          track.title,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        child: InkWell(
+                          onTap: () => _searchGoogle(track.title, track.artist),
+                          child: Text(
+                            track.title,
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              decoration: TextDecoration.underline,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (spotifyUri != null)
+                        Tooltip(
+                          message: 'Open in Spotify',
+                          child: InkWell(
+                            onTap: () => _openSpotify(spotifyUri!),
+                            borderRadius: BorderRadius.circular(4),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.open_in_new,
+                                size: 14,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                          ),
+                        ),
                       _sourceBadge(context),
                     ],
                   ),
                   const SizedBox(height: 2),
-                  Text(
-                    track.artist,
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                  InkWell(
+                    onTap: () => _searchGoogleArtist(track.artist),
+                    child: Text(
+                      track.artist,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        decoration: TextDecoration.underline,
+                      ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 6),
                   // Metadata row
@@ -124,7 +156,11 @@ class SetlistTrackTile extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 8),
+
+            // Deezer search status dot
+            _deezerStatusDot(),
+            const SizedBox(width: 4),
 
             // Play/Stop button
             if (hasPreview)
@@ -164,6 +200,59 @@ class SetlistTrackTile extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  void _searchGoogle(String title, String artist) {
+    final query = Uri.encodeComponent('"$title" "$artist"');
+    launchUrl(
+      Uri.parse('https://www.google.com/search?q=$query'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  void _searchGoogleArtist(String artist) {
+    final query = Uri.encodeComponent('"$artist" music');
+    launchUrl(
+      Uri.parse('https://www.google.com/search?q=$query'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  void _openSpotify(String uri) {
+    // uri format: spotify:track:XXXX — extract the last segment
+    final id = uri.split(':').last;
+    launchUrl(
+      Uri.parse('https://open.spotify.com/track/$id'),
+      mode: LaunchMode.externalApplication,
+    );
+  }
+
+  Widget _deezerStatusDot() {
+    final status = deezerStatus;
+    if (status == null) return const SizedBox.shrink();
+
+    final query = deezerSearchQuery ?? '';
+
+    Widget dot;
+    switch (status) {
+      case DeezerSearchStatus.loading:
+        dot = const SizedBox(
+          width: 8,
+          height: 8,
+          child: CircularProgressIndicator(strokeWidth: 1.5),
+        );
+      case DeezerSearchStatus.found:
+        dot = const Icon(Icons.circle, size: 8, color: Colors.green);
+      case DeezerSearchStatus.notFound:
+        dot = const Icon(Icons.circle, size: 8, color: Colors.red);
+      case DeezerSearchStatus.error:
+        dot = const Icon(Icons.circle, size: 8, color: Colors.orange);
+    }
+
+    return Tooltip(
+      message: 'Deezer: $query → ${status.name}',
+      child: dot,
     );
   }
 

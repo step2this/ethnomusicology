@@ -2,7 +2,6 @@ import 'dart:js_interop';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
-import '../config/constants.dart';
 import 'audio_service.dart';
 
 /// Factory for creating the web AudioPlaybackService.
@@ -18,9 +17,7 @@ class WebAudioPlaybackService implements AudioPlaybackService {
   bool _isPaused = false;
 
   web.AudioBufferSourceNode? _sourceA;
-  web.AudioBufferSourceNode? _sourceB;
   web.GainNode? _gainA;
-  web.GainNode? _gainB;
 
   VoidCallback? _onTrackEnded;
   int _playGeneration = 0;
@@ -53,15 +50,10 @@ class WebAudioPlaybackService implements AudioPlaybackService {
   void _stopSources() {
     _onTrackEnded = null; // prevent stale ended events before stopping
     try { _sourceA?.stop(); } catch (_) {}
-    try { _sourceB?.stop(); } catch (_) {}
     try { _sourceA?.disconnect(); } catch (_) {}
-    try { _sourceB?.disconnect(); } catch (_) {}
     try { _gainA?.disconnect(); } catch (_) {}
-    try { _gainB?.disconnect(); } catch (_) {}
     _sourceA = null;
-    _sourceB = null;
     _gainA = null;
-    _gainB = null;
   }
 
   @override
@@ -87,77 +79,6 @@ class WebAudioPlaybackService implements AudioPlaybackService {
 
       // Set up onended callback for track finish detection
       _sourceA!.addEventListener(
-        'ended',
-        (web.Event event) {
-          if (gen != _playGeneration) return;
-          _isPlaying = false;
-          _onTrackEnded?.call();
-        }.toJS,
-      );
-    } catch (e) {
-      _isPlaying = false;
-      rethrow;
-    }
-  }
-
-  @override
-  Future<void> playCrossfade(
-    String proxyUrlA,
-    String proxyUrlB,
-    double fadeDuration,
-  ) async {
-    _stopSources();
-    final gen = ++_playGeneration;
-    _isPlaying = true;
-    _isPaused = false;
-
-    try {
-      // Load both audio buffers in parallel
-      final [bufferA, bufferB] = await Future.wait([
-        _loadAudio(proxyUrlA),
-        _loadAudio(proxyUrlB),
-      ]);
-
-      _initAudioContext();
-
-      // Create sources and gains for both tracks
-      _sourceA = _audioCtx.createBufferSource();
-      _sourceA!.buffer = bufferA;
-      _gainA = _audioCtx.createGain();
-      _sourceA!.connect(_gainA!);
-      _gainA!.connect(_audioCtx.destination);
-
-      _sourceB = _audioCtx.createBufferSource();
-      _sourceB!.buffer = bufferB;
-      _gainB = _audioCtx.createGain();
-      _sourceB!.connect(_gainB!);
-      _gainB!.connect(_audioCtx.destination);
-
-      final now = _audioCtx.currentTime;
-
-      // Calculate start positions
-      // Track A: play last fadeDuration seconds
-      final bufferADurationDouble = bufferA.duration;
-      final startA = (bufferADurationDouble - fadeDuration - AppConstants.crossfadeSoloSeconds).clamp(0.0, bufferADurationDouble);
-      final fadeStartTime = now + AppConstants.crossfadeSoloSeconds; // solo period, then fade begins
-
-      // Equal-power crossfade using linear gain curves
-      // Track A: full volume for 2s, then fade out over fadeDuration
-      _gainA!.gain.setValueAtTime(1.0, now);
-      _gainA!.gain.setValueAtTime(1.0, fadeStartTime);
-      _gainA!.gain.linearRampToValueAtTime(0.0, fadeStartTime + fadeDuration);
-
-      // Track B: silent for 2s, then fade in over fadeDuration
-      _gainB!.gain.setValueAtTime(0.0, now);
-      _gainB!.gain.setValueAtTime(0.0, fadeStartTime);
-      _gainB!.gain.linearRampToValueAtTime(1.0, fadeStartTime + fadeDuration);
-
-      // Start playback
-      _sourceA!.start(now, startA);
-      _sourceB!.start(fadeStartTime);
-
-      // Set up onended callback for Track B finish (end of crossfade)
-      _sourceB!.addEventListener(
         'ended',
         (web.Event event) {
           if (gen != _playGeneration) return;

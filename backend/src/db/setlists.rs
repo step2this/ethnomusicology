@@ -67,7 +67,12 @@ pub async fn get_setlist_tracks(
     setlist_id: &str,
 ) -> Result<Vec<SetlistTrackRow>, sqlx::Error> {
     sqlx::query_as::<_, SetlistTrackRow>(
-        "SELECT id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info FROM setlist_tracks WHERE setlist_id = ? ORDER BY position ASC",
+        "SELECT st.id, st.setlist_id, st.track_id, st.position, st.original_position, \
+         st.title, st.artist, st.bpm, st.key, st.camelot, st.energy, \
+         st.transition_note, st.transition_score, st.source, st.acquisition_info, \
+         t.spotify_uri \
+         FROM setlist_tracks st LEFT JOIN tracks t ON st.track_id = t.id \
+         WHERE st.setlist_id = ? ORDER BY st.position ASC",
     )
     .bind(setlist_id)
     .fetch_all(pool)
@@ -199,6 +204,7 @@ mod tests {
             transition_score: None,
             source: "suggestion".to_string(),
             acquisition_info: None,
+            spotify_uri: None,
         };
 
         insert_setlist_track(&pool, &track).await.unwrap();
@@ -265,6 +271,7 @@ mod tests {
             transition_score: None,
             source: "suggestion".to_string(),
             acquisition_info: None,
+            spotify_uri: None,
         };
         insert_setlist_track(&pool, &track).await.unwrap();
 
