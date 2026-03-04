@@ -147,7 +147,10 @@ pub async fn get_conversations_by_setlist(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::db::{create_test_pool, models::{SetlistConversationRow, SetlistVersionRow, VersionTrackRow}};
+    use crate::db::{
+        create_test_pool,
+        models::{SetlistConversationRow, SetlistVersionRow, VersionTrackRow},
+    };
 
     async fn insert_test_setlist(pool: &SqlitePool) -> String {
         let id = uuid::Uuid::new_v4().to_string();
@@ -274,7 +277,9 @@ mod tests {
         insert_conversation(&pool, &user_msg).await.unwrap();
         insert_conversation(&pool, &assistant_msg).await.unwrap();
 
-        let convos = get_conversations_by_setlist(&pool, &setlist_id).await.unwrap();
+        let convos = get_conversations_by_setlist(&pool, &setlist_id)
+            .await
+            .unwrap();
         assert_eq!(convos.len(), 2);
         assert_eq!(convos[0].role, "user");
         assert_eq!(convos[1].role, "assistant");
@@ -284,10 +289,14 @@ mod tests {
     async fn test_empty_setlist_returns_none() {
         let pool = create_test_pool().await;
 
-        let latest = get_latest_version(&pool, "nonexistent-setlist-id").await.unwrap();
+        let latest = get_latest_version(&pool, "nonexistent-setlist-id")
+            .await
+            .unwrap();
         assert!(latest.is_none());
 
-        let versions = get_versions_by_setlist(&pool, "nonexistent-setlist-id").await.unwrap();
+        let versions = get_versions_by_setlist(&pool, "nonexistent-setlist-id")
+            .await
+            .unwrap();
         assert!(versions.is_empty());
     }
 
