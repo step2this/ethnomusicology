@@ -105,9 +105,12 @@ pub async fn get_version_tracks(
     version_id: &str,
 ) -> Result<Vec<VersionTrackRow>, sqlx::Error> {
     sqlx::query_as::<_, VersionTrackRow>(
-        "SELECT id, version_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, \
-         transition_note, transition_score, source, acquisition_info \
-         FROM setlist_version_tracks WHERE version_id = ? ORDER BY position",
+        "SELECT svt.id, svt.version_id, svt.track_id, svt.position, svt.original_position, \
+         svt.title, svt.artist, svt.bpm, svt.key, svt.camelot, svt.energy, \
+         svt.transition_note, svt.transition_score, svt.source, svt.acquisition_info, \
+         t.spotify_uri \
+         FROM setlist_version_tracks svt LEFT JOIN tracks t ON svt.track_id = t.id \
+         WHERE svt.version_id = ? ORDER BY svt.position",
     )
     .bind(version_id)
     .fetch_all(pool)
@@ -194,6 +197,7 @@ mod tests {
             transition_score: None,
             source: "suggestion".to_string(),
             acquisition_info: None,
+            spotify_uri: None,
         }
     }
 

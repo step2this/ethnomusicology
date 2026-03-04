@@ -34,3 +34,6 @@ paths:
 | Inconsistent `catch` patterns in Flutter | Frontend critic L1 | Low | 4 catch blocks use `catch (e)` while refactored code uses `on Exception catch (e)`. Functionally fine (broader catch is safer for async). `setlist_input_form.dart:354`, `audio_provider.dart:99,265,295`. |
 | Duplicate `MockInterceptor` in provider tests | Frontend critic L2 | Low | `setlist_provider_test.dart` and `track_catalog_provider_test.dart` define local `MockInterceptor` while `mock_api_client.dart` provides a shared one. Unify. |
 | `_InitialStateNotifier` test workaround | Frontend critic L3 | Low | `setlist_generation_test.dart` subclasses `SetlistNotifier` to inject initial state, bypassing `build()`. Provider unit tests cover that path. |
+| Crossfade removed (intentional) | Playback simplification | Low | Crossfade was too complex for 30s Deezer previews. Can re-add post-MVP when full tracks are available. |
+| Deezer search fallback strategies | Playback debugging | Medium | Single `"$artist $title"` query with limit=1. No retry with alternate queries (title-only, removing parentheticals). Causes misses for alias artists (e.g., Paperclip People vs Carl Craig). |
+| Admin wipe endpoint basic auth | Data cleanup | Low | Token-based auth via `X-Admin-Token` header + `ADMIN_TOKEN` env var. No role-based access control. |

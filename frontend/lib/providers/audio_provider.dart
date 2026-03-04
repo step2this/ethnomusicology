@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../config/constants.dart';
 import '../models/setlist_track.dart';
 import '../services/audio_service.dart';
 // Conditional import: uses web implementation on web, no-op stub elsewhere
@@ -16,7 +15,6 @@ enum PlaybackStatus { idle, loading, playing, paused, completed, error }
 class AudioPlaybackState {
   final PlaybackStatus status;
   final int? currentTrackIndex;
-  final double crossfadeDuration;
   final String? error;
   final String? statusText;
   final int totalTracks;
@@ -24,7 +22,6 @@ class AudioPlaybackState {
   const AudioPlaybackState({
     this.status = PlaybackStatus.idle,
     this.currentTrackIndex,
-    this.crossfadeDuration = AppConstants.defaultCrossfadeDuration,
     this.error,
     this.statusText,
     this.totalTracks = 0,
@@ -37,7 +34,6 @@ class AudioPlaybackState {
   AudioPlaybackState copyWith({
     PlaybackStatus? status,
     int? Function()? currentTrackIndex,
-    double? crossfadeDuration,
     String? Function()? error,
     String? Function()? statusText,
     int Function()? totalTracks,
@@ -47,7 +43,6 @@ class AudioPlaybackState {
       currentTrackIndex: currentTrackIndex != null
           ? currentTrackIndex()
           : this.currentTrackIndex,
-      crossfadeDuration: crossfadeDuration ?? this.crossfadeDuration,
       error: error != null ? error() : this.error,
       statusText: statusText != null ? statusText() : this.statusText,
       totalTracks: totalTracks != null ? totalTracks() : this.totalTracks,
@@ -130,7 +125,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     // The callback uses this to guard against races when the user manually
     // jumps to a different track before this one ends (M7).
     final expectedIndex = currentIndex;
-    _audioService.onTrackEnded = () => _handleTrackEnded(expectedIndex);
+    _audioService.onTrackEnded = () => _handleTrackEnded(expectedIndex, tracks, deezerState);
 
     await _audioService.loadAndPlay(previewUrl);
     state = state.copyWith(
@@ -141,69 +136,23 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   }
 
   /// Called when the current track finishes playing.
-  /// Implements auto-advance with crossfade to the next playable track.
-  /// [endedIndex] is the track that triggered the callback — used as a
-  /// race-condition guard so stale callbacks are no-ops (M7).
-  void _handleTrackEnded(int endedIndex) {
-    // Race condition guard: if the user jumped to a different track before
-    // this callback fired, ignore the auto-advance.
+  /// Advances to the next playable track, or marks the set complete.
+  /// [endedIndex] is a race-condition guard — stale callbacks are no-ops (M7).
+  void _handleTrackEnded(int endedIndex, List<SetlistTrack> tracks, DeezerPreviewState deezerState) {
     if (state.currentTrackIndex != endedIndex) return;
-
-    final tracks = _tracks;
-    final deezerState = _deezerState;
-    if (tracks == null || deezerState == null) return;
-
     final nextIndex = _findNextPlayableTrack(endedIndex, tracks, deezerState);
     if (nextIndex == null) {
-      state = state.copyWith(
-        status: PlaybackStatus.completed,
-        statusText: () => 'Set complete',
-      );
+      state = state.copyWith(status: PlaybackStatus.completed, statusText: () => 'Set complete');
       return;
     }
-
-    final currentTrack = tracks[endedIndex];
-    final currentUrl = deezerState.getPreviewUrl(previewKey(currentTrack));
-    final nextTrack = tracks[nextIndex];
-    final nextUrl = deezerState.getPreviewUrl(previewKey(nextTrack));
-
     state = state.copyWith(
       status: PlaybackStatus.loading,
       currentTrackIndex: () => nextIndex,
-      error: () => null,
-      statusText: () => null,
+      statusText: () => 'Loading track ${nextIndex + 1}...',
     );
-
-    // Wire the callback for the next track before starting playback.
-    final expectedNextIndex = nextIndex;
-    _audioService.onTrackEnded = () => _handleTrackEnded(expectedNextIndex);
-
-    if (currentUrl != null && nextUrl != null) {
-      _audioService
-          .playCrossfade(currentUrl, nextUrl, state.crossfadeDuration)
-          .then((_) {
-        if (state.currentTrackIndex == nextIndex) {
-          state = state.copyWith(
-            status: PlaybackStatus.playing,
-            statusText: () => '${nextTrack.title} by ${nextTrack.artist}',
-            error: () => null,
-          );
-        }
-      }).catchError((Object e) {
-        state = state.copyWith(
-          status: PlaybackStatus.error,
-          error: () => 'Auto-advance failed: $e',
-        );
-      });
-    } else {
-      // currentUrl unavailable (edge case) — fall back to simple play
-      _playCurrentTrack(tracks, deezerState).catchError((Object e) {
-        state = state.copyWith(
-          status: PlaybackStatus.error,
-          error: () => 'Auto-advance failed: $e',
-        );
-      });
-    }
+    _playCurrentTrack(tracks, deezerState).catchError((e) {
+      state = state.copyWith(status: PlaybackStatus.error, statusText: () => 'Playback error');
+    });
   }
 
   /// Find the next playable track starting from [fromIndex].
@@ -320,16 +269,10 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     state = AudioPlaybackState(
       status: PlaybackStatus.idle,
       currentTrackIndex: null,
-      crossfadeDuration: state.crossfadeDuration,
       error: null,
       statusText: null,
       totalTracks: state.totalTracks,
     );
-  }
-
-  /// Update crossfade duration (clamped to 1-8 seconds)
-  void setCrossfadeDuration(double duration) {
-    state = state.copyWith(crossfadeDuration: duration.clamp(AppConstants.minCrossfadeDuration, AppConstants.maxCrossfadeDuration));
   }
 
   /// Trigger the track-ended logic for testing purposes.
@@ -338,7 +281,10 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   /// without needing a real audio service.
   @visibleForTesting
   void triggerTrackEndedForTest(int endedIndex) {
-    _handleTrackEnded(endedIndex);
+    final tracks = _tracks;
+    final deezerState = _deezerState;
+    if (tracks == null || deezerState == null) return;
+    _handleTrackEnded(endedIndex, tracks, deezerState);
   }
 
   /// Set state directly for testing purposes.

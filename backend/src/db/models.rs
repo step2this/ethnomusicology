@@ -98,6 +98,7 @@ pub struct VersionTrackRow {
     pub transition_score: Option<f64>,
     pub source: String,
     pub acquisition_info: Option<String>,
+    pub spotify_uri: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
@@ -139,4 +140,5 @@ pub struct SetlistTrackRow {
     pub transition_score: Option<f64>,
     pub source: String,
     pub acquisition_info: Option<String>,
+    pub spotify_uri: Option<String>,
 }

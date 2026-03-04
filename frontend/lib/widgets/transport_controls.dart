@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../config/constants.dart';
 import '../providers/audio_provider.dart';
 
 class TransportControls extends StatelessWidget {
@@ -10,7 +9,6 @@ class TransportControls extends StatelessWidget {
   final VoidCallback? onTogglePause;
   final VoidCallback? onStop;
   final VoidCallback? onNext;
-  final ValueChanged<double> onCrossfadeChanged;
 
   const TransportControls({
     super.key,
@@ -20,7 +18,6 @@ class TransportControls extends StatelessWidget {
     this.onTogglePause,
     this.onStop,
     this.onNext,
-    required this.onCrossfadeChanged,
   });
 
   @override
@@ -63,19 +60,6 @@ class TransportControls extends StatelessWidget {
                 ? null
                 : onNext,
           ),
-          const Text('Crossfade:'),
-          SizedBox(
-            width: 100,
-            child: Slider(
-              value: audioState.crossfadeDuration,
-              min: AppConstants.minCrossfadeDuration,
-              max: AppConstants.maxCrossfadeDuration,
-              divisions: AppConstants.crossfadeDivisions,
-              label: '${audioState.crossfadeDuration.round()}s',
-              onChanged: onCrossfadeChanged,
-            ),
-          ),
-          Text('${audioState.crossfadeDuration.round()}s'),
           const Spacer(),
           if (audioState.currentTrackIndex != null)
             Padding(

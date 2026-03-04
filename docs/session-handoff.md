@@ -1,63 +1,31 @@
 # Session Handoff — 2026-03-04
 
-## Branch: `feature/st-007-conversational-refinement`
+## Branch: `feature/playback-simplification-and-debugging`
 
-### Status: READY FOR PR
-All implementation complete. All quality gates pass. Critic reviews done (frontend + backend).
+### Status: IN PROGRESS
+Playback simplification and debugging — Phases 1-4 of post-ST-007 manual testing fixes.
 
-### Commits on this branch
-```
-c5d2431 Fix truncate panic on multi-byte UTF-8 (critic H1)
-e20a4a8 ST-007 T5: Refinement routes + integration tests
-8f95c34 ST-007 T4: Refinement service with LLM + quick commands
-xxxxxxx ST-007 T2: DB layer for versioning + conversations
-01b425d Flutter arch refactor: Riverpod 2.x migration + widget decomposition
-2b99cb2 ST-007 Phase 1 partial: converse() API + quick commands (T1+T3)
-ca258e3 ST-007 Phase 0: Add versioning migration + module stubs
-```
+### Previous Session
+- ST-007 backend + frontend: COMPLETE, merged via PR #5
+- Deployed to tarab.studio (manual deploy from EC2)
+- Manual testing revealed playback issues → this session
 
-### What Was Built
+### What's Being Built
 
-**ST-007 Backend (Conversational Refinement):**
-- Migration 008: setlist_versions, setlist_version_tracks, setlist_conversations tables
-- `ClaudeClientTrait::converse()` for multi-turn conversations
-- Quick commands: shuffle, sort-by-bpm, reverse, undo, revert-to-version (no LLM needed)
-- DB layer: 8 CRUD operations for versions, tracks, conversations
-- Refinement service: full LLM refinement pipeline with validation, change warnings, retries
-- Routes: POST /api/setlists/{id}/refine, POST /api/setlists/{id}/revert/{version}, GET /api/setlists/{id}/history
-- 56 new backend tests
+1. **Phase 1: Data Cleanup** — Admin endpoint to wipe Spotify catalog data (stale tracks)
+2. **Phase 2: Simplify Playback** — Remove crossfade, use simple sequential 30s previews
+3. **Phase 3: Deezer Debug Infrastructure** — Per-track search status indicators (found/notFound/error) with search query tooltips
+4. **Phase 4: Track Attribution Links** — Clickable track titles/artists → Google search, Spotify links for catalog tracks
 
-**Flutter Arch Refactor:**
-- All 6 providers: StateNotifier → Notifier (Riverpod 2.x)
-- 712-line god widget → 3 focused widgets (SetlistInputForm, SetlistResultView, TransportControls)
-- Removed 9 unused dependencies, deleted occasion.dart
-- App renamed Salamic Vibes → Tarab Studio
-- 53 new frontend tests
+### File Ownership
 
-### Test Counts
-- Backend: 328 tests (304 unit + 24 integration)
-- Frontend: 104 tests
-- **Total: 432 tests, all passing**
+| Owner | Files |
+|-------|-------|
+| backend-builder | `routes/admin.rs` (NEW), `main.rs`, `db/models.rs`, `db/setlists.rs`, `db/refinement.rs`, `services/setlist.rs` |
+| frontend-builder | `audio_service.dart`, `audio_service_web.dart`, `audio_provider.dart`, `transport_controls.dart`, `setlist_result_view.dart`, `constants.dart`, `deezer_provider.dart`, `setlist_track_tile.dart`, `setlist_track.dart` |
+| test-builder | `audio_provider_test.dart`, `deezer_provider_test.dart`, `admin_wipe_test.rs` (NEW) |
 
-### Quality Gates
-- `cargo fmt --check` ✅
-- `cargo clippy -- -D warnings` ✅
-- `cargo test` ✅ (328)
-- `flutter analyze` ✅
-- `flutter test` ✅ (104)
-
-### Critic Review Results
-- **Frontend:** APPROVED — 3 LOW findings (cosmetic only)
-- **Backend:** APPROVED with 1 fix applied — H1 (truncate UTF-8 panic) fixed, 5 LOW accepted for MVP
-
-### Known LOW-severity items (accepted for MVP)
-- L1: Dead apply_* functions in quick_commands.rs (operate on SetlistTrackRow, service uses VersionTrackRow)
-- L2: SortByBpm always ascending (plan had ascending param)
-- L3: Timeout/ServiceBusy error variants from plan not implemented (mapped via LlmError)
-- L4: parent_version_id not set on LLM-refined versions (lineage incomplete)
-- L5: No explicit test for undo-with-only-v0 edge case
-
-### Next Steps
-1. Create PR → main
-2. Deploy to tarab.studio
-3. ST-007 frontend (conversational UI) — depends on this backend + arch refactor
+### Test Counts (pre-implementation)
+- Backend: 328 tests
+- Frontend: 145 tests
+- **Total: 473 tests**
