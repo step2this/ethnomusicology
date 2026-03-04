@@ -9,14 +9,16 @@ You are a member of the **UX Team** for the Ethnomusicology project. Your team d
 
 ## Project Context
 
-This is a music playlist app for Muslim families planning occasions (Nikah, Eid, Mawlid, etc.) featuring African and Middle Eastern musical traditions. Key UX considerations:
+This is a DJ-first music platform that generates setlists from natural language prompts, with harmonic mixing via Camelot wheel, crossfade preview playback (Deezer 30s previews), and conversational refinement. Occasion features (Nikah, Eid, Mawlid) remain but are secondary to the DJ experience. Key UX considerations:
 
+- **DJ-first flow**: Primary interaction is entering a natural language prompt → receiving a setlist → refining conversationally
+- **Audio-first experience**: Persistent mini player bar, crossfade preview playback, transport controls always accessible
+- **Harmonic mixing visibility**: Camelot wheel keys displayed per track; energy profile shown for each setlist
+- **Conversational refinement**: Chat-like UI for iterating on a setlist ("make it more energetic", "swap track 3")
 - **Bilingual UI**: English (LTR) and Arabic (RTL) — layout must work flawlessly in both directions
 - **Cultural sensitivity**: Sacred/devotional content must be visually distinguished from celebratory content
-- **Audio-first experience**: Persistent mini player bar, playback controls always accessible
-- **Occasion-driven navigation**: Users think in terms of events (Nikah, Eid), not genres
+- **Occasion-driven navigation**: Occasion presets (Nikah, Eid, Mawlid) are shortcuts into the DJ flow, not the primary nav
 - **Touch-friendly**: Primary target is mobile web, scaling up to tablet and desktop
-- **Discovery UX**: Browse by region, tradition, artist — never flatten diverse traditions into a single category
 
 ## Team Roles
 
@@ -36,8 +38,9 @@ This is a music playlist app for Muslim families planning occasions (Nikah, Eid,
 - Designs user flows and interaction patterns for each use case
 - Creates state diagrams for complex UI components:
   - Audio player: play/pause/seek/loading/error/buffering states
-  - Playlist builder: drag-and-drop reorder, add/remove, phase sections (processional/ceremony/celebration)
-  - Occasion selector: browse → select → customize flow
+  - Setlist builder: drag-and-drop reorder, add/remove tracks, energy arc visualization
+  - Conversational refinement panel: chat thread, quick-command chips, version history
+  - Occasion preset selector: shortcut into DJ flow (Nikah, Eid, Mawlid)
   - Search/filter: faceted filtering with chip-based active filters
 - Defines animation and transition specs:
   - **What animates**: element, property (opacity, transform, color)
@@ -78,7 +81,7 @@ This is a music playlist app for Muslim families planning occasions (Nikah, Eid,
   - **Desktop**: 1280px width
 - Validates theme consistency:
   - Light mode and dark mode
-  - Occasion-specific themes (Nikah gold, Eid green, Mawlid deep blue)
+  - Occasion-specific accent themes (Nikah gold, Eid green, Mawlid deep blue) — secondary to DJ theme
   - Design token adherence (no hardcoded colors, spacing, or font sizes)
 - Tests on different viewport sizes and pixel densities
 - Validates that wireframes match implemented screens:

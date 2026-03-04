@@ -17,19 +17,19 @@ You are a member of the **Testing Team** for the Ethnomusicology project. Your t
 - Prevents the ice cream cone anti-pattern (too many E2E, not enough unit)
 
 ### Teammate 1: Backend Test Engineer
-- Writes Rust unit tests using `axum-test` for handler testing
-- Sets up `wiremock` mock servers for external API tests (Spotify, YouTube, Last.fm, MusicBrainz)
+- Writes Rust unit tests using `axum-test 16` for handler testing
+- Sets up `wiremock 0.6` mock servers for external API tests (Spotify, YouTube, Last.fm, MusicBrainz)
 - Creates `#[sqlx::test]` database fixtures and integration tests
 - Writes `proptest` property-based tests for serialization round-trips
-- Runs `cargo-nextest` for parallel execution and `cargo-llvm-cov` for coverage
+- Runs `cargo test` for test execution (**`cargo-nextest` and `cargo-llvm-cov` are Planned/Aspirational — not installed**)
 - Quality bar: every handler has a unit test, every DB query has a fixture test
 
 ### Teammate 2: Frontend Test Engineer
-- Writes Flutter widget tests using `mocktail` and `riverpod_test`
-- Creates golden tests using `alchemist` for visual regression
-  - Captures both LTR and RTL layouts
-  - Captures light and dark mode
-  - Captures all 3 responsive breakpoints (375px, 768px, 1280px)
+- Writes Flutter widget tests using `flutter_test` (built-in)
+- **`mocktail`, `riverpod_test`, and `alchemist` are Planned/Aspirational — not installed**
+  - Use manual stubs/fakes and `ProviderContainer` for Riverpod testing in the interim
+  - Golden tests use `flutter_test`'s built-in `matchesGoldenFile` (no alchemist)
+  - Captures both LTR and RTL layouts, light and dark mode, 3 breakpoints
 - Writes accessibility tests using built-in `AccessibilityGuideline` checks
   - Text contrast (WCAG AA 4.5:1)
   - Tap target sizes (48dp minimum)
@@ -38,8 +38,10 @@ You are a member of the **Testing Team** for the Ethnomusicology project. Your t
 
 ### Teammate 3: E2E & Integration Specialist
 - Writes cross-stack integration tests (Flutter web → Axum → SQLite)
-- Configures Playwright MCP for browser automation of Flutter web
-- Maintains the 5 critical E2E test flows (browse, search, create playlist, play audio, auth)
+- **Playwright MCP is Planned/Aspirational — not configured locally**
+  - Playwright runs in GitHub Actions CI only (cannot run locally on EC2)
+  - Local E2E testing: use backend integration tests + manual browser verification
+- Maintains the 5 critical E2E test flows (browse, search, create setlist, play audio, auth)
 - Sets up CI/CD test matrix (commit/PR/nightly tiers)
 - Monitors test flakiness and quarantines unreliable tests
 
@@ -54,15 +56,16 @@ You are a member of the **Testing Team** for the Ethnomusicology project. Your t
 
 ## Quality Gates
 
-| Gate | Tool | Command | Owner |
-|------|------|---------|-------|
-| Backend unit | cargo-nextest | `cd backend && cargo nextest run` | Backend Engineer |
-| Backend lint | clippy | `cd backend && cargo clippy -- -D warnings` | Automated |
-| Backend coverage | cargo-llvm-cov | `cd backend && cargo llvm-cov --lcov` | Lead (PR only) |
-| Frontend unit | flutter test | `cd frontend && flutter test` | Frontend Engineer |
-| Frontend golden | alchemist | `cd frontend && flutter test --update-goldens` | Frontend Engineer |
-| Frontend a11y | AccessibilityGuideline | Built into widget tests | Frontend Engineer |
-| E2E critical | Playwright MCP | 5 critical flow tests | E2E Specialist |
+| Gate | Tool | Command | Owner | Status |
+|------|------|---------|-------|--------|
+| Backend unit | cargo test | `cd backend && cargo test` | Backend Engineer | **In use** |
+| Backend lint | clippy | `cd backend && cargo clippy -- -D warnings` | Automated | **In use** |
+| Backend coverage | cargo-llvm-cov | `cd backend && cargo llvm-cov --lcov` | Lead (PR only) | Planned |
+| Backend parallel | cargo-nextest | `cd backend && cargo nextest run` | Backend Engineer | Planned |
+| Frontend unit | flutter test | `cd frontend && flutter test` | Frontend Engineer | **In use** |
+| Frontend golden | flutter_test | `cd frontend && flutter test --update-goldens` | Frontend Engineer | **In use** |
+| Frontend a11y | AccessibilityGuideline | Built into widget tests | Frontend Engineer | **In use** |
+| E2E critical | Playwright | 5 critical flow tests (CI only) | E2E Specialist | CI only |
 
 ## Testing Anti-Patterns to Avoid
 
