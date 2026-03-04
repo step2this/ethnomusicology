@@ -234,25 +234,32 @@ class SetlistTrackTile extends StatelessWidget {
 
     final query = deezerSearchQuery ?? '';
 
-    Widget dot;
+    IconData icon;
+    Color color;
     switch (status) {
       case DeezerSearchStatus.loading:
-        dot = const SizedBox(
-          width: 8,
-          height: 8,
-          child: CircularProgressIndicator(strokeWidth: 1.5),
+        return Tooltip(
+          message: 'Searching Deezer: $query',
+          child: const SizedBox(
+            width: 16,
+            height: 16,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
         );
       case DeezerSearchStatus.found:
-        dot = const Icon(Icons.circle, size: 8, color: Colors.green);
+        icon = Icons.check_circle;
+        color = Colors.green;
       case DeezerSearchStatus.notFound:
-        dot = const Icon(Icons.circle, size: 8, color: Colors.red);
+        icon = Icons.cancel;
+        color = Colors.red;
       case DeezerSearchStatus.error:
-        dot = const Icon(Icons.circle, size: 8, color: Colors.orange);
+        icon = Icons.error;
+        color = Colors.orange;
     }
 
     return Tooltip(
-      message: 'Deezer: $query → ${status.name}',
-      child: dot,
+      message: 'Deezer: "$query" → ${status.name}',
+      child: Icon(icon, size: 16, color: color),
     );
   }
 
