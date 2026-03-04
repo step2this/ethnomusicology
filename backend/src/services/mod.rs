@@ -7,3 +7,4 @@ pub mod match_scoring;
 pub mod quick_commands;
 pub mod refinement;
 pub mod setlist;
+pub mod soundcloud;

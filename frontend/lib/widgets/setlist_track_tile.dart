@@ -18,6 +18,7 @@ class SetlistTrackTile extends StatelessWidget {
   final String? previewSource;
   final String? externalUrl;
   final String? spotifyUri;
+  final String? uploaderName;
 
   const SetlistTrackTile({
     super.key,
@@ -34,6 +35,7 @@ class SetlistTrackTile extends StatelessWidget {
     this.previewSource,
     this.externalUrl,
     this.spotifyUri,
+    this.uploaderName,
   });
 
   @override
@@ -116,6 +118,25 @@ class SetlistTrackTile extends StatelessWidget {
                             ),
                           ),
                         ),
+                      if (externalUrl != null && previewSource == 'soundcloud')
+                        Tooltip(
+                          message: 'Open on SoundCloud',
+                          child: InkWell(
+                            onTap: () => launchUrl(
+                              Uri.parse(externalUrl!),
+                              mode: LaunchMode.externalApplication,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 4),
+                              child: Icon(
+                                Icons.cloud,
+                                size: 14,
+                                color: Colors.deepOrange,
+                              ),
+                            ),
+                          ),
+                        ),
                       _sourceBadge(context),
                     ],
                   ),
@@ -131,6 +152,9 @@ class SetlistTrackTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (previewStatus == PreviewSearchStatus.found &&
+                      previewSource != null)
+                    _sourceAttribution(context),
                   const SizedBox(height: 6),
                   // Metadata row
                   Row(
@@ -251,6 +275,51 @@ class SetlistTrackTile extends StatelessWidget {
     );
   }
 
+  Widget _sourceAttribution(BuildContext context) {
+    final theme = Theme.of(context);
+    final src = previewSource!;
+
+    String label;
+    Widget? link;
+
+    if (src == 'soundcloud') {
+      final uploader = uploaderName != null ? ' · $uploaderName' : '';
+      label = 'via SoundCloud$uploader';
+      if (externalUrl != null) {
+        link = InkWell(
+          onTap: () => launchUrl(
+            Uri.parse(externalUrl!),
+            mode: LaunchMode.externalApplication,
+          ),
+          child: Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: Colors.deepOrange,
+              decoration: TextDecoration.underline,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+        );
+      }
+    } else if (src == 'itunes') {
+      label = 'via Apple Music';
+    } else {
+      label = 'via Deezer';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: link ??
+          Text(
+            label,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            overflow: TextOverflow.ellipsis,
+          ),
+    );
+  }
+
   Widget _previewStatusDot() {
     final status = previewStatus;
     if (status == null) return const SizedBox.shrink();
@@ -276,6 +345,10 @@ class SetlistTrackTile extends StatelessWidget {
           icon = Icons.apple;
           color = Colors.grey.shade700;
           tooltipLabel = 'iTunes';
+        } else if (src == 'soundcloud') {
+          icon = Icons.cloud;
+          color = Colors.deepOrange;
+          tooltipLabel = 'SoundCloud';
         } else {
           icon = Icons.check_circle;
           color = Colors.green;
