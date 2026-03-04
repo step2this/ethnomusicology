@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/setlist.dart';
-import '../services/api_client.dart';
 import 'api_provider.dart';
 
 // State for setlist generation flow
@@ -51,10 +50,9 @@ class SetlistState {
   bool get isLoading => isGenerating || isArranging;
 }
 
-class SetlistNotifier extends StateNotifier<SetlistState> {
-  final ApiClient _apiClient;
-
-  SetlistNotifier(this._apiClient) : super(const SetlistState());
+class SetlistNotifier extends Notifier<SetlistState> {
+  @override
+  SetlistState build() => const SetlistState();
 
   Future<void> generateSetlist(
     String prompt, {
@@ -73,7 +71,7 @@ class SetlistNotifier extends StateNotifier<SetlistState> {
       sourcePlaylistId: sourcePlaylistId,
     );
     try {
-      final setlist = await _apiClient.generateSetlist(
+      final setlist = await ref.read(apiClientProvider).generateSetlist(
         prompt,
         trackCount: trackCount,
         energyProfile: energyProfile,
@@ -87,7 +85,7 @@ class SetlistNotifier extends StateNotifier<SetlistState> {
         setlist: () => setlist,
         isGenerating: false,
       );
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isGenerating: false,
         error: () => _parseError(e),
@@ -100,7 +98,7 @@ class SetlistNotifier extends StateNotifier<SetlistState> {
 
     state = state.copyWith(isArranging: true, error: () => null);
     try {
-      final arranged = await _apiClient.arrangeSetlist(
+      final arranged = await ref.read(apiClientProvider).arrangeSetlist(
         state.setlist!.id,
         energyProfile: state.energyProfile,
       );
@@ -108,7 +106,7 @@ class SetlistNotifier extends StateNotifier<SetlistState> {
         setlist: () => arranged,
         isArranging: false,
       );
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         isArranging: false,
         error: () => _parseError(e),
@@ -142,7 +140,4 @@ class SetlistNotifier extends StateNotifier<SetlistState> {
 }
 
 final setlistProvider =
-    StateNotifierProvider<SetlistNotifier, SetlistState>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return SetlistNotifier(apiClient);
-});
+    NotifierProvider<SetlistNotifier, SetlistState>(SetlistNotifier.new);

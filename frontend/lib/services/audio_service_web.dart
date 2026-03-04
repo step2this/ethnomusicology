@@ -2,6 +2,7 @@ import 'dart:js_interop';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
+import '../config/constants.dart';
 import 'audio_service.dart';
 
 /// Factory for creating the web AudioPlaybackService.
@@ -137,8 +138,8 @@ class WebAudioPlaybackService implements AudioPlaybackService {
       // Calculate start positions
       // Track A: play last fadeDuration seconds
       final bufferADurationDouble = bufferA.duration;
-      final startA = (bufferADurationDouble - fadeDuration - 2).clamp(0.0, bufferADurationDouble);
-      final fadeStartTime = now + 2; // 2s of Track A solo, then fade begins
+      final startA = (bufferADurationDouble - fadeDuration - AppConstants.crossfadeSoloSeconds).clamp(0.0, bufferADurationDouble);
+      final fadeStartTime = now + AppConstants.crossfadeSoloSeconds; // solo period, then fade begins
 
       // Equal-power crossfade using linear gain curves
       // Track A: full volume for 2s, then fade out over fadeDuration

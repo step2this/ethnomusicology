@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../config/constants.dart';
 import '../models/setlist_track.dart';
 import '../services/audio_service.dart';
 // Conditional import: uses web implementation on web, no-op stub elsewhere
@@ -23,7 +24,7 @@ class AudioPlaybackState {
   const AudioPlaybackState({
     this.status = PlaybackStatus.idle,
     this.currentTrackIndex,
-    this.crossfadeDuration = 4.0,
+    this.crossfadeDuration = AppConstants.defaultCrossfadeDuration,
     this.error,
     this.statusText,
     this.totalTracks = 0,
@@ -55,15 +56,22 @@ class AudioPlaybackState {
 }
 
 /// Notifier for managing audio playback state
-class AudioPlaybackNotifier extends StateNotifier<AudioPlaybackState> {
+class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   late final AudioPlaybackService _audioService;
 
   // Stored references for auto-advance callbacks
   List<SetlistTrack>? _tracks;
   DeezerPreviewState? _deezerState;
 
-  AudioPlaybackNotifier() : super(const AudioPlaybackState()) {
+  @override
+  AudioPlaybackState build() {
     _audioService = createAudioService();
+    ref.onDispose(() {
+      _tracks = null;
+      _deezerState = null;
+      _audioService.dispose();
+    });
+    return const AudioPlaybackState();
   }
 
   /// Play from a specific track index, setting up the auto-advance chain.
@@ -321,7 +329,7 @@ class AudioPlaybackNotifier extends StateNotifier<AudioPlaybackState> {
 
   /// Update crossfade duration (clamped to 1-8 seconds)
   void setCrossfadeDuration(double duration) {
-    state = state.copyWith(crossfadeDuration: duration.clamp(1.0, 8.0));
+    state = state.copyWith(crossfadeDuration: duration.clamp(AppConstants.minCrossfadeDuration, AppConstants.maxCrossfadeDuration));
   }
 
   /// Trigger the track-ended logic for testing purposes.
@@ -333,18 +341,13 @@ class AudioPlaybackNotifier extends StateNotifier<AudioPlaybackState> {
     _handleTrackEnded(endedIndex);
   }
 
-  /// Dispose audio service resources
-  @override
-  void dispose() {
-    _tracks = null;
-    _deezerState = null;
-    _audioService.dispose();
-    super.dispose();
+  /// Set state directly for testing purposes.
+  @visibleForTesting
+  void setStateForTest(AudioPlaybackState newState) {
+    state = newState;
   }
 }
 
 /// Riverpod provider for audio playback
 final audioPlaybackProvider =
-    StateNotifierProvider<AudioPlaybackNotifier, AudioPlaybackState>((ref) {
-  return AudioPlaybackNotifier();
-});
+    NotifierProvider<AudioPlaybackNotifier, AudioPlaybackState>(AudioPlaybackNotifier.new);

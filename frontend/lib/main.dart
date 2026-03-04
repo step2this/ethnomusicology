@@ -5,16 +5,16 @@ import 'config/routes.dart';
 import 'config/theme.dart';
 
 void main() {
-  runApp(const ProviderScope(child: SalamicVibesApp()));
+  runApp(const ProviderScope(child: TarabStudioApp()));
 }
 
-class SalamicVibesApp extends StatelessWidget {
-  const SalamicVibesApp({super.key});
+class TarabStudioApp extends StatelessWidget {
+  const TarabStudioApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Salamic Vibes',
+      title: 'Tarab Studio',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       routerConfig: router,

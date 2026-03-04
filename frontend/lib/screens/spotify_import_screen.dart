@@ -161,7 +161,7 @@ class _ConnectionCard extends StatelessWidget {
                   ? Icons.check_circle
                   : Icons.cloud_off,
               color: state.status == SpotifyConnectionStatus.connected
-                  ? Colors.green
+                  ? theme.colorScheme.primary
                   : theme.colorScheme.onSurfaceVariant,
               size: 32,
             ),

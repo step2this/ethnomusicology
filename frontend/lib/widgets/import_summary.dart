@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import '../config/routes.dart';
 import '../providers/spotify_import_provider.dart';
 
 class ImportSummaryCard extends StatelessWidget {
@@ -43,28 +45,26 @@ class ImportSummaryCard extends StatelessWidget {
                 _StatChip(
                   label: 'New',
                   count: progress.inserted,
-                  color: Colors.green,
+                  color: theme.colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 _StatChip(
                   label: 'Updated',
                   count: progress.updated,
-                  color: Colors.blue,
+                  color: theme.colorScheme.secondary,
                 ),
                 const SizedBox(width: 8),
                 if (progress.failed > 0)
                   _StatChip(
                     label: 'Failed',
                     count: progress.failed,
-                    color: Colors.red,
+                    color: theme.colorScheme.error,
                   ),
               ],
             ),
             const SizedBox(height: 16),
             FilledButton.icon(
-              onPressed: () {
-                // Navigate to catalog - will be wired in UC-003
-              },
+              onPressed: () => GoRouter.of(context).go(AppRoutes.trackCatalog),
               icon: const Icon(Icons.library_music),
               label: const Text('View Catalog'),
             ),
@@ -94,7 +94,7 @@ class _StatChip extends StatelessWidget {
         radius: 10,
         child: Text(
           '$count',
-          style: const TextStyle(color: Colors.white, fontSize: 10),
+          style: TextStyle(color: Theme.of(context).colorScheme.onPrimary, fontSize: 10),
         ),
       ),
       label: Text(label),

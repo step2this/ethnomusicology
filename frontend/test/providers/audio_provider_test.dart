@@ -101,12 +101,12 @@ void main() {
       ];
 
       // Manually set state to simulate having a current track at last position
-      container.read(audioPlaybackProvider.notifier).state =
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(
           status: PlaybackStatus.playing,
           currentTrackIndex: 1,
           totalTracks: 2,
-        );
+        ));
 
       final initialIndex = container.read(audioPlaybackProvider).currentTrackIndex;
       await notifier.next(tracks, const DeezerPreviewState());
@@ -130,12 +130,12 @@ void main() {
       ];
 
       // Set state to last track
-      container.read(audioPlaybackProvider.notifier).state =
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(
           status: PlaybackStatus.playing,
           currentTrackIndex: 0,
           totalTracks: 1,
-        );
+        ));
 
       final initialIndex = container.read(audioPlaybackProvider).currentTrackIndex;
       await notifier.next(tracks, const DeezerPreviewState());
@@ -165,12 +165,12 @@ void main() {
       ];
 
       // Set state to first track
-      container.read(audioPlaybackProvider.notifier).state =
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(
           status: PlaybackStatus.playing,
           currentTrackIndex: 0,
           totalTracks: 2,
-        );
+        ));
 
       final initialIndex = container.read(audioPlaybackProvider).currentTrackIndex;
       await notifier.previous(tracks, const DeezerPreviewState());
@@ -184,12 +184,12 @@ void main() {
       final fixture = _buildFixture(trackCount: 2, withUrlIndices: [0, 1]);
 
       // Set state to second track
-      container.read(audioPlaybackProvider.notifier).state =
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(
           status: PlaybackStatus.playing,
           currentTrackIndex: 1,
           totalTracks: 2,
-        );
+        ));
 
       await notifier.previous(fixture.tracks, fixture.deezerState);
 
@@ -202,12 +202,12 @@ void main() {
       final fixture = _buildFixture(trackCount: 3, withUrlIndices: [0, 2]);
       final notifier = container.read(audioPlaybackProvider.notifier);
 
-      container.read(audioPlaybackProvider.notifier).state =
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(
           status: PlaybackStatus.playing,
           currentTrackIndex: 2,
           totalTracks: 3,
-        );
+        ));
 
       await notifier.previous(fixture.tracks, fixture.deezerState);
 
@@ -219,12 +219,12 @@ void main() {
       final notifier = container.read(audioPlaybackProvider.notifier);
 
       // Set state to playing
-      container.read(audioPlaybackProvider.notifier).state =
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(
           status: PlaybackStatus.playing,
           currentTrackIndex: 0,
           statusText: 'Playing: Track 1',
-        );
+        ));
 
       notifier.stop();
 
@@ -257,8 +257,8 @@ void main() {
       final notifier = container.read(audioPlaybackProvider.notifier);
 
       // Set state to playing
-      container.read(audioPlaybackProvider.notifier).state =
-        const AudioPlaybackState(status: PlaybackStatus.playing);
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
+        const AudioPlaybackState(status: PlaybackStatus.playing));
 
       await notifier.togglePause();
 
@@ -270,8 +270,8 @@ void main() {
       final notifier = container.read(audioPlaybackProvider.notifier);
 
       // Set state to paused
-      container.read(audioPlaybackProvider.notifier).state =
-        const AudioPlaybackState(status: PlaybackStatus.paused);
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
+        const AudioPlaybackState(status: PlaybackStatus.paused));
 
       await notifier.togglePause();
 
@@ -296,24 +296,24 @@ void main() {
     });
 
     test('isPlaying getter returns true when status is playing', () {
-      container.read(audioPlaybackProvider.notifier).state =
-        const AudioPlaybackState(status: PlaybackStatus.playing);
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
+        const AudioPlaybackState(status: PlaybackStatus.playing));
 
       final state = container.read(audioPlaybackProvider);
       expect(state.isPlaying, true);
     });
 
     test('isPaused getter returns true when status is paused', () {
-      container.read(audioPlaybackProvider.notifier).state =
-        const AudioPlaybackState(status: PlaybackStatus.paused);
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
+        const AudioPlaybackState(status: PlaybackStatus.paused));
 
       final state = container.read(audioPlaybackProvider);
       expect(state.isPaused, true);
     });
 
     test('isLoading getter returns true when status is loading', () {
-      container.read(audioPlaybackProvider.notifier).state =
-        const AudioPlaybackState(status: PlaybackStatus.loading);
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
+        const AudioPlaybackState(status: PlaybackStatus.loading));
 
       final state = container.read(audioPlaybackProvider);
       expect(state.isLoading, true);
@@ -359,12 +359,12 @@ void main() {
       await notifier.playFromIndex(0, fixture.tracks, fixture.deezerState);
 
       // Simulate the user manually jumping to track 2 before track 0 ends.
-      container.read(audioPlaybackProvider.notifier).state =
+      container.read(audioPlaybackProvider.notifier).setStateForTest(
         const AudioPlaybackState(
           status: PlaybackStatus.playing,
           currentTrackIndex: 2,
           totalTracks: 3,
-        );
+        ));
 
       // Stale callback fires for track 0 (endedIndex=0, but currentIndex=2).
       // The race-condition guard inside _handleTrackEnded must reject it.

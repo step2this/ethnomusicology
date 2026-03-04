@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/track.dart';
-import '../services/api_client.dart';
 import 'api_provider.dart';
 
 // State for the track catalog
@@ -51,15 +50,14 @@ class TrackCatalogState {
   bool get hasMore => currentPage < totalPages;
 }
 
-class TrackCatalogNotifier extends StateNotifier<TrackCatalogState> {
-  final ApiClient _apiClient;
-
-  TrackCatalogNotifier(this._apiClient) : super(const TrackCatalogState());
+class TrackCatalogNotifier extends Notifier<TrackCatalogState> {
+  @override
+  TrackCatalogState build() => const TrackCatalogState();
 
   Future<void> loadFirstPage() async {
     state = state.copyWith(isLoading: true, error: null, tracks: []);
     try {
-      final response = await _apiClient.listTracks(
+      final response = await ref.read(apiClientProvider).listTracks(
         page: 1,
         sort: state.sort,
         order: state.order,
@@ -71,7 +69,7 @@ class TrackCatalogNotifier extends StateNotifier<TrackCatalogState> {
         total: response.total,
         isLoading: false,
       );
-    } catch (e) {
+    } on Exception catch (_) {
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load tracks. Please try again.',
@@ -84,7 +82,7 @@ class TrackCatalogNotifier extends StateNotifier<TrackCatalogState> {
 
     state = state.copyWith(isLoading: true, error: null);
     try {
-      final response = await _apiClient.listTracks(
+      final response = await ref.read(apiClientProvider).listTracks(
         page: state.currentPage + 1,
         sort: state.sort,
         order: state.order,
@@ -96,7 +94,7 @@ class TrackCatalogNotifier extends StateNotifier<TrackCatalogState> {
         total: response.total,
         isLoading: false,
       );
-    } catch (e) {
+    } on Exception catch (_) {
       state = state.copyWith(
         isLoading: false,
         error: 'Failed to load more tracks.',
@@ -113,7 +111,5 @@ class TrackCatalogNotifier extends StateNotifier<TrackCatalogState> {
 }
 
 final trackCatalogProvider =
-    StateNotifierProvider<TrackCatalogNotifier, TrackCatalogState>((ref) {
-  final apiClient = ref.watch(apiClientProvider);
-  return TrackCatalogNotifier(apiClient);
-});
+    NotifierProvider<TrackCatalogNotifier, TrackCatalogState>(
+        TrackCatalogNotifier.new);
