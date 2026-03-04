@@ -27,13 +27,13 @@ test.describe('Smoke Tests', () => {
   test('home screen loads with title', async ({ page }) => {
     await page.goto('/');
     await enableFlutterAccessibility(page);
-    await expect(page.getByRole('heading', { name: 'Salamic Vibes' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Tarab Studio' })).toBeVisible({ timeout: 15000 });
   });
 
   test('track catalog shows seeded data', async ({ page }) => {
     await page.goto('/');
     await enableFlutterAccessibility(page);
-    await expect(page.getByRole('heading', { name: 'Salamic Vibes' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Tarab Studio' })).toBeVisible({ timeout: 15000 });
 
     // Click Track Catalog button
     await page.getByText('Track Catalog').click();
@@ -45,7 +45,7 @@ test.describe('Smoke Tests', () => {
   test('generate setlist screen loads', async ({ page }) => {
     await page.goto('/');
     await enableFlutterAccessibility(page);
-    await expect(page.getByRole('heading', { name: 'Salamic Vibes' })).toBeVisible({ timeout: 15000 });
+    await expect(page.getByRole('heading', { name: 'Tarab Studio' })).toBeVisible({ timeout: 15000 });
 
     // Click Generate Setlist button
     await page.getByText('Generate Setlist').click();
