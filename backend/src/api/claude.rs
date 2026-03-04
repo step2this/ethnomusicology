@@ -48,6 +48,16 @@ pub struct LlmTrackEntry {
 }
 
 // ---------------------------------------------------------------------------
+// Conversation message types (for multi-turn conversations)
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConversationMessage {
+    pub role: String,
+    pub content: String,
+}
+
+// ---------------------------------------------------------------------------
 // Request content block types (for prompt caching)
 // ---------------------------------------------------------------------------
 
@@ -95,6 +105,17 @@ pub trait ClaudeClientTrait: Send + Sync {
         model: &str,
         max_tokens: u32,
     ) -> Result<(String, CacheMetrics), ClaudeError>;
+
+    async fn converse(
+        &self,
+        system_prompt: &str,
+        messages: Vec<ConversationMessage>,
+        model: &str,
+        max_tokens: u32,
+    ) -> Result<String, ClaudeError> {
+        let _ = (system_prompt, messages, model, max_tokens);
+        unimplemented!("converse not implemented for this client")
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -485,6 +506,41 @@ impl ClaudeClientTrait for ClaudeClient {
             })?;
 
         Ok((text, metrics))
+    }
+
+    async fn converse(
+        &self,
+        system_prompt: &str,
+        messages: Vec<ConversationMessage>,
+        model: &str,
+        max_tokens: u32,
+    ) -> Result<String, ClaudeError> {
+        let messages_json: Vec<serde_json::Value> = messages
+            .iter()
+            .map(|m| {
+                serde_json::json!({
+                    "role": &m.role,
+                    "content": &m.content,
+                })
+            })
+            .collect();
+
+        let body = serde_json::json!({
+            "model": model,
+            "max_tokens": max_tokens,
+            "system": system_prompt,
+            "messages": messages_json,
+        });
+
+        let resp = self.send_with_retries(body).await?;
+
+        resp.content
+            .into_iter()
+            .find(|b| b.content_type == "text")
+            .and_then(|b| b.text)
+            .ok_or_else(|| {
+                ClaudeError::MalformedResponse("No text content in response".to_string())
+            })
     }
 }
 
@@ -1111,5 +1167,79 @@ mod tests {
         let RequestContentBlock::Text { ref text, .. } = blocks[0];
         assert!(text.contains("Output Format"));
         assert!(text.contains("ONLY valid JSON"));
+    }
+
+    #[tokio::test]
+    async fn test_converse_sends_multi_turn_messages() {
+        use wiremock::matchers::method;
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(200).set_body_json(serde_json::json!({
+                "content": [{"type": "text", "text": "I replaced track 5 with a darker track."}],
+                "id": "msg_conv_1",
+                "model": "claude-sonnet-4-20250514",
+                "role": "assistant",
+                "type": "message"
+            })))
+            .mount(&mock_server)
+            .await;
+
+        let client = ClaudeClient::new("test-key").with_base_url(mock_server.uri());
+
+        let messages = vec![
+            ConversationMessage {
+                role: "user".to_string(),
+                content: "Generate a house setlist".to_string(),
+            },
+            ConversationMessage {
+                role: "assistant".to_string(),
+                content: "{\"actions\": [], \"explanation\": \"Here's your setlist\"}".to_string(),
+            },
+            ConversationMessage {
+                role: "user".to_string(),
+                content: "Swap track 5 for something darker".to_string(),
+            },
+        ];
+
+        let result = client
+            .converse(
+                "You are a DJ assistant",
+                messages,
+                "claude-sonnet-4-20250514",
+                4096,
+            )
+            .await;
+
+        assert!(result.is_ok(), "Expected Ok, got {:?}", result);
+        assert_eq!(result.unwrap(), "I replaced track 5 with a darker track.");
+    }
+
+    #[tokio::test]
+    async fn test_converse_handles_api_error() {
+        use wiremock::matchers::method;
+        use wiremock::{Mock, MockServer, ResponseTemplate};
+
+        let mock_server = MockServer::start().await;
+
+        Mock::given(method("POST"))
+            .respond_with(ResponseTemplate::new(400).set_body_string("Bad request"))
+            .mount(&mock_server)
+            .await;
+
+        let client = ClaudeClient::new("test-key").with_base_url(mock_server.uri());
+
+        let messages = vec![ConversationMessage {
+            role: "user".to_string(),
+            content: "test".to_string(),
+        }];
+
+        let result = client
+            .converse("system", messages, "claude-sonnet-4-20250514", 100)
+            .await;
+
+        assert!(matches!(result, Err(ClaudeError::Api(_))));
     }
 }

@@ -19,12 +19,16 @@ security:
 tags:
   - name: ST-001
     description: "Steel Thread: Serve Paginated Track Catalog"
+  - name: ST-007
+    description: "Steel Thread: Conversational Refinement"
   - name: tracks
     description: Track catalog and metadata
   - name: import
     description: Music source import (Spotify, Beatport, SoundCloud)
   - name: setlists
     description: Setlist generation and arrangement
+  - name: refinement
+    description: Conversational setlist refinement (ST-007)
   - name: analysis
     description: Audio analysis (BPM, key, energy)
   - name: playback
@@ -70,6 +74,124 @@ paths:
                 $ref: '#/components/schemas/TrackListResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/setlists/{id}/refine:
+    post:
+      operationId: refineSetlist
+      summary: Refine a setlist via conversational message
+      description: |
+        Submits a natural-language message to refine the setlist. Supports multi-turn
+        conversation (up to 20 user turns). Quick commands (e.g. "!shuffle", "!revert")
+        are handled without an LLM call. Each successful call creates a new version.
+      tags:
+        - ST-007
+        - refinement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Setlist ID
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefineRequest'
+      responses:
+        '200':
+          description: Setlist refined successfully — returns new version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefinementResponse'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '429':
+          description: Turn limit exceeded (20 user turns max)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          description: LLM service unavailable
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/setlists/{id}/revert/{version_number}:
+    post:
+      operationId: revertSetlist
+      summary: Revert setlist to a previous version
+      description: |
+        Restores a setlist to the state at the given version number. Creates a new
+        version entry pointing to the reverted state (non-destructive — history is preserved).
+      tags:
+        - ST-007
+        - refinement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Setlist ID
+        - name: version_number
+          in: path
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+          description: Version number to revert to
+      responses:
+        '200':
+          description: Setlist reverted successfully — returns restored version
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefinementResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/setlists/{id}/history:
+    get:
+      operationId: getSetlistHistory
+      summary: Get refinement history for a setlist
+      description: |
+        Returns all versions and conversation turns for a setlist, enabling
+        the frontend to render a timeline and conversation thread.
+      tags:
+        - ST-007
+        - refinement
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+          description: Setlist ID
+      responses:
+        '200':
+          description: Setlist history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HistoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -243,6 +365,189 @@ components:
           type: integer
           minimum: 0
           example: 6
+
+    RefineRequest:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Natural language refinement instruction or quick command (e.g. "!shuffle")
+          example: "Add 2 more high-energy tracks at the end"
+
+    VersionTrack:
+      type: object
+      required:
+        - id
+        - version_id
+        - position
+        - original_position
+        - title
+        - artist
+        - source
+      properties:
+        id:
+          type: string
+          format: uuid
+        version_id:
+          type: string
+          format: uuid
+        track_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Catalog track ID (null for LLM-suggested tracks not yet in catalog)
+        position:
+          type: integer
+          description: Current position in setlist (1-based)
+        original_position:
+          type: integer
+          description: Position from original generation
+        title:
+          type: string
+          example: "Gnawa Blues"
+        artist:
+          type: string
+          example: "Hassan Hakmoun"
+        bpm:
+          type: number
+          format: float
+          nullable: true
+          example: 128.0
+        key:
+          type: string
+          nullable: true
+          example: "8A"
+        camelot:
+          type: string
+          nullable: true
+          example: "8A"
+        energy:
+          type: number
+          format: float
+          nullable: true
+          example: 0.85
+        transition_note:
+          type: string
+          nullable: true
+          description: Human-readable mixing note for the transition into this track
+        transition_score:
+          type: number
+          format: float
+          nullable: true
+          description: Camelot-based harmonic compatibility score (0.0–1.0)
+        source:
+          type: string
+          example: "spotify"
+        acquisition_info:
+          type: string
+          nullable: true
+          description: Purchase / stream link
+
+    RefinementResponse:
+      type: object
+      required:
+        - version_number
+        - tracks
+        - explanation
+      properties:
+        version_number:
+          type: integer
+          description: New version number after refinement
+          example: 3
+        tracks:
+          type: array
+          items:
+            $ref: '#/components/schemas/VersionTrack'
+        explanation:
+          type: string
+          description: LLM explanation of the changes made
+          example: "Added two high-energy closing tracks and adjusted transitions for better flow."
+        change_warning:
+          type: string
+          nullable: true
+          description: Warning when LLM suggested tracks not in the catalog
+          example: "2 tracks suggested by AI are not in your catalog yet"
+
+    SetlistVersion:
+      type: object
+      required:
+        - id
+        - setlist_id
+        - version_number
+      properties:
+        id:
+          type: string
+          format: uuid
+        setlist_id:
+          type: string
+          format: uuid
+        version_number:
+          type: integer
+          example: 2
+        parent_version_id:
+          type: string
+          format: uuid
+          nullable: true
+        action:
+          type: string
+          nullable: true
+          description: Machine-readable action type (e.g. "refine", "revert", "quick_command")
+        action_summary:
+          type: string
+          nullable: true
+          description: Human-readable summary of what changed
+          example: "Added 2 tracks, removed 1"
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    ConversationTurn:
+      type: object
+      required:
+        - id
+        - setlist_id
+        - role
+        - content
+      properties:
+        id:
+          type: string
+          format: uuid
+        setlist_id:
+          type: string
+          format: uuid
+        version_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Version produced by this assistant turn (null for user turns)
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+          description: Message text
+        created_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    HistoryResponse:
+      type: object
+      required:
+        - versions
+        - conversations
+      properties:
+        versions:
+          type: array
+          items:
+            $ref: '#/components/schemas/SetlistVersion'
+        conversations:
+          type: array
+          items:
+            $ref: '#/components/schemas/ConversationTurn'
 
   responses:
     BadRequest:

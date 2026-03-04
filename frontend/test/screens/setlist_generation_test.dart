@@ -17,6 +17,14 @@ class MockApiClient extends ApiClient {
                 BaseOptions(baseUrl: 'http://localhost:3001/api')));
 }
 
+class _InitialStateNotifier extends SetlistNotifier {
+  _InitialStateNotifier(this._initialState);
+  final SetlistState _initialState;
+
+  @override
+  SetlistState build() => _initialState;
+}
+
 // Helper to build a testable widget with overridden providers
 Widget buildTestWidget({SetlistState? initialState}) {
   final mockApi = MockApiClient();
@@ -25,12 +33,7 @@ Widget buildTestWidget({SetlistState? initialState}) {
     overrides: [
       apiClientProvider.overrideWithValue(mockApi),
       if (initialState != null)
-        setlistProvider.overrideWith((ref) {
-          final notifier = SetlistNotifier(mockApi);
-          // ignore: invalid_use_of_protected_member
-          notifier.state = initialState;
-          return notifier;
-        }),
+        setlistProvider.overrideWith(() => _InitialStateNotifier(initialState)),
     ],
     child: const MaterialApp(
       home: SetlistGenerationScreen(),

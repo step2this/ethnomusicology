@@ -8,21 +8,22 @@ See: `docs/spikes/sp-004-enrichment-path.md`
 Imported tracks get real BPM, Camelot key, energy, album art via Claude estimation.
 See: `docs/steel-threads/st-005-track-enrichment.md`
 
-## Phase 2: ST-006 — Multi-Input Seeding + Enhanced Generation
+## Phase 2: ST-006 — Multi-Input Seeding + Enhanced Generation (COMPLETE)
 Multiple input methods (prompt, playlist seed, tracklist seed). Energy profiles. Creative mode.
+Merged via PR #3, 2026-03-03.
 
 ## Phase 3: ST-007 — Conversational Setlist Refinement
 Natural language chat to iterate on generated setlists. Version history.
+Backend complete, frontend pending. PR #5 open.
 
 ## Dependencies
 ```
-SP-004 (done) → ST-005 (done) → ST-006 → ST-007
+SP-004 (done) → ST-005 (done) → ST-006 (done) → ST-007 (backend done)
 ```
 
-## UC-019 Phase 3: Audio UX — Transport Controls + Auto-Advance
+## UC-019 Phase 3: Audio UX — Transport Controls + Auto-Advance (COMPLETE)
 Transport bar (prev/next/pause/stop), auto-advance with crossfade between tracks, PlaybackStatus enum.
-Branch: `feature/audio-ux-improvements`. Critic review complete, fixes in progress.
-See: `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md`
+Merged via PR #4, 2026-03-03.
 
 ## MVP Milestone
 After Phase 2: Import playlist → describe vibe → get harmonically arranged setlist with real BPM/key.

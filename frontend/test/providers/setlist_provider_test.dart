@@ -1,5 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:ethnomusicology_frontend/providers/api_provider.dart';
 import 'package:ethnomusicology_frontend/providers/setlist_provider.dart';
 import 'package:ethnomusicology_frontend/services/api_client.dart';
 
@@ -38,6 +40,7 @@ void main() {
   late Dio dio;
   late MockInterceptor interceptor;
   late ApiClient apiClient;
+  late ProviderContainer container;
   late SetlistNotifier notifier;
 
   setUp(() {
@@ -45,7 +48,17 @@ void main() {
     interceptor = MockInterceptor();
     dio.interceptors.add(interceptor);
     apiClient = ApiClient(dio: dio);
-    notifier = SetlistNotifier(apiClient);
+
+    container = ProviderContainer(
+      overrides: [
+        apiClientProvider.overrideWithValue(apiClient),
+      ],
+    );
+    notifier = container.read(setlistProvider.notifier);
+  });
+
+  tearDown(() {
+    container.dispose();
   });
 
   group('generateSetlist', () {
@@ -106,11 +119,11 @@ void main() {
 
       await notifier.generateSetlist('test', energyProfile: 'warm-up');
 
-      expect(notifier.state.setlist, isNotNull);
-      expect(notifier.state.setlist!.energyProfile, 'warm-up');
-      expect(notifier.state.setlist!.catalogPercentage, 65.0);
-      expect(notifier.state.setlist!.bpmWarnings, hasLength(1));
-      expect(notifier.state.energyProfile, 'warm-up');
+      expect(container.read(setlistProvider).setlist, isNotNull);
+      expect(container.read(setlistProvider).setlist!.energyProfile, 'warm-up');
+      expect(container.read(setlistProvider).setlist!.catalogPercentage, 65.0);
+      expect(container.read(setlistProvider).setlist!.bpmWarnings, hasLength(1));
+      expect(container.read(setlistProvider).energyProfile, 'warm-up');
     });
 
     test('preserves energyProfile and creativeMode in state during generation',
@@ -122,9 +135,9 @@ void main() {
         sourcePlaylistId: 'import-x',
       );
 
-      expect(notifier.state.energyProfile, 'peak-time');
-      expect(notifier.state.creativeMode, true);
-      expect(notifier.state.sourcePlaylistId, 'import-x');
+      expect(container.read(setlistProvider).energyProfile, 'peak-time');
+      expect(container.read(setlistProvider).creativeMode, true);
+      expect(container.read(setlistProvider).sourcePlaylistId, 'import-x');
     });
   });
 
@@ -170,36 +183,36 @@ void main() {
       interceptor.errorOverride = makeError('INVALID_ENERGY_PROFILE');
       await notifier.generateSetlist('test', energyProfile: 'bad');
 
-      expect(notifier.state.error, 'Invalid energy profile selected.');
+      expect(container.read(setlistProvider).error, 'Invalid energy profile selected.');
     });
 
     test('PLAYLIST_NOT_FOUND error', () async {
       interceptor.errorOverride = makeError('PLAYLIST_NOT_FOUND');
       await notifier.generateSetlist('test', sourcePlaylistId: 'bad-id');
 
-      expect(notifier.state.error, contains('Playlist not found'));
+      expect(container.read(setlistProvider).error, contains('Playlist not found'));
     });
 
     test('INVALID_BPM_RANGE error', () async {
       interceptor.errorOverride = makeError('INVALID_BPM_RANGE');
       await notifier.generateSetlist('test', bpmMin: 200.0, bpmMax: 100.0);
 
-      expect(notifier.state.error, contains('Invalid BPM range'));
+      expect(container.read(setlistProvider).error, contains('Invalid BPM range'));
     });
 
     test('EMPTY_CATALOG error', () async {
       interceptor.errorOverride = makeError('EMPTY_CATALOG');
       await notifier.generateSetlist('test');
 
-      expect(notifier.state.error, contains('No tracks in your catalog'));
+      expect(container.read(setlistProvider).error, contains('No tracks in your catalog'));
     });
   });
 
   group('backward compatibility', () {
     test('default state has null energyProfile and false creativeMode', () {
-      expect(notifier.state.energyProfile, isNull);
-      expect(notifier.state.creativeMode, false);
-      expect(notifier.state.sourcePlaylistId, isNull);
+      expect(container.read(setlistProvider).energyProfile, isNull);
+      expect(container.read(setlistProvider).creativeMode, false);
+      expect(container.read(setlistProvider).sourcePlaylistId, isNull);
     });
 
     test('generateSetlist without new params works', () async {
@@ -209,7 +222,7 @@ void main() {
       expect(body['prompt'], 'simple prompt');
       expect(body.containsKey('energy_profile'), isFalse);
       expect(body.containsKey('creative_mode'), isFalse);
-      expect(notifier.state.setlist, isNotNull);
+      expect(container.read(setlistProvider).setlist, isNotNull);
     });
   });
 }

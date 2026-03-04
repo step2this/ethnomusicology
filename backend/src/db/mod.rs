@@ -1,6 +1,7 @@
 pub mod artists;
 pub mod imports;
 pub mod models;
+pub mod refinement;
 pub mod setlists;
 pub mod tokens;
 pub mod tracks;

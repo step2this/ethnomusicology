@@ -70,6 +70,46 @@ pub enum UpsertResult {
     Updated,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct SetlistVersionRow {
+    pub id: String,
+    pub setlist_id: String,
+    pub version_number: i32,
+    pub parent_version_id: Option<String>,
+    pub action: Option<String>,
+    pub action_summary: Option<String>,
+    pub created_at: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct VersionTrackRow {
+    pub id: String,
+    pub version_id: String,
+    pub track_id: Option<String>,
+    pub position: i32,
+    pub original_position: i32,
+    pub title: String,
+    pub artist: String,
+    pub bpm: Option<f64>,
+    pub key: Option<String>,
+    pub camelot: Option<String>,
+    pub energy: Option<f64>,
+    pub transition_note: Option<String>,
+    pub transition_score: Option<f64>,
+    pub source: String,
+    pub acquisition_info: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, sqlx::FromRow)]
+pub struct SetlistConversationRow {
+    pub id: String,
+    pub setlist_id: String,
+    pub version_id: Option<String>,
+    pub role: String,
+    pub content: String,
+    pub created_at: Option<String>,
+}
+
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct SetlistRow {
     pub id: String,

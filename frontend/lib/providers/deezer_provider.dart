@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../models/setlist_track.dart';
-import '../services/api_client.dart';
+import 'api_provider.dart';
 
 /// Consistent key for looking up a track's Deezer preview URL.
 /// Handles both catalog tracks (have trackId) and LLM suggestions (trackId is null).
@@ -35,16 +35,15 @@ class DeezerPreviewState {
   bool hasPreview(String trackId) => previewUrls.containsKey(trackId);
 }
 
-class DeezerPreviewNotifier extends StateNotifier<DeezerPreviewState> {
-  DeezerPreviewNotifier() : super(const DeezerPreviewState());
+class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
+  @override
+  DeezerPreviewState build() => const DeezerPreviewState();
 
   /// Prefetch Deezer preview URLs for all tracks in a setlist in parallel
-  Future<void> prefetchForSetlist(
-    List<SetlistTrack> tracks,
-    ApiClient client,
-  ) async {
+  Future<void> prefetchForSetlist(List<SetlistTrack> tracks) async {
     if (tracks.isEmpty) return;
 
+    final client = ref.read(apiClientProvider);
     state = state.copyWith(isLoading: true);
 
     try {
@@ -63,7 +62,7 @@ class DeezerPreviewNotifier extends StateNotifier<DeezerPreviewState> {
           try {
             final previewUrl = await client.searchDeezerPreview(title, artist);
             return MapEntry(trackId, previewUrl);
-          } catch (e) {
+          } on Exception catch (_) {
             return MapEntry(trackId, null);
           }
         }),
@@ -75,7 +74,7 @@ class DeezerPreviewNotifier extends StateNotifier<DeezerPreviewState> {
         previewUrls: {...state.previewUrls, ...newUrls},
         isLoading: false,
       );
-    } catch (e) {
+    } on Exception catch (_) {
       state = state.copyWith(isLoading: false);
     }
   }
@@ -87,6 +86,5 @@ class DeezerPreviewNotifier extends StateNotifier<DeezerPreviewState> {
 }
 
 final deezerPreviewProvider =
-    StateNotifierProvider<DeezerPreviewNotifier, DeezerPreviewState>((ref) {
-  return DeezerPreviewNotifier();
-});
+    NotifierProvider<DeezerPreviewNotifier, DeezerPreviewState>(
+        DeezerPreviewNotifier.new);

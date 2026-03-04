@@ -19,6 +19,7 @@ use ethnomusicology_backend::routes;
 use ethnomusicology_backend::routes::auth::{AuthState, TokenExchangeResult, TokenExchanger};
 use ethnomusicology_backend::routes::enrich::EnrichRouteState;
 use ethnomusicology_backend::routes::import::ImportState;
+use ethnomusicology_backend::routes::refinement::RefinementRouteState;
 use ethnomusicology_backend::routes::setlist::SetlistRouteState;
 
 // ---------------------------------------------------------------------------
@@ -222,6 +223,12 @@ async fn main() -> anyhow::Result<()> {
         claude: claude_client.clone(),
     });
 
+    // --- Refinement routes state ---
+    let refinement_state = Arc::new(RefinementRouteState {
+        pool: pool.clone(),
+        claude: claude_client.clone(),
+    });
+
     // --- Health readiness router (needs DB pool) ---
     let health_router = Router::new()
         .route("/api/health/ready", get(health_ready))
@@ -235,6 +242,10 @@ async fn main() -> anyhow::Result<()> {
         .nest("/api", routes::import::import_router(import_state))
         .nest("/api", routes::setlist::setlist_router(setlist_state))
         .nest("/api", routes::enrich::enrich_router(enrich_state))
+        .nest(
+            "/api",
+            routes::refinement::refinement_router(refinement_state),
+        )
         .nest("/api", routes::tracks::tracks_router(pool.clone()))
         .nest("/api", routes::audio::audio_router(pool.clone()));
 

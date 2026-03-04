@@ -47,24 +47,6 @@ class Track {
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'title': title,
-      'artist': artist,
-      'album': album,
-      'duration_ms': durationMs,
-      'bpm': bpm,
-      'key': key,
-      'energy': energy,
-      'source': source,
-      'source_id': sourceId,
-      'preview_url': previewUrl,
-      'album_art_url': albumArtUrl,
-      'date_added': dateAdded.toIso8601String(),
-    };
-  }
-
   /// Format duration as "m:ss" (e.g., "3:45"). Returns "--" if null.
   String get durationFormatted {
     if (durationMs == null) return '--';

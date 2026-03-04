@@ -25,38 +25,40 @@ DJs who build sets from digital catalogs and value harmonic mixing, energy flow,
 
 ## 2. Feature Map
 
+> For current implementation status, see `docs/mvp-progress.md`.
+
 ### Epic 1: Multi-Source Import Pipeline
-| UC | Feature | Priority | Complexity | Status |
-|----|---------|----------|------------|--------|
-| UC-001 | Import from Spotify | P0 | Medium | **Complete** |
-| UC-013 | Import from Beatport | P0 | Medium | Ready |
-| UC-014 | Import from SoundCloud | P0 | Medium | Ready |
+| UC | Feature | Priority | Complexity |
+|----|---------|----------|------------|
+| UC-001 | Import from Spotify | P0 | Medium |
+| UC-013 | Import from Beatport | P0 | Medium |
+| UC-014 | Import from SoundCloud | P0 | Medium |
 
 ### Epic 2: Audio Analysis & Enrichment
-| UC | Feature | Priority | Complexity | Status |
-|----|---------|----------|------------|--------|
-| UC-015 | Detect BPM and Musical Key | P0 | High | Ready |
-| UC-018 | Enrich with DJ Metadata (energy, mood, genre) | P1 | Medium | Ready |
+| UC | Feature | Priority | Complexity |
+|----|---------|----------|------------|
+| UC-015 | Detect BPM and Musical Key | P0 | High |
+| UC-018 | Enrich with DJ Metadata (energy, mood, genre) | P1 | Medium |
 
 ### Epic 3: LLM Setlist Generation
-| UC | Feature | Priority | Complexity | Status |
-|----|---------|----------|------------|--------|
-| UC-016 | Generate Setlist from Natural Language | P0 | High | Ready |
-| UC-017 | Arrange by Harmonic Compatibility | P0 | Medium | Ready |
-| UC-023 | Refine Setlist with Conversation | P2 | High | Ready |
+| UC | Feature | Priority | Complexity |
+|----|---------|----------|------------|
+| UC-016 | Generate Setlist from Natural Language | P0 | High |
+| UC-017 | Arrange by Harmonic Compatibility | P0 | Medium |
+| UC-023 | Refine Setlist with Conversation | P2 | High |
 
 ### Epic 4: Playback & Output
-| UC | Feature | Priority | Complexity | Status |
-|----|---------|----------|------------|--------|
-| UC-019 | Crossfade Preview Between Tracks | P1 | High | Ready |
-| UC-025 | Full Browser DJ Mix Playback | P3 | Very High | Ready |
-| UC-024 | Export Setlist with Transition Notes | P2 | Low | Ready |
+| UC | Feature | Priority | Complexity |
+|----|---------|----------|------------|
+| UC-019 | Crossfade Preview Between Tracks | P1 | High |
+| UC-025 | Full Browser DJ Mix Playback | P3 | Very High |
+| UC-024 | Export Setlist with Transition Notes | P2 | Low |
 
 ### Epic 5: Discovery & Acquisition
-| UC | Feature | Priority | Complexity | Status |
-|----|---------|----------|------------|--------|
-| UC-020 | Generate Purchase Links | P1 | Low | Ready |
-| UC-021 | Browse by DJ Scene and Era | P1 | Medium | Ready |
+| UC | Feature | Priority | Complexity |
+|----|---------|----------|------------|
+| UC-020 | Generate Purchase Links | P1 | Low |
+| UC-021 | Browse by DJ Scene and Era | P1 | Medium |
 
 ---
 

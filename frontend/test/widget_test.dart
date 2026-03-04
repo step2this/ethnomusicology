@@ -6,11 +6,11 @@ import 'package:ethnomusicology_frontend/main.dart';
 void main() {
   testWidgets('App renders home screen', (WidgetTester tester) async {
     await tester.pumpWidget(
-      const ProviderScope(child: SalamicVibesApp()),
+      const ProviderScope(child: TarabStudioApp()),
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Salamic Vibes'), findsOneWidget);
-    expect(find.text('Welcome to Salamic Vibes'), findsOneWidget);
+    expect(find.text('Tarab Studio'), findsOneWidget);
+    expect(find.text('Welcome to Tarab Studio'), findsOneWidget);
   });
 }

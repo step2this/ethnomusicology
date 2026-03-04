@@ -323,6 +323,7 @@ Devil's advocate review found 3 CRITICAL, 5 HIGH, 6 MEDIUM issues. All Critical 
 | 15 | LOW | `seed_match_count` fragile | Compute on backend by matching seed tracklist against response tracks, not relying on LLM. |
 | 18 | LOW | `bpm_range` validation missing | Add validation: min >= 60, max <= 200, min <= max. Return 400 `INVALID_BPM_RANGE`. |
 
-## Status: IN PROGRESS
-- **Branch**: `feature/st-006-enhanced-generation`
+## Status: COMPLETE
+- **Branch**: `feature/st-006-enhanced-generation` → merged via PR #3, 2026-03-03
+- **Retrospective**: `docs/retrospectives/st-006-multi-input-enhanced-generation.md`
 - **Depends on**: ST-003 ✅, ST-005 ✅

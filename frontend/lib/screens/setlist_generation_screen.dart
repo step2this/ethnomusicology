@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/setlist.dart';
-import '../providers/api_provider.dart';
 import '../providers/audio_provider.dart';
 import '../providers/deezer_provider.dart';
+import '../providers/refinement_provider.dart';
 import '../providers/setlist_provider.dart';
-import '../providers/spotify_import_provider.dart';
-import '../widgets/setlist_track_tile.dart';
+import '../widgets/setlist_input_form.dart';
+import '../widgets/setlist_result_view.dart';
+import '../widgets/version_history_panel.dart';
 
 class SetlistGenerationScreen extends ConsumerStatefulWidget {
   const SetlistGenerationScreen({super.key});
@@ -18,695 +18,138 @@ class SetlistGenerationScreen extends ConsumerStatefulWidget {
 }
 
 class _SetlistGenerationScreenState
-    extends ConsumerState<SetlistGenerationScreen>
-    with SingleTickerProviderStateMixin {
-  late final TabController _tabController;
-  final _promptController = TextEditingController();
-  final _spotifyUrlController = TextEditingController();
-  final _tracklistController = TextEditingController();
-  final _bpmMinController = TextEditingController();
-  final _bpmMaxController = TextEditingController();
-
-  String? _selectedEnergyProfile;
-  bool _creativeMode = false;
-  double _trackCount = 15;
-  bool _showAdvanced = false;
-  bool _isImporting = false;
-  String? _importError;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _promptController.dispose();
-    _spotifyUrlController.dispose();
-    _tracklistController.dispose();
-    _bpmMinController.dispose();
-    _bpmMaxController.dispose();
-    super.dispose();
-  }
+    extends ConsumerState<SetlistGenerationScreen> {
+  final _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(setlistProvider);
+    final refinementState = ref.watch(refinementProvider);
 
-    // Trigger Deezer prefetch when setlist is first displayed
+    // Trigger Deezer prefetch and load history when setlist first appears
     ref.listen(setlistProvider, (previous, next) {
       if ((previous?.hasSetlist ?? false) == false && next.hasSetlist) {
         ref.read(deezerPreviewProvider.notifier).prefetchForSetlist(
               next.setlist!.tracks,
-              ref.read(apiClientProvider),
             );
+        ref.read(refinementProvider.notifier).loadHistory(next.setlist!.id);
       }
     });
 
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         title: const Text('Create Set'),
         centerTitle: true,
         actions: [
-          if (state.hasSetlist)
+          if (state.hasSetlist) ...[
+            IconButton(
+              icon: const Icon(Icons.history),
+              onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
+              tooltip: 'Version history',
+            ),
             IconButton(
               icon: const Icon(Icons.refresh),
-              onPressed: _resetAll,
+              onPressed: () => _resetAll(),
               tooltip: 'New setlist',
             ),
+          ],
         ],
       ),
-      body: state.hasSetlist || state.isLoading || state.error != null
-          ? _buildContent(state)
-          : _buildInputForm(state),
-    );
-  }
-
-  Widget _buildInputForm(SetlistState state) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Energy profile selector
-          _buildEnergyProfileSelector(),
-          const SizedBox(height: 16),
-
-          // Creative mode toggle
-          SwitchListTile(
-            title: const Text('Creative Mode'),
-            subtitle:
-                const Text('Unexpected but compatible combinations'),
-            value: _creativeMode,
-            onChanged: (v) => setState(() => _creativeMode = v),
-            contentPadding: EdgeInsets.zero,
-          ),
-          const SizedBox(height: 8),
-
-          // Set length slider
-          _buildTrackCountSlider(),
-          const SizedBox(height: 8),
-
-          // Advanced BPM section
-          _buildAdvancedSection(),
-          const SizedBox(height: 16),
-
-          // Tab bar for input modes
-          TabBar(
-            controller: _tabController,
-            tabs: const [
-              Tab(text: 'Describe a Vibe'),
-              Tab(text: 'From Spotify'),
-              Tab(text: 'From Tracklist'),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Tab content (fixed height to avoid layout issues in scroll)
-          SizedBox(
-            height: 200,
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildVibeTab(),
-                _buildSpotifyTab(),
-                _buildTracklistTab(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEnergyProfileSelector() {
-    const profiles = [
-      ('warm-up', 'Warm-Up'),
-      ('peak-time', 'Peak-Time'),
-      ('journey', 'Journey'),
-      ('steady', 'Steady'),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Energy Profile',
-            style: Theme.of(context).textTheme.titleSmall),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          children: profiles.map((p) {
-            final (value, label) = p;
-            return ChoiceChip(
-              label: Text(label),
-              selected: _selectedEnergyProfile == value,
-              onSelected: (selected) {
-                setState(() {
-                  _selectedEnergyProfile = selected ? value : null;
-                });
+      endDrawer: state.hasSetlist
+          ? VersionHistoryPanel(
+              versions: refinementState.versionHistory,
+              currentVersion: refinementState.currentVersion,
+              isLoading: refinementState.isLoadingHistory,
+              onRevert: (versionNumber) {
+                ref.read(refinementProvider.notifier).revertToVersion(
+                      state.setlist!.id,
+                      versionNumber,
+                    );
+                Navigator.of(context).pop();
               },
+            )
+          : null,
+      body: _buildBody(context, state),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, SetlistState state) {
+    if (state.error != null) {
+      return _buildError(context, state);
+    }
+    if (state.isGenerating) {
+      return _buildLoading('Generating your setlist with Claude...');
+    }
+    if (state.isArranging) {
+      return _buildLoading('Arranging for harmonic flow...');
+    }
+    if (state.hasSetlist) {
+      return SetlistResultView(
+        setlist: state.setlist!,
+        onArrange: () => ref.read(setlistProvider.notifier).arrangeSetlist(),
+      );
+    }
+    return SetlistInputForm(
+      onGenerate: ({
+        required prompt,
+        sourcePlaylistId,
+        seedTracklist,
+        required trackCount,
+        energyProfile,
+        creativeMode,
+        bpmMin,
+        bpmMax,
+      }) {
+        ref.read(setlistProvider.notifier).generateSetlist(
+              prompt,
+              trackCount: trackCount,
+              energyProfile: energyProfile,
+              creativeMode: creativeMode,
+              sourcePlaylistId: sourcePlaylistId,
+              seedTracklist: seedTracklist,
+              bpmMin: bpmMin,
+              bpmMax: bpmMax,
             );
-          }).toList(),
-        ),
-      ],
+      },
     );
   }
 
-  Widget _buildTrackCountSlider() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text('Set Length',
-                style: Theme.of(context).textTheme.titleSmall),
-            const Spacer(),
-            Text('${_trackCount.round()} tracks',
-                style: Theme.of(context).textTheme.bodyMedium),
-          ],
-        ),
-        Slider(
-          value: _trackCount,
-          min: 5,
-          max: 30,
-          divisions: 25,
-          label: '${_trackCount.round()}',
-          onChanged: (v) => setState(() => _trackCount = v),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildAdvancedSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        InkWell(
-          onTap: () => setState(() => _showAdvanced = !_showAdvanced),
-          child: Row(
-            children: [
-              Text('Advanced',
-                  style: Theme.of(context).textTheme.titleSmall),
-              const SizedBox(width: 4),
-              Icon(
-                _showAdvanced
-                    ? Icons.expand_less
-                    : Icons.expand_more,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-        if (_showAdvanced) ...[
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _bpmMinController,
-                  decoration: const InputDecoration(
-                    labelText: 'Min BPM',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: TextField(
-                  controller: _bpmMaxController,
-                  decoration: const InputDecoration(
-                    labelText: 'Max BPM',
-                    border: OutlineInputBorder(),
-                  ),
-                  keyboardType: TextInputType.number,
-                ),
-              ),
-            ],
+  Widget _buildError(BuildContext context, SetlistState state) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline,
+              size: 48, color: Theme.of(context).colorScheme.error),
+          const SizedBox(height: 16),
+          Text(state.error!, textAlign: TextAlign.center),
+          const SizedBox(height: 16),
+          OutlinedButton(
+            onPressed: () => _resetAll(),
+            child: const Text('Try Again'),
           ),
         ],
-      ],
-    );
-  }
-
-  Widget _buildVibeTab() {
-    return Column(
-      children: [
-        TextField(
-          controller: _promptController,
-          decoration: const InputDecoration(
-            hintText: 'Describe your ideal setlist...',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.music_note),
-          ),
-          maxLines: 3,
-          minLines: 2,
-          textInputAction: TextInputAction.send,
-          onSubmitted: (_) => _generateFromVibe(),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: _generateFromVibe,
-            child: const Text('Generate'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSpotifyTab() {
-    return Column(
-      children: [
-        TextField(
-          controller: _spotifyUrlController,
-          decoration: const InputDecoration(
-            hintText: 'https://open.spotify.com/playlist/...',
-            border: OutlineInputBorder(),
-            prefixIcon: Icon(Icons.link),
-            labelText: 'Spotify Playlist URL',
-          ),
-        ),
-        const SizedBox(height: 12),
-        if (_importError != null)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: Text(
-              _importError!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
-          ),
-        SizedBox(
-          width: double.infinity,
-          child: _isImporting
-              ? const Center(child: CircularProgressIndicator())
-              : FilledButton.icon(
-                  onPressed: _generateFromSpotify,
-                  icon: const Icon(Icons.download),
-                  label: const Text('Import & Generate'),
-                ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTracklistTab() {
-    return Column(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: _tracklistController,
-            decoration: const InputDecoration(
-              hintText:
-                  'Paste your tracklist here...\nArtist - Title\nArtist - Title',
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
-            ),
-            maxLines: null,
-            expands: true,
-            textAlignVertical: TextAlignVertical.top,
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: _generateFromTracklist,
-            child: const Text('Generate from Tracklist'),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildContent(SetlistState state) {
-    if (state.error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.error_outline,
-                size: 48, color: Theme.of(context).colorScheme.error),
-            const SizedBox(height: 16),
-            Text(state.error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: _resetAll,
-              child: const Text('Try Again'),
-            ),
-          ],
-        ),
-      );
-    }
-
-    if (state.isGenerating) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Generating your setlist with Claude...'),
-          ],
-        ),
-      );
-    }
-
-    if (state.isArranging) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Arranging for harmonic flow...'),
-          ],
-        ),
-      );
-    }
-
-    if (state.hasSetlist) {
-      return _buildSetlistResult(state);
-    }
-
-    return const SizedBox.shrink();
-  }
-
-  Widget _buildSetlistResult(SetlistState state) {
-    final setlist = state.setlist!;
-    final audioState = ref.watch(audioPlaybackProvider);
-    final deezerState = ref.watch(deezerPreviewProvider);
-
-    return Column(
-      children: [
-        // Notes
-        if (setlist.notes != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Text(
-              setlist.notes!,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontStyle: FontStyle.italic,
-                  ),
-            ),
-          ),
-        // Header row
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              Text(
-                '${setlist.tracks.length} tracks',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              if (setlist.isArranged) ...[
-                const SizedBox(width: 12),
-                Chip(
-                  label:
-                      Text('Flow: ${setlist.harmonicFlowScoreFormatted}'),
-                  avatar: const Icon(Icons.auto_awesome, size: 16),
-                ),
-              ],
-              // Catalog percentage badge
-              if (setlist.catalogPercentage != null) ...[
-                const SizedBox(width: 8),
-                _buildCatalogBadge(setlist),
-              ],
-              const Spacer(),
-              if (!setlist.isArranged)
-                FilledButton.icon(
-                  onPressed: () =>
-                      ref.read(setlistProvider.notifier).arrangeSetlist(),
-                  icon: const Icon(Icons.auto_awesome),
-                  label: const Text('Arrange'),
-                ),
-            ],
-          ),
-        ),
-        // Transport controls
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          child: Row(
-            children: [
-              // Previous
-              IconButton(
-                icon: const Icon(Icons.skip_previous),
-                tooltip: 'Previous',
-                onPressed: (audioState.currentTrackIndex == null ||
-                        audioState.currentTrackIndex == 0)
-                    ? null
-                    : () => ref
-                        .read(audioPlaybackProvider.notifier)
-                        .previous(setlist.tracks, deezerState),
-              ),
-              // Play/Pause toggle
-              IconButton(
-                icon: Icon(
-                  audioState.isPlaying ? Icons.pause : Icons.play_arrow,
-                ),
-                tooltip: audioState.isPlaying ? 'Pause' : 'Play',
-                onPressed: (audioState.isPlaying || audioState.isPaused)
-                    ? () =>
-                        ref.read(audioPlaybackProvider.notifier).togglePause()
-                    : null,
-              ),
-              // Stop
-              IconButton(
-                icon: const Icon(Icons.stop),
-                tooltip: 'Stop',
-                onPressed: (audioState.isPlaying ||
-                        audioState.isPaused ||
-                        audioState.isLoading)
-                    ? () => ref.read(audioPlaybackProvider.notifier).stop()
-                    : null,
-              ),
-              // Next
-              IconButton(
-                icon: const Icon(Icons.skip_next),
-                tooltip: 'Next',
-                onPressed: (audioState.currentTrackIndex == null ||
-                        audioState.currentTrackIndex! >=
-                            setlist.tracks.length - 1)
-                    ? null
-                    : () => ref
-                        .read(audioPlaybackProvider.notifier)
-                        .next(setlist.tracks, deezerState),
-              ),
-              // Crossfade duration
-              const Text('Crossfade:'),
-              SizedBox(
-                width: 100,
-                child: Slider(
-                  value: audioState.crossfadeDuration,
-                  min: 1,
-                  max: 8,
-                  divisions: 7,
-                  label: '${audioState.crossfadeDuration.round()}s',
-                  onChanged: (v) => ref
-                      .read(audioPlaybackProvider.notifier)
-                      .setCrossfadeDuration(v),
-                ),
-              ),
-              Text('${audioState.crossfadeDuration.round()}s'),
-              const Spacer(),
-              // Track position
-              if (audioState.currentTrackIndex != null)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    'Track ${audioState.currentTrackIndex! + 1} of ${audioState.totalTracks}',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ),
-              // Status text
-              if (audioState.status == PlaybackStatus.completed)
-                Text(
-                  'Set complete',
-                  style: Theme.of(context).textTheme.bodySmall,
-                )
-              else if (audioState.statusText != null)
-                Flexible(
-                  child: Text(
-                    audioState.statusText!,
-                    style: Theme.of(context).textTheme.bodySmall,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        // Catalog warning
-        if (setlist.catalogWarning != null)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              color: Theme.of(context).colorScheme.errorContainer,
-              child: Padding(
-                padding: const EdgeInsets.all(8),
-                child: Row(
-                  children: [
-                    Icon(Icons.warning_amber,
-                        size: 16,
-                        color: Theme.of(context).colorScheme.error),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(setlist.catalogWarning!)),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        // Track list
-        Expanded(
-          child: ListView.builder(
-            itemCount: setlist.tracks.length,
-            itemBuilder: (context, index) {
-              final track = setlist.tracks[index];
-              final hasBpmWarning = setlist.bpmWarnings.any((w) =>
-                  w.fromPosition == track.position ||
-                  w.toPosition == track.position);
-              final hasPreview =
-                  deezerState.previewUrls[previewKey(track)] != null;
-
-              final isCurrentTrack = audioState.currentTrackIndex == index;
-              return SetlistTrackTile(
-                track: track,
-                hasBpmWarning: hasBpmWarning,
-                isPlaying: isCurrentTrack &&
-                    (audioState.isPlaying || audioState.isPaused),
-                isPaused: audioState.isPaused && isCurrentTrack,
-                isLoading: audioState.isLoading && isCurrentTrack,
-                hasPreview: hasPreview,
-                onPlay: () => ref
-                    .read(audioPlaybackProvider.notifier)
-                    .playFromIndex(index, setlist.tracks, deezerState),
-                onPause: () =>
-                    ref.read(audioPlaybackProvider.notifier).togglePause(),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCatalogBadge(Setlist setlist) {
-    final pct = setlist.catalogPercentage!;
-    final isLow = pct < 30;
-    final theme = Theme.of(context);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: isLow
-            ? theme.colorScheme.errorContainer
-            : theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        'Catalog: ${pct.round()}%',
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: isLow
-              ? theme.colorScheme.onErrorContainer
-              : theme.colorScheme.onPrimaryContainer,
-        ),
       ),
     );
   }
 
-  double? _parseBpm(String text) {
-    if (text.trim().isEmpty) return null;
-    return double.tryParse(text.trim());
-  }
-
-  void _generateFromVibe() {
-    final prompt = _promptController.text.trim();
-    if (prompt.isEmpty) return;
-    _doGenerate(prompt);
-  }
-
-  Future<void> _generateFromSpotify() async {
-    final url = _spotifyUrlController.text.trim();
-    if (url.isEmpty) return;
-
-    // Step 1: Import the playlist
-    setState(() {
-      _isImporting = true;
-      _importError = null;
-    });
-
-    try {
-      final importNotifier = ref.read(spotifyImportProvider.notifier);
-      await importNotifier.importPlaylist(url);
-      final importState = ref.read(spotifyImportProvider);
-
-      if (importState.status == ImportStatus.error) {
-        setState(() {
-          _isImporting = false;
-          _importError = importState.errorMessage ?? 'Import failed';
-        });
-        return;
-      }
-
-      final importId = importState.importId;
-      setState(() => _isImporting = false);
-
-      // Step 2: Generate from the imported playlist
-      if (importId != null) {
-        _doGenerate(
-          'Generate from imported playlist',
-          sourcePlaylistId: importId,
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _isImporting = false;
-        _importError = e.toString();
-      });
-    }
-  }
-
-  void _generateFromTracklist() {
-    final tracklist = _tracklistController.text.trim();
-    if (tracklist.isEmpty) return;
-    _doGenerate(
-      'Generate from tracklist',
-      seedTracklist: tracklist,
+  Widget _buildLoading(String message) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 16),
+          Text(message),
+        ],
+      ),
     );
-  }
-
-  void _doGenerate(
-    String prompt, {
-    String? sourcePlaylistId,
-    String? seedTracklist,
-  }) {
-    ref.read(setlistProvider.notifier).generateSetlist(
-          prompt,
-          trackCount: _trackCount.round(),
-          energyProfile: _selectedEnergyProfile,
-          creativeMode: _creativeMode ? true : null,
-          sourcePlaylistId: sourcePlaylistId,
-          seedTracklist: seedTracklist,
-          bpmMin: _parseBpm(_bpmMinController.text),
-          bpmMax: _parseBpm(_bpmMaxController.text),
-        );
   }
 
   void _resetAll() {
     ref.read(setlistProvider.notifier).reset();
     ref.read(audioPlaybackProvider.notifier).stop();
-    _promptController.clear();
-    _spotifyUrlController.clear();
-    _tracklistController.clear();
-    _bpmMinController.clear();
-    _bpmMaxController.clear();
-    setState(() {
-      _selectedEnergyProfile = null;
-      _creativeMode = false;
-      _trackCount = 15;
-      _showAdvanced = false;
-    });
+    ref.read(refinementProvider.notifier).reset();
   }
 }

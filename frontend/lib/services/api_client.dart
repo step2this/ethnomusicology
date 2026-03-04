@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../models/refinement.dart';
 import '../models/setlist.dart';
 import '../models/track_list_response.dart';
 
@@ -140,5 +141,27 @@ class ApiClient {
     } catch (e) {
       return null;
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Setlist Refinement
+  // -------------------------------------------------------------------------
+
+  Future<RefinementResponse> refineSetlist(String setlistId, String message) async {
+    final response = await _dio.post(
+      '/setlists/$setlistId/refine',
+      data: {'message': message},
+    );
+    return RefinementResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<RefinementResponse> revertSetlist(String setlistId, int versionNumber) async {
+    final response = await _dio.post('/setlists/$setlistId/revert/$versionNumber');
+    return RefinementResponse.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<HistoryResponse> getSetlistHistory(String setlistId) async {
+    final response = await _dio.get('/setlists/$setlistId/history');
+    return HistoryResponse.fromJson(response.data as Map<String, dynamic>);
   }
 }

@@ -3,4 +3,6 @@ pub mod camelot;
 pub mod deezer;
 pub mod enrichment;
 pub mod import;
+pub mod quick_commands;
+pub mod refinement;
 pub mod setlist;

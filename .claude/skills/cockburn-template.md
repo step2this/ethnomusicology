@@ -102,7 +102,8 @@ n. <Success postcondition is achieved>
 - **SoundCloud API** (Discovery, streaming, OAuth 2.1)
 - **Claude API** (Setlist generation, music knowledge, prompt processing)
 - **essentia Sidecar** (BPM detection, key detection, energy analysis)
-- **Audio Player** (just_audio, Crossfade playback, Preview streaming)
+- **Audio Player** (Web Audio API (via package:web), Crossfade playback, Preview streaming)
+- **Deezer Search API** (30s preview URLs, audio preview playback)
 - **Database** (SQLite/PostgreSQL via SQLx)
 
 ### Common Ethnomusicology Invariants

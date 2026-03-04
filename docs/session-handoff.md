@@ -1,73 +1,63 @@
 # Session Handoff — 2026-03-04
 
-## What Was Accomplished This Session
+## Branch: `feature/st-007-conversational-refinement`
 
-### 1. UC-019 Phase 3: Audio UX Improvements (implementation complete, pre-commit)
-- **Branch**: `feature/audio-ux-improvements` (unstaged, 7 files, +369/-115 lines)
-- Transport bar: Previous, Play/Pause, Stop, Next buttons
-- Auto-advance: crossfade to next playable track when current ends
-- `PlaybackStatus` enum replaces boolean `isPlaying`/`isLoading` flags
-- Pause/resume via `AudioContext.suspend()/resume()`
-- `onTrackEnded` callback replaces timer-based auto-stop
-- Race-condition guard on stale ended callbacks
-- "Set complete" state when last track finishes
-- 20 new tests (audio_provider_test.dart) — all passing
-- Quality gates pass: `flutter analyze` clean, 67 frontend tests pass
+### Status: READY FOR PR
+All implementation complete. All quality gates pass. Critic reviews done (frontend + backend).
 
-### 2. Parallel Critic Review (3 critics, fresh context)
-- **State Management Critic**: 2 CRITICAL, 3 HIGH, 6 MEDIUM, 4 LOW
-- **Audio Service Critic**: 0 CRITICAL, 3 HIGH, 3 MEDIUM, 4 LOW
-- **UI/Widget Critic**: 0 CRITICAL, 3 HIGH, 4 MEDIUM, 4 LOW
-- Findings documented in task plan
+### Commits on this branch
+```
+c5d2431 Fix truncate panic on multi-byte UTF-8 (critic H1)
+e20a4a8 ST-007 T5: Refinement routes + integration tests
+8f95c34 ST-007 T4: Refinement service with LLM + quick commands
+xxxxxxx ST-007 T2: DB layer for versioning + conversations
+01b425d Flutter arch refactor: Riverpod 2.x migration + widget decomposition
+2b99cb2 ST-007 Phase 1 partial: converse() API + quick commands (T1+T3)
+ca258e3 ST-007 Phase 0: Add versioning migration + module stubs
+```
 
-### 3. Task Decomposition for Critic Fixes
-- Plan: `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md`
-- 10 tasks (T1-T10), 3 parallel builders, non-overlapping files
-- MVP progress and roadmap updated
+### What Was Built
 
-## Current State
+**ST-007 Backend (Conversational Refinement):**
+- Migration 008: setlist_versions, setlist_version_tracks, setlist_conversations tables
+- `ClaudeClientTrait::converse()` for multi-turn conversations
+- Quick commands: shuffle, sort-by-bpm, reverse, undo, revert-to-version (no LLM needed)
+- DB layer: 8 CRUD operations for versions, tracks, conversations
+- Refinement service: full LLM refinement pipeline with validation, change warnings, retries
+- Routes: POST /api/setlists/{id}/refine, POST /api/setlists/{id}/revert/{version}, GET /api/setlists/{id}/history
+- 56 new backend tests
 
-### Git
-- **Branch**: `feature/audio-ux-improvements` (all changes unstaged)
-- **Tests**: 268 backend + 67 frontend = 335 total (all passing)
-- **Quality gates**: `flutter analyze` clean, `flutter test` 67/67 pass
+**Flutter Arch Refactor:**
+- All 6 providers: StateNotifier → Notifier (Riverpod 2.x)
+- 712-line god widget → 3 focused widgets (SetlistInputForm, SetlistResultView, TransportControls)
+- Removed 9 unused dependencies, deleted occasion.dart
+- App renamed Salamic Vibes → Tarab Studio
+- 53 new frontend tests
 
-### What's In Progress
-- **Critic fix pass**: 10 tasks identified, 3 builders planned in parallel
-  - provider-builder: T1 (previous skip unplayable), T2 (catchError), T3 (stop cleanup), T9 (test containers), T10 (statusText)
-  - service-builder: T6 (disconnect + generation counter), T7 (HTTP status check), T8 (comment fix)
-  - ui-builder: T4 (idle icon fix), T5 (dead onStop removal)
+### Test Counts
+- Backend: 328 tests (304 unit + 24 integration)
+- Frontend: 104 tests
+- **Total: 432 tests, all passing**
 
-### Deployment
-- **URL**: `https://tarab.studio`
-- **Backend**: systemd service (active, running)
-- Phase 3 changes NOT deployed yet (need commit + deploy)
+### Quality Gates
+- `cargo fmt --check` ✅
+- `cargo clippy -- -D warnings` ✅
+- `cargo test` ✅ (328)
+- `flutter analyze` ✅
+- `flutter test` ✅ (104)
 
-## What the Next Session Should Do
+### Critic Review Results
+- **Frontend:** APPROVED — 3 LOW findings (cosmetic only)
+- **Backend:** APPROVED with 1 fix applied — H1 (truncate UTF-8 panic) fixed, 5 LOW accepted for MVP
 
-### Immediate: Execute Critic Fix Team
-1. Read plan: `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md`
-2. Spawn 3 builders in parallel (provider-builder, service-builder, ui-builder)
-3. Run quality gates: `flutter analyze && flutter test`
-4. Commit all changes on `feature/audio-ux-improvements`
-5. Deploy to tarab.studio
-6. Write retrospective
+### Known LOW-severity items (accepted for MVP)
+- L1: Dead apply_* functions in quick_commands.rs (operate on SetlistTrackRow, service uses VersionTrackRow)
+- L2: SortByBpm always ascending (plan had ascending param)
+- L3: Timeout/ServiceBusy error variants from plan not implemented (mapped via LlmError)
+- L4: parent_version_id not set on LLM-refined versions (lineage incomplete)
+- L5: No explicit test for undo-with-only-v0 edge case
 
-### After UC-019 Phase 3
-- Merge `feature/audio-ux-improvements` to main (PR or direct)
-- Update MVP progress: transport controls → ✅
-- Ember Crate / TR-808 design implementation
-- Activate GitHub Actions CI/CD (add SSH key secrets)
-- Scope down IAM
-- ST-007 conversational refinement (post-MVP)
-
-## Key Files
-| File | Purpose |
-|------|---------|
-| `docs/tasks/uc-019-phase3-audio-ux-critic-fixes.md` | Critic fix task plan (10 tasks, 3 builders) |
-| `docs/tasks/uc-019-tasks.md` | Original UC-019 Phase 1 task plan |
-| `docs/tasks/uc-019-phase2-deezer-enrichment.md` | Phase 2 task plan |
-| `docs/mvp-progress.md` | MVP postcondition matrix |
-| `docs/mvp-roadmap.md` | Roadmap (updated with Phase 3) |
-| `CLAUDE.md` | Standing orders |
-| `~/.claude/projects/-home-ubuntu-ethnomusicology/memory/MEMORY.md` | Cross-session memory |
+### Next Steps
+1. Create PR → main
+2. Deploy to tarab.studio
+3. ST-007 frontend (conversational UI) — depends on this backend + arch refactor
