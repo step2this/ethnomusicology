@@ -369,7 +369,7 @@ class _SetlistGenerationScreenState
           children: [
             CircularProgressIndicator(),
             SizedBox(height: 16),
-            Text('Generating your setlist...'),
+            Text('Generating your setlist with Claude...'),
           ],
         ),
       );
@@ -446,21 +446,59 @@ class _SetlistGenerationScreenState
             ],
           ),
         ),
-        // Playback controls
+        // Transport controls
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
+          padding: const EdgeInsets.symmetric(horizontal: 8),
           child: Row(
             children: [
-              // Stop button
+              // Previous
+              IconButton(
+                icon: const Icon(Icons.skip_previous),
+                tooltip: 'Previous',
+                onPressed: (audioState.currentTrackIndex == null ||
+                        audioState.currentTrackIndex == 0)
+                    ? null
+                    : () => ref
+                        .read(audioPlaybackProvider.notifier)
+                        .previous(setlist.tracks, deezerState),
+              ),
+              // Play/Pause toggle
+              IconButton(
+                icon: Icon(
+                  audioState.isPlaying ? Icons.pause : Icons.play_arrow,
+                ),
+                tooltip: audioState.isPlaying ? 'Pause' : 'Play',
+                onPressed: (audioState.isPlaying || audioState.isPaused)
+                    ? () =>
+                        ref.read(audioPlaybackProvider.notifier).togglePause()
+                    : null,
+              ),
+              // Stop
               IconButton(
                 icon: const Icon(Icons.stop),
-                onPressed: () => ref.read(audioPlaybackProvider.notifier).stop(),
+                tooltip: 'Stop',
+                onPressed: (audioState.isPlaying ||
+                        audioState.isPaused ||
+                        audioState.isLoading)
+                    ? () => ref.read(audioPlaybackProvider.notifier).stop()
+                    : null,
               ),
-              const SizedBox(width: 8),
+              // Next
+              IconButton(
+                icon: const Icon(Icons.skip_next),
+                tooltip: 'Next',
+                onPressed: (audioState.currentTrackIndex == null ||
+                        audioState.currentTrackIndex! >=
+                            setlist.tracks.length - 1)
+                    ? null
+                    : () => ref
+                        .read(audioPlaybackProvider.notifier)
+                        .next(setlist.tracks, deezerState),
+              ),
               // Crossfade duration
-              Text('Crossfade: '),
+              const Text('Crossfade:'),
               SizedBox(
-                width: 120,
+                width: 100,
                 child: Slider(
                   value: audioState.crossfadeDuration,
                   min: 1,
@@ -474,12 +512,28 @@ class _SetlistGenerationScreenState
               ),
               Text('${audioState.crossfadeDuration.round()}s'),
               const Spacer(),
+              // Track position
+              if (audioState.currentTrackIndex != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    'Track ${audioState.currentTrackIndex! + 1} of ${audioState.totalTracks}',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
+                ),
               // Status text
-              if (audioState.statusText != null)
+              if (audioState.status == PlaybackStatus.completed)
                 Text(
-                  audioState.statusText!,
+                  'Set complete',
                   style: Theme.of(context).textTheme.bodySmall,
-                  overflow: TextOverflow.ellipsis,
+                )
+              else if (audioState.statusText != null)
+                Flexible(
+                  child: Text(
+                    audioState.statusText!,
+                    style: Theme.of(context).textTheme.bodySmall,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
             ],
           ),
@@ -516,34 +570,20 @@ class _SetlistGenerationScreenState
               final hasPreview =
                   deezerState.previewUrls[previewKey(track)] != null;
 
+              final isCurrentTrack = audioState.currentTrackIndex == index;
               return SetlistTrackTile(
                 track: track,
                 hasBpmWarning: hasBpmWarning,
-                isPlaying: audioState.currentTrackIndex == index,
-                isLoading: audioState.isLoading &&
-                    audioState.currentTrackIndex == index,
+                isPlaying: isCurrentTrack &&
+                    (audioState.isPlaying || audioState.isPaused),
+                isPaused: audioState.isPaused && isCurrentTrack,
+                isLoading: audioState.isLoading && isCurrentTrack,
                 hasPreview: hasPreview,
-                onPlay: () {
-                  final notifier =
-                      ref.read(audioPlaybackProvider.notifier);
-                  // If there's a next track, crossfade; otherwise single play
-                  if (index < setlist.tracks.length - 1) {
-                    notifier.playCrossfade(
-                      index,
-                      index + 1,
-                      setlist.tracks,
-                      deezerState,
-                    );
-                  } else {
-                    notifier.playTrack(
-                      index,
-                      setlist.tracks,
-                      deezerState,
-                    );
-                  }
-                },
-                onStop: () =>
-                    ref.read(audioPlaybackProvider.notifier).stop(),
+                onPlay: () => ref
+                    .read(audioPlaybackProvider.notifier)
+                    .playFromIndex(index, setlist.tracks, deezerState),
+                onPause: () =>
+                    ref.read(audioPlaybackProvider.notifier).togglePause(),
               );
             },
           ),

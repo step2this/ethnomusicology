@@ -1,5 +1,6 @@
 import 'dart:js_interop';
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:web/web.dart' as web;
 import 'audio_service.dart';
 
@@ -13,13 +14,15 @@ class WebAudioPlaybackService implements AudioPlaybackService {
   late web.AudioContext _audioCtx;
   bool _audioCtxInitialized = false;
   bool _isPlaying = false;
+  bool _isPaused = false;
 
   web.AudioBufferSourceNode? _sourceA;
   web.AudioBufferSourceNode? _sourceB;
   web.GainNode? _gainA;
   web.GainNode? _gainB;
 
-  Timer? _autoStopTimer;
+  VoidCallback? _onTrackEnded;
+  int _playGeneration = 0;
 
   /// Initialize AudioContext on first use (requires user gesture).
   void _initAudioContext() {
@@ -34,6 +37,9 @@ class WebAudioPlaybackService implements AudioPlaybackService {
 
     try {
       final response = await web.window.fetch(proxyUrl.toJS).toDart;
+      if (!response.ok) {
+        throw Exception('HTTP ${response.status} fetching audio from $proxyUrl');
+      }
       final arrayBuffer = await response.arrayBuffer().toDart;
       final audioBuffer = await _audioCtx.decodeAudioData(arrayBuffer).toDart;
       return audioBuffer;
@@ -44,30 +50,25 @@ class WebAudioPlaybackService implements AudioPlaybackService {
 
   /// Stop all currently playing sources.
   void _stopSources() {
-    try {
-      _sourceA?.stop();
-    } catch (e) {
-      // Source may have already stopped
-    }
-    try {
-      _sourceB?.stop();
-    } catch (e) {
-      // Source may have already stopped
-    }
-
+    _onTrackEnded = null; // prevent stale ended events before stopping
+    try { _sourceA?.stop(); } catch (_) {}
+    try { _sourceB?.stop(); } catch (_) {}
+    try { _sourceA?.disconnect(); } catch (_) {}
+    try { _sourceB?.disconnect(); } catch (_) {}
+    try { _gainA?.disconnect(); } catch (_) {}
+    try { _gainB?.disconnect(); } catch (_) {}
     _sourceA = null;
     _sourceB = null;
     _gainA = null;
     _gainB = null;
-
-    _autoStopTimer?.cancel();
-    _autoStopTimer = null;
   }
 
   @override
   Future<void> loadAndPlay(String proxyUrl) async {
     _stopSources();
+    final gen = ++_playGeneration;
     _isPlaying = true;
+    _isPaused = false;
 
     try {
       final buffer = await _loadAudio(proxyUrl);
@@ -83,11 +84,15 @@ class WebAudioPlaybackService implements AudioPlaybackService {
       final now = _audioCtx.currentTime;
       _sourceA!.start(now);
 
-      // Auto-stop after buffer duration
-      final durationMs = (buffer.duration * 1000).toInt();
-      _autoStopTimer = Timer(Duration(milliseconds: durationMs), () {
-        _isPlaying = false;
-      });
+      // Set up onended callback for track finish detection
+      _sourceA!.addEventListener(
+        'ended',
+        (web.Event event) {
+          if (gen != _playGeneration) return;
+          _isPlaying = false;
+          _onTrackEnded?.call();
+        }.toJS,
+      );
     } catch (e) {
       _isPlaying = false;
       rethrow;
@@ -101,7 +106,9 @@ class WebAudioPlaybackService implements AudioPlaybackService {
     double fadeDuration,
   ) async {
     _stopSources();
+    final gen = ++_playGeneration;
     _isPlaying = true;
+    _isPaused = false;
 
     try {
       // Load both audio buffers in parallel
@@ -148,14 +155,15 @@ class WebAudioPlaybackService implements AudioPlaybackService {
       _sourceA!.start(now, startA);
       _sourceB!.start(fadeStartTime);
 
-      // Calculate total playback time: 2s solo A + fade + 3s solo B
-      final totalTime = 2 + fadeDuration + 3;
-
-      // Auto-stop after playback complete
-      _autoStopTimer =
-          Timer(Duration(milliseconds: (totalTime * 1000).toInt()), () {
-        _isPlaying = false;
-      });
+      // Set up onended callback for Track B finish (end of crossfade)
+      _sourceB!.addEventListener(
+        'ended',
+        (web.Event event) {
+          if (gen != _playGeneration) return;
+          _isPlaying = false;
+          _onTrackEnded?.call();
+        }.toJS,
+      );
     } catch (e) {
       _isPlaying = false;
       rethrow;
@@ -166,10 +174,35 @@ class WebAudioPlaybackService implements AudioPlaybackService {
   void stop() {
     _stopSources();
     _isPlaying = false;
+    _isPaused = false;
+  }
+
+  @override
+  Future<void> pause() async {
+    if (_audioCtxInitialized) {
+      await _audioCtx.suspend().toDart;
+      _isPaused = true;
+    }
+  }
+
+  @override
+  Future<void> resume() async {
+    if (_audioCtxInitialized) {
+      await _audioCtx.resume().toDart;
+      _isPaused = false;
+    }
   }
 
   @override
   bool get isPlaying => _isPlaying;
+
+  @override
+  bool get isPaused => _isPaused;
+
+  @override
+  set onTrackEnded(VoidCallback? callback) {
+    _onTrackEnded = callback;
+  }
 
   @override
   void dispose() {
@@ -179,5 +212,7 @@ class WebAudioPlaybackService implements AudioPlaybackService {
       _audioCtxInitialized = false;
     }
     _isPlaying = false;
+    _isPaused = false;
+    _onTrackEnded = null;
   }
 }
