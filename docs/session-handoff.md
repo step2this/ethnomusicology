@@ -1,45 +1,63 @@
-# Session Handoff — 2026-03-04 (Post-OOM Recovery)
+# Session Handoff — 2026-03-04
 
 ## Branch: `feature/st-007-conversational-refinement`
 
-### Recovery Status
-Previous session had two parallel Claudes (backend + frontend) that died in OOM.
-All work recovered and committed:
-- `01b425d` — Flutter arch refactor (Riverpod 2.x + widget decomposition, 104 tests pass)
-- `2b99cb2` — ST-007 Phase 1 partial (converse() API + quick commands)
-- `ca258e3` — ST-007 Phase 0 (migration 008 + module stubs)
+### Status: READY FOR PR
+All implementation complete. All quality gates pass. Critic reviews done (frontend + backend).
 
-### Team: `st-007-recovery`
+### Commits on this branch
+```
+c5d2431 Fix truncate panic on multi-byte UTF-8 (critic H1)
+e20a4a8 ST-007 T5: Refinement routes + integration tests
+8f95c34 ST-007 T4: Refinement service with LLM + quick commands
+xxxxxxx ST-007 T2: DB layer for versioning + conversations
+01b425d Flutter arch refactor: Riverpod 2.x migration + widget decomposition
+2b99cb2 ST-007 Phase 1 partial: converse() API + quick commands (T1+T3)
+ca258e3 ST-007 Phase 0: Add versioning migration + module stubs
+```
 
-#### Task Status
-| ID | Task | Status | Owner | Blocked By |
-|----|------|--------|-------|------------|
-| 1 | T2: DB layer (refinement.rs, models.rs) | pending | — | — |
-| 2 | F1: Frontend critic review | pending | — | — |
-| 3 | T4: Refinement service | pending | — | T2 |
-| 4 | T5: Routes + integration tests | pending | — | T4 |
-| 5 | C1: Backend critic review | pending | — | T5 |
-| 6 | C2: Final quality gates | pending | — | T5, C1 |
+### What Was Built
 
-#### What's Already Done
-- **T1 (converse API):** `ClaudeClientTrait::converse()` + `ClaudeClient` impl + 2 wiremock tests
-- **T3 (quick commands):** Full `QuickCommand` enum, `parse_quick_command()`, `apply_quick_command()` + unit tests
-- **Flutter arch refactor:** All 6 providers migrated, god widget decomposed, 9 deps removed, 5 new test files
+**ST-007 Backend (Conversational Refinement):**
+- Migration 008: setlist_versions, setlist_version_tracks, setlist_conversations tables
+- `ClaudeClientTrait::converse()` for multi-turn conversations
+- Quick commands: shuffle, sort-by-bpm, reverse, undo, revert-to-version (no LLM needed)
+- DB layer: 8 CRUD operations for versions, tracks, conversations
+- Refinement service: full LLM refinement pipeline with validation, change warnings, retries
+- Routes: POST /api/setlists/{id}/refine, POST /api/setlists/{id}/revert/{version}, GET /api/setlists/{id}/history
+- 56 new backend tests
 
-#### Execution Plan
-1. **Wave 1 (parallel):** T2 (db-builder, sonnet) + F1 (frontend-critic, opus)
-2. **Wave 2 (sequential):** T4 (service-builder, sonnet) — depends on T2
-3. **Wave 3 (sequential):** T5 (route-builder, sonnet) — depends on T4
-4. **Wave 4 (parallel):** C1 (backend-critic, opus) + fixes from F1/C1
-5. **Wave 5:** C2 (quality gates, sonnet)
+**Flutter Arch Refactor:**
+- All 6 providers: StateNotifier → Notifier (Riverpod 2.x)
+- 712-line god widget → 3 focused widgets (SetlistInputForm, SetlistResultView, TransportControls)
+- Removed 9 unused dependencies, deleted occasion.dart
+- App renamed Salamic Vibes → Tarab Studio
+- 53 new frontend tests
 
-#### File Ownership (No Overlap)
-- db-builder: `backend/src/db/refinement.rs`, `backend/src/db/models.rs`, `backend/src/db/mod.rs`
-- service-builder: `backend/src/services/refinement.rs`
-- route-builder: `backend/src/routes/refinement.rs`, `backend/tests/refinement_api_test.rs`, `backend/src/main.rs`
-- frontend-critic: READ ONLY (all `frontend/` files)
+### Test Counts
+- Backend: 328 tests (304 unit + 24 integration)
+- Frontend: 104 tests
+- **Total: 432 tests, all passing**
 
-### If OOM Happens Again
-1. Check `git log --oneline -10` — each builder commits after completing
-2. Check task list status in this file (or `~/.claude/tasks/st-007-recovery/`)
-3. Resume from first incomplete task
+### Quality Gates
+- `cargo fmt --check` ✅
+- `cargo clippy -- -D warnings` ✅
+- `cargo test` ✅ (328)
+- `flutter analyze` ✅
+- `flutter test` ✅ (104)
+
+### Critic Review Results
+- **Frontend:** APPROVED — 3 LOW findings (cosmetic only)
+- **Backend:** APPROVED with 1 fix applied — H1 (truncate UTF-8 panic) fixed, 5 LOW accepted for MVP
+
+### Known LOW-severity items (accepted for MVP)
+- L1: Dead apply_* functions in quick_commands.rs (operate on SetlistTrackRow, service uses VersionTrackRow)
+- L2: SortByBpm always ascending (plan had ascending param)
+- L3: Timeout/ServiceBusy error variants from plan not implemented (mapped via LlmError)
+- L4: parent_version_id not set on LLM-refined versions (lineage incomplete)
+- L5: No explicit test for undo-with-only-v0 edge case
+
+### Next Steps
+1. Create PR → main
+2. Deploy to tarab.studio
+3. ST-007 frontend (conversational UI) — depends on this backend + arch refactor
