@@ -118,7 +118,7 @@ void main() {
           'track-1': DeezerTrackInfo(
             previewUrl: '/api/audio/proxy?url=test',
             status: DeezerSearchStatus.found,
-            searchQuery: 'Artist Track',
+            searchQuery: 'artist:"Artist" track:"Track"',
           ),
         },
       );
@@ -136,7 +136,7 @@ void main() {
           'track-1': DeezerTrackInfo(
             previewUrl: '/api/audio/proxy?url=test',
             status: DeezerSearchStatus.found,
-            searchQuery: 'Artist Track',
+            searchQuery: 'artist:"Artist" track:"Track"',
           ),
         },
       );
@@ -148,7 +148,7 @@ void main() {
         trackInfo: {
           'track-1': DeezerTrackInfo(
             status: DeezerSearchStatus.notFound,
-            searchQuery: 'Artist Track',
+            searchQuery: 'artist:"Artist" track:"Track"',
           ),
         },
       );
@@ -189,7 +189,7 @@ void main() {
       final state = container.read(deezerPreviewProvider);
       expect(state.isLoading, false);
       expect(state.trackInfo['track-found']?.status, DeezerSearchStatus.found);
-      expect(state.trackInfo['track-found']?.searchQuery, 'Artist Track');
+      expect(state.trackInfo['track-found']?.searchQuery, 'artist:"Artist" track:"Track"');
     });
 
     test('status transitions: loading → notFound when no URL returned', () async {
@@ -209,7 +209,7 @@ void main() {
 
       final state = container.read(deezerPreviewProvider);
       expect(state.trackInfo['unknown-0']?.status, DeezerSearchStatus.notFound);
-      expect(state.trackInfo['unknown-0']?.searchQuery, 'Nobody Missing');
+      expect(state.trackInfo['unknown-0']?.searchQuery, 'artist:"Nobody" track:"Missing"');
     });
 
     test('previewKey uses trackId when available', () {

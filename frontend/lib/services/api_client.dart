@@ -124,19 +124,37 @@ class ApiClient {
   // Audio Preview (Deezer)
   // -------------------------------------------------------------------------
 
-  /// Search Deezer for a track preview URL. Returns the proxied preview URL or null.
+  /// Search Deezer for a track preview URL using a fallback chain:
+  /// 1. Field-specific strict: artist:"X" track:"Y" strict=on
+  /// 2. Field-specific fuzzy: artist:"X" track:"Y"
+  /// 3. Freeform: "artist title" (last resort)
   Future<String?> searchDeezerPreview(String title, String artist) async {
+    // Try field-specific strict first (best accuracy)
+    var preview = await _deezerSearch('artist:"$artist" track:"$title"', strict: true);
+    if (preview != null) return preview;
+
+    // Try field-specific without strict (allows fuzzy matching)
+    preview = await _deezerSearch('artist:"$artist" track:"$title"');
+    if (preview != null) return preview;
+
+    // Last resort: freeform search
+    return _deezerSearch('$artist $title');
+  }
+
+  Future<String?> _deezerSearch(String query, {bool strict = false}) async {
     try {
-      final response = await _dio.get('/audio/deezer-search', queryParameters: {
-        'q': '$artist $title',
-        'limit': '1',
-      });
+      final params = <String, String>{
+        'q': query,
+        'limit': '5',
+      };
+      if (strict) params['strict'] = 'on';
+
+      final response = await _dio.get('/audio/deezer-search', queryParameters: params);
       final data = response.data as Map<String, dynamic>;
       final results = data['data'] as List?;
       if (results == null || results.isEmpty) return null;
       final preview = results[0]['preview'] as String?;
       if (preview == null || preview.isEmpty) return null;
-      // Return proxied URL to avoid CORS issues
       return '/api/audio/proxy?url=${Uri.encodeComponent(preview)}';
     } catch (e) {
       return null;

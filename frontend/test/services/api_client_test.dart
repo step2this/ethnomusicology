@@ -161,8 +161,10 @@ void main() {
 
       await client.searchDeezerPreview('Song Title', 'Artist Name');
 
-      expect(interceptor.lastQueryParams?['q'], 'Artist Name Song Title');
-      expect(interceptor.lastQueryParams?['limit'], '1');
+      // First attempt uses field-specific strict search
+      expect(interceptor.lastQueryParams?['q'], 'artist:"Artist Name" track:"Song Title"');
+      expect(interceptor.lastQueryParams?['limit'], '5');
+      expect(interceptor.lastQueryParams?['strict'], 'on');
     });
   });
 }

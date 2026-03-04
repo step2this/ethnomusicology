@@ -14,6 +14,7 @@ pub struct DeezerSearchParams {
     q: String,
     #[serde(default = "default_limit")]
     limit: u32,
+    strict: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -46,9 +47,16 @@ struct DeezerResponse {
 
 async fn deezer_search(Query(params): Query<DeezerSearchParams>) -> impl IntoResponse {
     let client = reqwest::Client::new();
+    let mut query_params = vec![
+        ("q".to_string(), params.q),
+        ("limit".to_string(), params.limit.to_string()),
+    ];
+    if let Some(ref strict) = params.strict {
+        query_params.push(("strict".to_string(), strict.clone()));
+    }
     match client
         .get("https://api.deezer.com/search")
-        .query(&[("q", &params.q), ("limit", &params.limit.to_string())])
+        .query(&query_params)
         .send()
         .await
     {

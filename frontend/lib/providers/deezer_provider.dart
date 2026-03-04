@@ -63,7 +63,7 @@ class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
     final loadingInfo = <String, DeezerTrackInfo>{};
     for (final track in tracks) {
       final key = track.trackId ?? 'unknown-${track.position}';
-      final query = '${track.artist} ${track.title}';
+      final query = 'artist:"${track.artist}" track:"${track.title}"';
       loadingInfo[key] = DeezerTrackInfo(
         status: DeezerSearchStatus.loading,
         searchQuery: query,
@@ -79,7 +79,7 @@ class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
       final trackEntries = <String, (String, String, String)>{};
       for (final track in tracks) {
         final trackId = track.trackId ?? 'unknown-${track.position}';
-        final query = '${track.artist} ${track.title}';
+        final query = 'artist:"${track.artist}" track:"${track.title}"';
         trackEntries[trackId] = (track.title, track.artist, query);
       }
 
