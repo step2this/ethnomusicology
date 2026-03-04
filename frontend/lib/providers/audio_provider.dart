@@ -6,7 +6,7 @@ import '../services/audio_service.dart';
 // Conditional import: uses web implementation on web, no-op stub elsewhere
 import '../services/audio_service_stub.dart'
     if (dart.library.js_interop) '../services/audio_service_web.dart';
-import 'deezer_provider.dart' show DeezerPreviewState, previewKey;
+import 'deezer_provider.dart' show PreviewState, previewKey;
 
 /// Playback status enum
 enum PlaybackStatus { idle, loading, playing, paused, completed, error }
@@ -56,14 +56,14 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
 
   // Stored references for auto-advance callbacks
   List<SetlistTrack>? _tracks;
-  DeezerPreviewState? _deezerState;
+  PreviewState? _previewState;
 
   @override
   AudioPlaybackState build() {
     _audioService = createAudioService();
     ref.onDispose(() {
       _tracks = null;
-      _deezerState = null;
+      _previewState = null;
       _audioService.dispose();
     });
     return const AudioPlaybackState();
@@ -74,12 +74,12 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   Future<void> playFromIndex(
     int index,
     List<SetlistTrack> tracks,
-    DeezerPreviewState deezerState,
+    PreviewState previewState,
   ) async {
     if (index < 0 || index >= tracks.length) return;
 
     _tracks = tracks;
-    _deezerState = deezerState;
+    _previewState = previewState;
 
     state = state.copyWith(
       status: PlaybackStatus.loading,
@@ -90,7 +90,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     );
 
     try {
-      await _playCurrentTrack(tracks, deezerState);
+      await _playCurrentTrack(tracks, previewState);
     } catch (e) {
       state = state.copyWith(
         status: PlaybackStatus.error,
@@ -103,7 +103,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   /// auto-advance callback with a race-condition guard.
   Future<void> _playCurrentTrack(
     List<SetlistTrack> tracks,
-    DeezerPreviewState deezerState,
+    PreviewState previewState,
   ) async {
     final currentIndex = state.currentTrackIndex;
     if (currentIndex == null || currentIndex < 0 || currentIndex >= tracks.length) {
@@ -111,7 +111,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     }
 
     final track = tracks[currentIndex];
-    final previewUrl = deezerState.getPreviewUrl(previewKey(track));
+    final previewUrl = previewState.getPreviewUrl(previewKey(track));
 
     if (previewUrl == null) {
       state = state.copyWith(
@@ -125,7 +125,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     // The callback uses this to guard against races when the user manually
     // jumps to a different track before this one ends (M7).
     final expectedIndex = currentIndex;
-    _audioService.onTrackEnded = () => _handleTrackEnded(expectedIndex, tracks, deezerState);
+    _audioService.onTrackEnded = () => _handleTrackEnded(expectedIndex, tracks, previewState);
 
     await _audioService.loadAndPlay(previewUrl);
     state = state.copyWith(
@@ -138,9 +138,9 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   /// Called when the current track finishes playing.
   /// Advances to the next playable track, or marks the set complete.
   /// [endedIndex] is a race-condition guard — stale callbacks are no-ops (M7).
-  void _handleTrackEnded(int endedIndex, List<SetlistTrack> tracks, DeezerPreviewState deezerState) {
+  void _handleTrackEnded(int endedIndex, List<SetlistTrack> tracks, PreviewState previewState) {
     if (state.currentTrackIndex != endedIndex) return;
-    final nextIndex = _findNextPlayableTrack(endedIndex, tracks, deezerState);
+    final nextIndex = _findNextPlayableTrack(endedIndex, tracks, previewState);
     if (nextIndex == null) {
       state = state.copyWith(status: PlaybackStatus.completed, statusText: () => 'Set complete');
       return;
@@ -150,7 +150,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
       currentTrackIndex: () => nextIndex,
       statusText: () => 'Loading track ${nextIndex + 1}...',
     );
-    _playCurrentTrack(tracks, deezerState).catchError((e) {
+    _playCurrentTrack(tracks, previewState).catchError((e) {
       state = state.copyWith(status: PlaybackStatus.error, statusText: () => 'Playback error');
     });
   }
@@ -160,10 +160,10 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   int? _findNextPlayableTrack(
     int fromIndex,
     List<SetlistTrack> tracks,
-    DeezerPreviewState deezerState,
+    PreviewState previewState,
   ) {
     for (int i = fromIndex + 1; i < tracks.length; i++) {
-      final previewUrl = deezerState.getPreviewUrl(previewKey(tracks[i]));
+      final previewUrl = previewState.getPreviewUrl(previewKey(tracks[i]));
       if (previewUrl != null) {
         return i;
       }
@@ -176,10 +176,10 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   int? _findPreviousPlayableTrack(
     int fromIndex,
     List<SetlistTrack> tracks,
-    DeezerPreviewState deezerState,
+    PreviewState previewState,
   ) {
     for (int i = fromIndex - 1; i >= 0; i--) {
-      final previewUrl = deezerState.getPreviewUrl(previewKey(tracks[i]));
+      final previewUrl = previewState.getPreviewUrl(previewKey(tracks[i]));
       if (previewUrl != null) {
         return i;
       }
@@ -190,15 +190,15 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   /// Skip to the next playable track
   Future<void> next(
     List<SetlistTrack> tracks,
-    DeezerPreviewState deezerState,
+    PreviewState previewState,
   ) async {
     _tracks = tracks;
-    _deezerState = deezerState;
+    _previewState = previewState;
 
     final currentIndex = state.currentTrackIndex;
     if (currentIndex == null) return;
 
-    final nextIndex = _findNextPlayableTrack(currentIndex, tracks, deezerState);
+    final nextIndex = _findNextPlayableTrack(currentIndex, tracks, previewState);
     if (nextIndex == null) {
       return;
     }
@@ -210,7 +210,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     );
 
     try {
-      await _playCurrentTrack(tracks, deezerState);
+      await _playCurrentTrack(tracks, previewState);
     } catch (e) {
       state = state.copyWith(
         status: PlaybackStatus.error,
@@ -222,15 +222,15 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   /// Go back to the previous track
   Future<void> previous(
     List<SetlistTrack> tracks,
-    DeezerPreviewState deezerState,
+    PreviewState previewState,
   ) async {
     _tracks = tracks;
-    _deezerState = deezerState;
+    _previewState = previewState;
 
     final currentIndex = state.currentTrackIndex;
     if (currentIndex == null) return;
 
-    final prevIndex = _findPreviousPlayableTrack(currentIndex, tracks, deezerState);
+    final prevIndex = _findPreviousPlayableTrack(currentIndex, tracks, previewState);
     if (prevIndex == null) return;
 
     state = state.copyWith(
@@ -240,7 +240,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     );
 
     try {
-      await _playCurrentTrack(tracks, deezerState);
+      await _playCurrentTrack(tracks, previewState);
     } catch (e) {
       state = state.copyWith(
         status: PlaybackStatus.error,
@@ -265,7 +265,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
     _audioService.stop();
     _audioService.onTrackEnded = null;
     _tracks = null;
-    _deezerState = null;
+    _previewState = null;
     state = AudioPlaybackState(
       status: PlaybackStatus.idle,
       currentTrackIndex: null,
@@ -282,9 +282,9 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
   @visibleForTesting
   void triggerTrackEndedForTest(int endedIndex) {
     final tracks = _tracks;
-    final deezerState = _deezerState;
-    if (tracks == null || deezerState == null) return;
-    _handleTrackEnded(endedIndex, tracks, deezerState);
+    final previewState = _previewState;
+    if (tracks == null || previewState == null) return;
+    _handleTrackEnded(endedIndex, tracks, previewState);
   }
 
   /// Set state directly for testing purposes.

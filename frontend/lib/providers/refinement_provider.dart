@@ -104,13 +104,13 @@ class RefinementNotifier extends Notifier<RefinementState> {
       ref.read(setlistProvider.notifier).updateTracks(response.tracks);
 
       // Only prefetch tracks not already cached
-      final deezerState = ref.read(deezerPreviewProvider);
+      final previewState = ref.read(previewProvider);
       final uncachedTracks = response.tracks.where((t) {
         final key = t.trackId ?? 'unknown-${t.position}';
-        return !deezerState.trackInfo.containsKey(key);
+        return !previewState.trackInfo.containsKey(key);
       }).toList();
       if (uncachedTracks.isNotEmpty) {
-        ref.read(deezerPreviewProvider.notifier).prefetchForSetlist(uncachedTracks);
+        ref.read(previewProvider.notifier).prefetchForSetlist(uncachedTracks);
       }
     } on Exception catch (e) {
       // Remove optimistic message on error
@@ -158,13 +158,13 @@ class RefinementNotifier extends Notifier<RefinementState> {
       ref.read(setlistProvider.notifier).updateTracks(response.tracks);
 
       // Only prefetch tracks not already cached
-      final deezerState = ref.read(deezerPreviewProvider);
+      final previewState = ref.read(previewProvider);
       final uncachedTracks = response.tracks.where((t) {
         final key = t.trackId ?? 'unknown-${t.position}';
-        return !deezerState.trackInfo.containsKey(key);
+        return !previewState.trackInfo.containsKey(key);
       }).toList();
       if (uncachedTracks.isNotEmpty) {
-        ref.read(deezerPreviewProvider.notifier).prefetchForSetlist(uncachedTracks);
+        ref.read(previewProvider.notifier).prefetchForSetlist(uncachedTracks);
       }
     } on Exception catch (e) {
       state = state.copyWith(

@@ -13,8 +13,8 @@ class SetlistTrackTile extends StatelessWidget {
   final bool isPaused;
   final bool isLoading;
   final bool hasPreview;
-  final DeezerSearchStatus? deezerStatus;
-  final String? deezerSearchQuery;
+  final PreviewSearchStatus? previewStatus;
+  final String? previewSearchQuery;
   final String? spotifyUri;
 
   const SetlistTrackTile({
@@ -27,8 +27,8 @@ class SetlistTrackTile extends StatelessWidget {
     this.isPaused = false,
     this.isLoading = false,
     this.hasPreview = false,
-    this.deezerStatus,
-    this.deezerSearchQuery,
+    this.previewStatus,
+    this.previewSearchQuery,
     this.spotifyUri,
   });
 
@@ -159,7 +159,7 @@ class SetlistTrackTile extends StatelessWidget {
             const SizedBox(width: 8),
 
             // Deezer search status dot
-            _deezerStatusDot(),
+            _previewStatusDot(),
             const SizedBox(width: 4),
 
             // Play/Stop button
@@ -228,16 +228,16 @@ class SetlistTrackTile extends StatelessWidget {
     );
   }
 
-  Widget _deezerStatusDot() {
-    final status = deezerStatus;
+  Widget _previewStatusDot() {
+    final status = previewStatus;
     if (status == null) return const SizedBox.shrink();
 
-    final query = deezerSearchQuery ?? '';
+    final query = previewSearchQuery ?? '';
 
     IconData icon;
     Color color;
     switch (status) {
-      case DeezerSearchStatus.loading:
+      case PreviewSearchStatus.loading:
         return Tooltip(
           message: 'Searching Deezer: $query',
           child: const SizedBox(
@@ -246,13 +246,13 @@ class SetlistTrackTile extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
         );
-      case DeezerSearchStatus.found:
+      case PreviewSearchStatus.found:
         icon = Icons.check_circle;
         color = Colors.green;
-      case DeezerSearchStatus.notFound:
+      case PreviewSearchStatus.notFound:
         icon = Icons.cancel;
         color = Colors.red;
-      case DeezerSearchStatus.error:
+      case PreviewSearchStatus.error:
         icon = Icons.error;
         color = Colors.orange;
     }

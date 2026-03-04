@@ -29,7 +29,7 @@ class _SetlistGenerationScreenState
     // Trigger Deezer prefetch and load history when setlist first appears
     ref.listen(setlistProvider, (previous, next) {
       if ((previous?.hasSetlist ?? false) == false && next.hasSetlist) {
-        ref.read(deezerPreviewProvider.notifier).prefetchForSetlist(
+        ref.read(previewProvider.notifier).prefetchForSetlist(
               next.setlist!.tracks,
             );
         ref.read(refinementProvider.notifier).loadHistory(next.setlist!.id);

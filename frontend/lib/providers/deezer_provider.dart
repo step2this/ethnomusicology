@@ -8,14 +8,14 @@ import 'api_provider.dart';
 String previewKey(SetlistTrack track) =>
     track.trackId ?? 'unknown-${track.position}';
 
-enum DeezerSearchStatus { loading, found, notFound, error }
+enum PreviewSearchStatus { loading, found, notFound, error }
 
-class DeezerTrackInfo {
+class PreviewTrackInfo {
   final String? previewUrl;
-  final DeezerSearchStatus status;
+  final PreviewSearchStatus status;
   final String searchQuery;
 
-  const DeezerTrackInfo({
+  const PreviewTrackInfo({
     this.previewUrl,
     required this.status,
     required this.searchQuery,
@@ -23,20 +23,20 @@ class DeezerTrackInfo {
 }
 
 // State for Deezer preview URLs
-class DeezerPreviewState {
-  final Map<String, DeezerTrackInfo> trackInfo;
+class PreviewState {
+  final Map<String, PreviewTrackInfo> trackInfo;
   final bool isLoading;
 
-  const DeezerPreviewState({
+  const PreviewState({
     this.trackInfo = const {},
     this.isLoading = false,
   });
 
-  DeezerPreviewState copyWith({
-    Map<String, DeezerTrackInfo>? trackInfo,
+  PreviewState copyWith({
+    Map<String, PreviewTrackInfo>? trackInfo,
     bool? isLoading,
   }) {
-    return DeezerPreviewState(
+    return PreviewState(
       trackInfo: trackInfo ?? this.trackInfo,
       isLoading: isLoading ?? this.isLoading,
     );
@@ -49,9 +49,9 @@ class DeezerPreviewState {
   bool hasPreview(String key) => trackInfo[key]?.previewUrl != null;
 }
 
-class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
+class PreviewNotifier extends Notifier<PreviewState> {
   @override
-  DeezerPreviewState build() => const DeezerPreviewState();
+  PreviewState build() => const PreviewState();
 
   /// Prefetch Deezer preview URLs for all tracks in a setlist in parallel
   Future<void> prefetchForSetlist(List<SetlistTrack> tracks) async {
@@ -60,12 +60,12 @@ class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
     final client = ref.read(apiClientProvider);
 
     // Mark all tracks as loading first
-    final loadingInfo = <String, DeezerTrackInfo>{};
+    final loadingInfo = <String, PreviewTrackInfo>{};
     for (final track in tracks) {
       final key = track.trackId ?? 'unknown-${track.position}';
       final query = 'artist:"${track.artist}" track:"${track.title}"';
-      loadingInfo[key] = DeezerTrackInfo(
-        status: DeezerSearchStatus.loading,
+      loadingInfo[key] = PreviewTrackInfo(
+        status: PreviewSearchStatus.loading,
         searchQuery: query,
       );
     }
@@ -92,19 +92,19 @@ class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
             final previewUrl = await client.searchDeezerPreview(title, artist);
             return MapEntry(
               trackId,
-              DeezerTrackInfo(
+              PreviewTrackInfo(
                 previewUrl: previewUrl,
                 status: previewUrl != null
-                    ? DeezerSearchStatus.found
-                    : DeezerSearchStatus.notFound,
+                    ? PreviewSearchStatus.found
+                    : PreviewSearchStatus.notFound,
                 searchQuery: query,
               ),
             );
           } on Exception catch (_) {
             return MapEntry(
               trackId,
-              DeezerTrackInfo(
-                status: DeezerSearchStatus.error,
+              PreviewTrackInfo(
+                status: PreviewSearchStatus.error,
                 searchQuery: query,
               ),
             );
@@ -112,7 +112,7 @@ class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
         }),
       );
 
-      final newInfo = Map<String, DeezerTrackInfo>.fromEntries(results);
+      final newInfo = Map<String, PreviewTrackInfo>.fromEntries(results);
       state = state.copyWith(
         trackInfo: {...state.trackInfo, ...newInfo},
         isLoading: false,
@@ -124,10 +124,10 @@ class DeezerPreviewNotifier extends Notifier<DeezerPreviewState> {
 
   /// Clear all cached preview URLs
   void reset() {
-    state = const DeezerPreviewState();
+    state = const PreviewState();
   }
 }
 
-final deezerPreviewProvider =
-    NotifierProvider<DeezerPreviewNotifier, DeezerPreviewState>(
-        DeezerPreviewNotifier.new);
+final previewProvider =
+    NotifierProvider<PreviewNotifier, PreviewState>(
+        PreviewNotifier.new);

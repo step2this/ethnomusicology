@@ -4,7 +4,7 @@ import 'package:ethnomusicology_frontend/providers/audio_provider.dart';
 import 'package:ethnomusicology_frontend/providers/deezer_provider.dart';
 import 'package:ethnomusicology_frontend/models/setlist_track.dart';
 
-// Helper to build a track list and a DeezerPreviewState that has URLs for the
+// Helper to build a track list and a PreviewState that has URLs for the
 // given [withUrlIndices] positions.
 _TestFixture _buildFixture({
   int trackCount = 2,
@@ -21,22 +21,22 @@ _TestFixture _buildFixture({
     ),
   );
   // Build a trackInfo map keyed by previewKey(track)
-  final trackInfoMap = <String, DeezerTrackInfo>{};
+  final trackInfoMap = <String, PreviewTrackInfo>{};
   for (final i in withUrlIndices) {
     final key = previewKey(tracks[i]);
-    trackInfoMap[key] = DeezerTrackInfo(
+    trackInfoMap[key] = PreviewTrackInfo(
       previewUrl: '/api/audio/proxy?url=track$i',
-      status: DeezerSearchStatus.found,
+      status: PreviewSearchStatus.found,
       searchQuery: 'Artist $i Track $i',
     );
   }
-  final deezerState = DeezerPreviewState(trackInfo: trackInfoMap);
+  final deezerState = PreviewState(trackInfo: trackInfoMap);
   return _TestFixture(tracks: tracks, deezerState: deezerState);
 }
 
 class _TestFixture {
   final List<SetlistTrack> tracks;
-  final DeezerPreviewState deezerState;
+  final PreviewState deezerState;
   _TestFixture({required this.tracks, required this.deezerState});
 }
 
@@ -76,7 +76,7 @@ void main() {
 
       // Since NoOp service is used in tests, we can't fully test playback
       // But we can test state transitions
-      await notifier.playFromIndex(0, tracks, const DeezerPreviewState());
+      await notifier.playFromIndex(0, tracks, const PreviewState());
 
       final state = container.read(audioPlaybackProvider);
       expect(state.currentTrackIndex, 0);
@@ -112,7 +112,7 @@ void main() {
         ));
 
       final initialIndex = container.read(audioPlaybackProvider).currentTrackIndex;
-      await notifier.next(tracks, const DeezerPreviewState());
+      await notifier.next(tracks, const PreviewState());
       final finalIndex = container.read(audioPlaybackProvider).currentTrackIndex;
 
       // Since there's no next playable track (we're at the last one), index should stay the same
@@ -141,7 +141,7 @@ void main() {
         ));
 
       final initialIndex = container.read(audioPlaybackProvider).currentTrackIndex;
-      await notifier.next(tracks, const DeezerPreviewState());
+      await notifier.next(tracks, const PreviewState());
       final finalIndex = container.read(audioPlaybackProvider).currentTrackIndex;
 
       expect(finalIndex, initialIndex);
@@ -176,7 +176,7 @@ void main() {
         ));
 
       final initialIndex = container.read(audioPlaybackProvider).currentTrackIndex;
-      await notifier.previous(tracks, const DeezerPreviewState());
+      await notifier.previous(tracks, const PreviewState());
       final finalIndex = container.read(audioPlaybackProvider).currentTrackIndex;
 
       expect(finalIndex, initialIndex);

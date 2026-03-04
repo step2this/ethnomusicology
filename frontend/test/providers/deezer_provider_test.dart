@@ -6,7 +6,7 @@ import 'package:ethnomusicology_frontend/providers/deezer_provider.dart';
 import '../helpers/mock_api_client.dart';
 
 void main() {
-  group('DeezerPreviewNotifier', () {
+  group('PreviewNotifier', () {
     late ProviderContainer container;
     late MockInterceptor interceptor;
 
@@ -23,7 +23,7 @@ void main() {
     tearDown(() => container.dispose());
 
     test('initial state is empty', () {
-      final state = container.read(deezerPreviewProvider);
+      final state = container.read(previewProvider);
       expect(state.trackInfo, isEmpty);
       expect(state.isLoading, false);
     });
@@ -47,18 +47,18 @@ void main() {
         ),
       ];
 
-      await container.read(deezerPreviewProvider.notifier).prefetchForSetlist(tracks);
+      await container.read(previewProvider.notifier).prefetchForSetlist(tracks);
 
-      final state = container.read(deezerPreviewProvider);
+      final state = container.read(previewProvider);
       expect(state.isLoading, false);
       expect(state.trackInfo['track-1']?.previewUrl, isNotNull);
-      expect(state.trackInfo['track-1']?.status, DeezerSearchStatus.found);
+      expect(state.trackInfo['track-1']?.status, PreviewSearchStatus.found);
     });
 
     test('prefetchForSetlist handles empty tracks list', () async {
-      await container.read(deezerPreviewProvider.notifier).prefetchForSetlist([]);
+      await container.read(previewProvider.notifier).prefetchForSetlist([]);
 
-      final state = container.read(deezerPreviewProvider);
+      final state = container.read(previewProvider);
       expect(state.trackInfo, isEmpty);
       expect(state.isLoading, false);
     });
@@ -77,13 +77,13 @@ void main() {
         ),
       ];
 
-      await container.read(deezerPreviewProvider.notifier).prefetchForSetlist(tracks);
+      await container.read(previewProvider.notifier).prefetchForSetlist(tracks);
 
-      final state = container.read(deezerPreviewProvider);
+      final state = container.read(previewProvider);
       expect(state.isLoading, false);
       // Track should have notFound status with null preview URL
       expect(state.trackInfo['unknown-0']?.previewUrl, isNull);
-      expect(state.trackInfo['unknown-0']?.status, DeezerSearchStatus.notFound);
+      expect(state.trackInfo['unknown-0']?.status, PreviewSearchStatus.notFound);
     });
 
     test('reset clears all state', () async {
@@ -104,20 +104,20 @@ void main() {
         ),
       ];
 
-      await container.read(deezerPreviewProvider.notifier).prefetchForSetlist(tracks);
-      container.read(deezerPreviewProvider.notifier).reset();
+      await container.read(previewProvider.notifier).prefetchForSetlist(tracks);
+      container.read(previewProvider.notifier).reset();
 
-      final state = container.read(deezerPreviewProvider);
+      final state = container.read(previewProvider);
       expect(state.trackInfo, isEmpty);
       expect(state.isLoading, false);
     });
 
     test('getPreviewUrl returns URL for known track', () {
-      const state = DeezerPreviewState(
+      const state = PreviewState(
         trackInfo: {
-          'track-1': DeezerTrackInfo(
+          'track-1': PreviewTrackInfo(
             previewUrl: '/api/audio/proxy?url=test',
-            status: DeezerSearchStatus.found,
+            status: PreviewSearchStatus.found,
             searchQuery: 'artist:"Artist" track:"Track"',
           ),
         },
@@ -126,16 +126,16 @@ void main() {
     });
 
     test('getPreviewUrl returns null for unknown track', () {
-      const state = DeezerPreviewState();
+      const state = PreviewState();
       expect(state.getPreviewUrl('unknown'), isNull);
     });
 
     test('hasPreview returns true when previewUrl is non-null', () {
-      const state = DeezerPreviewState(
+      const state = PreviewState(
         trackInfo: {
-          'track-1': DeezerTrackInfo(
+          'track-1': PreviewTrackInfo(
             previewUrl: '/api/audio/proxy?url=test',
-            status: DeezerSearchStatus.found,
+            status: PreviewSearchStatus.found,
             searchQuery: 'artist:"Artist" track:"Track"',
           ),
         },
@@ -144,10 +144,10 @@ void main() {
     });
 
     test('hasPreview returns false for notFound track', () {
-      const state = DeezerPreviewState(
+      const state = PreviewState(
         trackInfo: {
-          'track-1': DeezerTrackInfo(
-            status: DeezerSearchStatus.notFound,
+          'track-1': PreviewTrackInfo(
+            status: PreviewSearchStatus.notFound,
             searchQuery: 'artist:"Artist" track:"Track"',
           ),
         },
@@ -173,22 +173,22 @@ void main() {
         ),
       ];
 
-      final notifier = container.read(deezerPreviewProvider.notifier);
+      final notifier = container.read(previewProvider.notifier);
       final future = notifier.prefetchForSetlist(tracks);
 
       // After calling prefetch, state should be isLoading=true
       // (loading markers set synchronously before fetch)
-      expect(container.read(deezerPreviewProvider).isLoading, isTrue);
+      expect(container.read(previewProvider).isLoading, isTrue);
       expect(
-        container.read(deezerPreviewProvider).trackInfo['track-found']?.status,
-        DeezerSearchStatus.loading,
+        container.read(previewProvider).trackInfo['track-found']?.status,
+        PreviewSearchStatus.loading,
       );
 
       await future;
 
-      final state = container.read(deezerPreviewProvider);
+      final state = container.read(previewProvider);
       expect(state.isLoading, false);
-      expect(state.trackInfo['track-found']?.status, DeezerSearchStatus.found);
+      expect(state.trackInfo['track-found']?.status, PreviewSearchStatus.found);
       expect(state.trackInfo['track-found']?.searchQuery, 'artist:"Artist" track:"Track"');
     });
 
@@ -205,10 +205,10 @@ void main() {
         ),
       ];
 
-      await container.read(deezerPreviewProvider.notifier).prefetchForSetlist(tracks);
+      await container.read(previewProvider.notifier).prefetchForSetlist(tracks);
 
-      final state = container.read(deezerPreviewProvider);
-      expect(state.trackInfo['unknown-0']?.status, DeezerSearchStatus.notFound);
+      final state = container.read(previewProvider);
+      expect(state.trackInfo['unknown-0']?.status, PreviewSearchStatus.notFound);
       expect(state.trackInfo['unknown-0']?.searchQuery, 'artist:"Nobody" track:"Missing"');
     });
 

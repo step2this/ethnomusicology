@@ -24,7 +24,7 @@ class SetlistResultView extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final audioState = ref.watch(audioPlaybackProvider);
-    final deezerState = ref.watch(deezerPreviewProvider);
+    final previewState = ref.watch(previewProvider);
     final refinementState = ref.watch(refinementProvider);
 
     return Column(
@@ -94,13 +94,13 @@ class SetlistResultView extends ConsumerWidget {
           trackCount: setlist.tracks.length,
           onPrevious: () => ref
               .read(audioPlaybackProvider.notifier)
-              .previous(setlist.tracks, deezerState),
+              .previous(setlist.tracks, previewState),
           onTogglePause: () =>
               ref.read(audioPlaybackProvider.notifier).togglePause(),
           onStop: () => ref.read(audioPlaybackProvider.notifier).stop(),
           onNext: () => ref
               .read(audioPlaybackProvider.notifier)
-              .next(setlist.tracks, deezerState),
+              .next(setlist.tracks, previewState),
         ),
         // Catalog warning
         if (setlist.catalogWarning != null)
@@ -173,7 +173,7 @@ class SetlistResultView extends ConsumerWidget {
                   w.fromPosition == track.position ||
                   w.toPosition == track.position);
               final trackKey = previewKey(track);
-              final trackInfo = deezerState.trackInfo[trackKey];
+              final trackInfo = previewState.trackInfo[trackKey];
 
               final isCurrentTrack = audioState.currentTrackIndex == index;
               return SetlistTrackTile(
@@ -183,13 +183,13 @@ class SetlistResultView extends ConsumerWidget {
                     (audioState.isPlaying || audioState.isPaused),
                 isPaused: audioState.isPaused && isCurrentTrack,
                 isLoading: audioState.isLoading && isCurrentTrack,
-                hasPreview: deezerState.hasPreview(trackKey),
-                deezerStatus: trackInfo?.status,
-                deezerSearchQuery: trackInfo?.searchQuery,
+                hasPreview: previewState.hasPreview(trackKey),
+                previewStatus: trackInfo?.status,
+                previewSearchQuery: trackInfo?.searchQuery,
                 spotifyUri: track.spotifyUri,
                 onPlay: () => ref
                     .read(audioPlaybackProvider.notifier)
-                    .playFromIndex(index, setlist.tracks, deezerState),
+                    .playFromIndex(index, setlist.tracks, previewState),
                 onPause: () =>
                     ref.read(audioPlaybackProvider.notifier).togglePause(),
               );
