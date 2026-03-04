@@ -1,48 +1,45 @@
-# Session Handoff — 2026-03-04
+# Session Handoff — 2026-03-04 (Post-OOM Recovery)
 
-## Active Work: Flutter Architecture Refactor
+## Branch: `feature/st-007-conversational-refinement`
 
-### Branch: `feature/flutter-arch-refactor` (branched from main @ 319c498)
+### Recovery Status
+Previous session had two parallel Claudes (backend + frontend) that died in OOM.
+All work recovered and committed:
+- `01b425d` — Flutter arch refactor (Riverpod 2.x + widget decomposition, 104 tests pass)
+- `2b99cb2` — ST-007 Phase 1 partial (converse() API + quick commands)
+- `ca258e3` — ST-007 Phase 0 (migration 008 + module stubs)
 
-### What This Session Is Doing
-- Removing 9 unused Flutter dependencies
-- Migrating all 6 providers: StateNotifier → Notifier (Riverpod 2.x Notifier API)
-- Decomposing 712-line god widget (SetlistGenerationScreen) into 3 focused widgets
-- Fixing DI inconsistencies, error handling, theme colors, route constants
-- Adding missing test coverage (4 new test files)
+### Team: `st-007-recovery`
 
-### Files Being Modified (DO NOT TOUCH)
-**Frontend only — backend is completely unaffected.**
-- `frontend/pubspec.yaml`
-- `frontend/lib/providers/*.dart` (all 6 providers)
-- `frontend/lib/screens/setlist_generation_screen.dart`
-- `frontend/lib/widgets/` (new files: setlist_input_form.dart, transport_controls.dart, setlist_result_view.dart)
-- `frontend/lib/config/routes.dart`, `frontend/lib/config/constants.dart` (new)
-- `frontend/lib/services/api_client.dart` (minor)
-- `frontend/lib/models/track.dart` (minor), `frontend/lib/models/occasion.dart` (delete)
-- `frontend/test/providers/*.dart`, `frontend/test/helpers/` (new)
-- `frontend/web/index.html`, `frontend/web/manifest.json`
+#### Task Status
+| ID | Task | Status | Owner | Blocked By |
+|----|------|--------|-------|------------|
+| 1 | T2: DB layer (refinement.rs, models.rs) | pending | — | — |
+| 2 | F1: Frontend critic review | pending | — | — |
+| 3 | T4: Refinement service | pending | — | T2 |
+| 4 | T5: Routes + integration tests | pending | — | T4 |
+| 5 | C1: Backend critic review | pending | — | T5 |
+| 6 | C2: Final quality gates | pending | — | T5, C1 |
 
-### What Other Claudes CAN Work On (non-overlapping)
-- **Docs**: `docs/use-cases/`, `docs/steel-threads/`, `docs/spikes/` (not session-handoff.md)
-- **CI/CD**: `.github/workflows/`, Playwright tests in `e2e/`
-- **Design**: `.design-crit/`
-- **Infrastructure**: AWS, deployment, monitoring
+#### What's Already Done
+- **T1 (converse API):** `ClaudeClientTrait::converse()` + `ClaudeClient` impl + 2 wiremock tests
+- **T3 (quick commands):** Full `QuickCommand` enum, `parse_quick_command()`, `apply_quick_command()` + unit tests
+- **Flutter arch refactor:** All 6 providers migrated, god widget decomposed, 9 deps removed, 5 new test files
 
-### Parallel Session: ST-007 Backend (Conversational Refinement)
-- **Branch**: `feature/st-007-conversational-refinement` (worktree, from main)
-- **Scope**: Backend-only — 6 new files in `backend/src/`, 1 migration, 1 integration test
-- **Plan**: `docs/tasks/st-007-conversational-refinement-backend.md`
-- **DO NOT TOUCH**: `backend/src/api/claude.rs` (being modified for `converse()` method)
+#### Execution Plan
+1. **Wave 1 (parallel):** T2 (db-builder, sonnet) + F1 (frontend-critic, opus)
+2. **Wave 2 (sequential):** T4 (service-builder, sonnet) — depends on T2
+3. **Wave 3 (sequential):** T5 (route-builder, sonnet) — depends on T4
+4. **Wave 4 (parallel):** C1 (backend-critic, opus) + fixes from F1/C1
+5. **Wave 5:** C2 (quality gates, sonnet)
 
-### What Is BLOCKED Until This Completes
-- Any Flutter frontend work (we're touching most files)
-- Any work that depends on Riverpod provider API (changing from StateNotifier to Notifier)
+#### File Ownership (No Overlap)
+- db-builder: `backend/src/db/refinement.rs`, `backend/src/db/models.rs`, `backend/src/db/mod.rs`
+- service-builder: `backend/src/services/refinement.rs`
+- route-builder: `backend/src/routes/refinement.rs`, `backend/tests/refinement_api_test.rs`, `backend/src/main.rs`
+- frontend-critic: READ ONLY (all `frontend/` files)
 
-### Current Phase
-Phase 0 complete. Executing Phases 1-5 with builder agents.
-
-### Git Strategy
-- Branch: `feature/flutter-arch-refactor` from main
-- Will create PR when complete
-- No rebase needed (branched from clean main after PR #4 merge)
+### If OOM Happens Again
+1. Check `git log --oneline -10` — each builder commits after completing
+2. Check task list status in this file (or `~/.claude/tasks/st-007-recovery/`)
+3. Resume from first incomplete task
