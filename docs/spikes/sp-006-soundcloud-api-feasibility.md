@@ -55,23 +55,45 @@ SoundCloud is replacing numeric track IDs with string URNs (e.g., `soundcloud:tr
 - Standard API rate limiting applies (undocumented exact numbers)
 
 ## Success Criteria Evaluation
-- [ ] Can acquire OAuth token — **BLOCKED: requires manual app registration by user**
-- [x] Can search and find tracks — **CONFIRMED: `/tracks?q={query}` endpoint documented and active**
-- [x] Can obtain a streamable audio URL — **CONFIRMED: `preview_mp3_128_url` is NOT deprecated**
-- [ ] Audio plays in browser — **NOT TESTED: blocked on credentials**
+- [x] Can acquire OAuth token — **CONFIRMED: Client Credentials flow works, 1-hour token expiry**
+- [x] Can search and find tracks — **CONFIRMED: `GET /tracks?q={query}` returns correct results (found "Throw" by Paperclip People)**
+- [x] Can obtain a streamable audio URL — **CONFIRMED: `stream_url` field contains preview path**
+- [x] Audio URL resolves — **CONFIRMED: 302 redirect to `cf-preview-media.sndcdn.com/*.128.mp3` (signed CloudFront MP3)**
+
+## Live API Test Results (Mar 4, 2026)
+
+```
+# Token acquisition
+POST https://api.soundcloud.com/oauth2/token
+  grant_type=client_credentials → 200 OK, access_token (JWT), expires_in=3599
+
+# Search
+GET https://api.soundcloud.com/tracks?q=Paperclip+People+Throw&limit=1
+  Authorization: OAuth {token} → 200 OK
+  Result: "Throw" by Paperclip People (id=1066423924, urn=soundcloud:tracks:1066423924)
+
+# Audio field: stream_url (NOT preview_mp3_128_url)
+  stream_url: https://api.soundcloud.com/tracks/soundcloud:tracks:1066423924/preview
+  → 302 redirect to: https://cf-preview-media.sndcdn.com/preview/0/30/4FnzZy4c4wse.128.mp3?Policy=...&Signature=...&Key-Pair-Id=...
+
+# Key metadata available:
+  user.username: "Paperclip People" (for attribution)
+  permalink_url: "https://soundcloud.com/paperclippeople-music/paperclip-people-throw" (for backlink)
+  isrc: "USPC80601058"
+  label_name: "Planet E Communications"
+  genre: "Electronic"
+```
 
 ## Decision
 
-**CONDITIONAL PASS** — proceed with ST-009 design using `preview_mp3_128_url` as the audio path.
+**FULL PASS** — all success criteria met. Proceed with ST-009 implementation.
 
-### Remaining manual steps before ST-009 implementation:
-1. **User must register a SoundCloud app** at `soundcloud.com/you/apps` to obtain `client_id` and `client_secret`
-2. Set `SOUNDCLOUD_CLIENT_ID` and `SOUNDCLOUD_CLIENT_SECRET` env vars
-3. Verify token acquisition works with actual credentials
-4. Test `preview_mp3_128_url` plays in browser (expected to work — it's standard MP3)
-
-### Architecture decision:
-- **Use `preview_mp3_128_url`** (NOT HLS) — direct MP3, proxy-compatible, Web Audio compatible
+### Architecture decision (updated with live findings):
+- **Use `stream_url`** field (NOT `preview_mp3_128_url` — that field doesn't exist in v1 API responses)
+- `stream_url` points to `/tracks/{urn}/preview` which 302-redirects to CloudFront signed MP3
+- **CDN host to whitelist**: `cf-preview-media.sndcdn.com`
+- Audio format: 128kbps MP3 — proxy-compatible, Web Audio compatible
+- Token: 1-hour expiry, cache in memory, refresh on 401
 - **Do NOT use `hls_aac_160_url`** — HLS is too complex for MVP (would need HLS.js or server-side segment fetching)
 - **Backend proxy works as-is** for MP3 content from SoundCloud CDN
 - **Graceful degradation** when credentials not configured — skip SoundCloud in fallback chain
