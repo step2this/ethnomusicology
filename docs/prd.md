@@ -8,15 +8,15 @@
 
 ## 1. Product Overview
 
-Ethnomusicology is an **LLM-powered DJ assistant** that generates setlists from natural language prompts, sources music from Spotify, Beatport, and SoundCloud, arranges tracks by harmonic compatibility (Camelot wheel), and provides crossfade preview playback with purchase links.
+Ethnomusicology is an **LLM-powered DJ assistant** that generates setlists from natural language prompts, sources music from Spotify, Beatport, and SoundCloud, arranges tracks by harmonic compatibility (Camelot wheel), and provides preview playback with purchase links.
 
 The user describes a vibe — *"deep dubby NYC house from the early 90s, Sound Factory vibes, building from 118 to 126 BPM"* — and the system produces a playable, harmonically coherent setlist drawn from their imported catalog, supplemented by LLM suggestions for tracks to acquire.
 
 ### Core Value Proposition
-- **LLM as crate-digger**: Replace manual genre browsing with natural language music discovery
+- **LLM as crate-digger**: Replace manual genre browsing with natural language music discovery. Works with zero imported tracks — LLM generates pure suggestions when no catalog exists; catalog enhances matching but does not gate generation.
 - **Harmonic intelligence**: Automatic Camelot wheel arrangement for smooth key transitions
 - **Multi-source catalog**: Unified track library across Spotify, Beatport, and SoundCloud
-- **Audio validation**: Hear crossfade transitions before committing to a setlist
+- **Audio validation**: Hear 30-second previews before committing to a setlist (sequential playback; crossfade removed as too complex for 30s clips)
 
 ### Target User
 DJs who build sets from digital catalogs and value harmonic mixing, energy flow, and efficient track discovery. Secondary: event curators building occasion-based playlists (Nikah, Eid, Mawlid).
@@ -50,7 +50,7 @@ DJs who build sets from digital catalogs and value harmonic mixing, energy flow,
 ### Epic 4: Playback & Output
 | UC | Feature | Priority | Complexity |
 |----|---------|----------|------------|
-| UC-019 | Crossfade Preview Between Tracks | P1 | High |
+| UC-019 | Preview Playback (sequential; crossfade removed) | P1 | Medium |
 | UC-025 | Full Browser DJ Mix Playback | P3 | Very High |
 | UC-024 | Export Setlist with Transition Notes | P2 | Low |
 
@@ -93,8 +93,8 @@ UC-001 (Spotify Import) ✅ DONE
   │      │                    ├──→ UC-017 (Harmonic Arrangement)
   │      │                    │      │  Pure Rust: Camelot + BPM + energy scoring
   │      │                    │      │
-  │      │                    │      ├──→ UC-019 (Crossfade Preview)
-  │      │                    │      │      │  Web Audio API, client-side
+  │      │                    │      ├──→ UC-019 (Preview Playback)
+  │      │                    │      │      │  Web Audio API, multi-source (Deezer→iTunes→SoundCloud)
   │      │                    │      │      │
   │      │                    │      │      └──→ UC-025 (Full DJ Mix) [P3]
   │      │                    │      │
@@ -176,7 +176,8 @@ Scene/Era:  LLM-derived (UC-021) > null
 | Camelot module (24-key lookup) | Pre-Sprint 1 (infrastructure) | UC-015, UC-016, UC-017 |
 | essentia sidecar (Python) | UC-015 | UC-015 only |
 | Claude API client | UC-016 | UC-018, UC-021, UC-023 |
-| Web Audio crossfade engine | UC-019 | UC-025 |
+| Web Audio preview engine (sequential) | UC-019 | UC-025 |
+| Multi-source preview chain (Deezer→iTunes→SoundCloud) | UC-019 | UC-020 |
 | `url_launcher` integration | UC-001 | UC-020 |
 
 > **Sprint 0 (Pre-Sprint)**: Define `MusicSourceClient` trait, `SourceTrack` struct, refactor `ImportRepository` to be source-agnostic, implement Camelot module. These are prerequisites for Sprint 1, not part of any individual UC.
@@ -201,14 +202,56 @@ Scene/Era:  LLM-derived (UC-021) > null
 | Service | Auth Model | UCs | Status |
 |---------|-----------|-----|--------|
 | Spotify Web API v1 | User OAuth 2.0 (Auth Code) | UC-001 | **Integrated** |
-| Beatport API v4 | App-level OAuth (Client Credentials) | UC-013 | Planned |
-| SoundCloud API | App-level OAuth 2.1 | UC-014 | Planned |
-| Anthropic Claude API | API key (backend-only) | UC-016, 018, 021, 023 | Planned |
-| essentia (self-hosted) | Local HTTP sidecar | UC-015 | Planned |
+| Beatport API v4 | App-level OAuth (Client Credentials) | UC-013, UC-020 | Planned (apply for access) |
+| SoundCloud API v2 | App-level OAuth 2.1 | UC-014, UC-019 | Planned |
+| Anthropic Claude API | API key (backend-only) | UC-016, 018, 021, 023 | **Integrated** |
+| essentia (self-hosted) | Local HTTP sidecar | UC-015 | Post-MVP |
+| Deezer API | None (public) | UC-019 | **Integrated** (field-specific search + ISRC lookup) |
+| iTunes Search API | None (public) | UC-019, UC-020 | Planned (Deezer fallback + Apple affiliate links) |
+
+### Audio Preview Source Chain
+
+Preview playback uses a cascading fallback chain per track:
+1. **Deezer ISRC lookup** — `GET /track/isrc:{ISRC}` — instant exact match when Spotify ISRC is available
+2. **Deezer field-specific search** — `artist:"X" track:"Y" strict=on` — high accuracy for mainstream catalog
+3. **iTunes Search API** — free, no auth, 100M+ catalog, 30s AAC previews — best Deezer fallback
+4. **SoundCloud** — OAuth required, good for underground/independent electronic music
+5. **No preview** — show search links (Beatport, Google) for manual lookup
+
+> Spotify preview URLs are deprecated (Nov 2024) and are not in this chain.
+> Preview URL expiry is not a concern — URLs are fetched fresh each session.
 
 ---
 
-## 7. Implementation Order
+## 7. Track Discovery & Acquisition
+
+DJs need to investigate and purchase tracks they discover via setlist generation. The platform surfaces links directly in the setlist UI rather than requiring manual search.
+
+### Implemented
+- **Google search links** on track title + artist — opens search in new tab (implemented)
+- **Spotify links** for catalog tracks — direct link to track in Spotify app
+
+### Planned (UC-020)
+Multi-store purchase link panel, shown per track in the setlist:
+
+| Store | Link Type | Revenue |
+|-------|-----------|---------|
+| Beatport | Deep link to track page | None (no affiliate program) |
+| Apple Music | Affiliate link via iTunes Search API | ~7% commission |
+| Bandcamp | Search link (no direct track URL API) | None |
+| Traxsource | Search link | None |
+| Juno Download | Search link | None |
+
+**Apple Music affiliate program** (via `apple.com/itunes/affiliates`) is the simplest near-term revenue opportunity — requires only adding `at=` parameter to iTunes links.
+
+### Competitive Context
+- No competitor offers LLM-powered natural language setlist generation
+- KADO (200K DJ sets training data) operates at track-recommendation level, not setlist generation
+- DJ streaming integrations (Beatport LINK, Tidal in Rekordbox) are closed hardware/platform partnerships — not available to indie developers
+
+---
+
+## 8. Implementation Order
 
 ### Sprint 1: Import Foundation (UC-013 + UC-014)
 **Goal**: Multi-source catalog with MusicSourceClient trait
@@ -237,11 +280,11 @@ Scene/Era:  LLM-derived (UC-021) > null
 
 ### Sprint 4: Enhanced Experience (UC-019 + UC-020 + UC-021)
 **Goal**: Hear it, buy it, browse it
-- Build crossfade preview (Web Audio API)
-- Build purchase link generation (URL construction)
+- Build sequential preview playback via multi-source chain (Deezer field-specific search + ISRC lookup → iTunes Search API fallback → SoundCloud fallback)
+- Build purchase link panel: Beatport, Apple Music (affiliate), Bandcamp, Traxsource, Juno
 - Build scene/era classification and browse UI
 - Run migration 005
-- **Exit criteria**: User can preview transitions, click through to buy, and browse by scene
+- **Exit criteria**: User can preview tracks, click through to buy from multiple stores, and browse by scene
 
 ### Sprint 5: Polish (UC-023 + UC-024)
 **Goal**: Refine and export
@@ -252,7 +295,7 @@ Scene/Era:  LLM-derived (UC-021) > null
 
 ### Sprint 6: Aspirational (UC-025)
 **Goal**: Full browser DJ mix
-- Extend crossfade engine to beat-matched mixing
+- Extend preview engine to beat-matched mixing with crossfade
 - Build full setlist playback with phrase detection
 - **Exit criteria**: 5-track setlist plays as continuous mix with beat-matched transitions
 
@@ -267,9 +310,11 @@ Scene/Era:  LLM-derived (UC-021) > null
 | essentia accuracy too low for DJ-grade BPM/key | Medium | High | Validate against known Beatport data. Fallback: use Beatport as ground truth, essentia for Spotify/SoundCloud only. |
 | LLM hallucinations in setlist generation | High | Medium | Validate all track_ids against DB. Reclassify hallucinated tracks as suggestions. |
 | Claude API costs exceed budget | Medium | Medium | Prompt caching (90% reduction), per-user daily limits, batch enrichment. Monitor usage. |
-| Web Audio API CORS issues with SoundCloud streams | High | Medium | Backend CORS proxy for SoundCloud. Spotify preview URLs work directly. |
+| Web Audio API CORS issues with preview sources | High | Medium | Backend CORS proxy for Deezer MP3s (implemented). SoundCloud and iTunes may also need proxying. |
 | Browser performance insufficient for beat-matching (UC-025) | Medium | Low | Fallback chain: beat-match → crossfade → hard cut. UC-025 is P3 aspirational. |
-| Spotify removing preview URLs (ongoing trend) | Medium | Medium | SoundCloud streams as primary audio source. Beatport has no streaming. |
+| Spotify removing preview URLs (ongoing trend) | **Confirmed** | Resolved | Spotify previews deprecated Nov 2024. Multi-source chain (Deezer→iTunes→SoundCloud) replaces them. |
+| Deezer freeform search accuracy for electronic music | High | Medium | Use field-specific search `artist:"X" track:"Y" strict=on` + ISRC lookup `GET /track/isrc:{ISRC}` as fallback chain. ~20-30% error rate with freeform. |
+| iTunes Search API terms/rate limits | Low | Medium | Free, no auth, 100M+ catalog, 100 req/min. Monitor for ToS changes; SoundCloud is third fallback. |
 
 ---
 
@@ -314,6 +359,8 @@ Scene/Era:  LLM-derived (UC-021) > null
 ### Suggested Next Actions
 1. Create UC for JWT authentication (prerequisite for production)
 2. Create UC for cross-source track deduplication via ISRC
-3. Apply for Beatport API v4 access immediately (may take weeks)
+3. Apply for Beatport API v4 access immediately (may take weeks to approve)
 4. Register SoundCloud OAuth 2.1 app credentials
-5. Begin Sprint 1 implementation: `/task-decompose UC-013`
+5. Register for Apple Music affiliate program (easiest near-term revenue)
+6. Implement Deezer field-specific search + ISRC fallback chain (Phase 4)
+7. Begin Sprint 1 implementation: `/task-decompose UC-013`
