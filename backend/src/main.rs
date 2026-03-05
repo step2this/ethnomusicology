@@ -221,6 +221,7 @@ async fn main() -> anyhow::Result<()> {
     let enrich_state = Arc::new(EnrichRouteState {
         pool: pool.clone(),
         claude: claude_client.clone(),
+        in_flight: std::sync::atomic::AtomicBool::new(false),
     });
 
     // --- Refinement routes state ---

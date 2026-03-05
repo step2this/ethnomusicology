@@ -16,6 +16,8 @@ pub enum EnrichmentError {
     Database(String),
     #[error("Cost cap exceeded: {0}")]
     CostCapExceeded(String),
+    #[error("Concurrent enrichment: {0}")]
+    Concurrent(String),
 }
 
 impl From<sqlx::Error> for EnrichmentError {
