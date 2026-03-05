@@ -1213,6 +1213,62 @@ mod tests {
         }
     }
 
+    /// Returns ClaudeError::Api (simulates a non-200 HTTP error like 401 or 500).
+    struct ApiErrorClaude;
+
+    #[async_trait::async_trait]
+    impl ClaudeClientTrait for ApiErrorClaude {
+        async fn generate_setlist(
+            &self,
+            _system_prompt: &str,
+            _user_prompt: &str,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<String, ClaudeError> {
+            Err(ClaudeError::Api("HTTP 401: Unauthorized".to_string()))
+        }
+
+        async fn generate_with_blocks(
+            &self,
+            _system_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _user_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<(String, crate::api::claude::CacheMetrics), ClaudeError> {
+            Err(ClaudeError::Api("HTTP 401: Unauthorized".to_string()))
+        }
+    }
+
+    /// Returns ClaudeError::MalformedResponse (response parsed but content block missing).
+    struct MalformedResponseClaude;
+
+    #[async_trait::async_trait]
+    impl ClaudeClientTrait for MalformedResponseClaude {
+        async fn generate_setlist(
+            &self,
+            _system_prompt: &str,
+            _user_prompt: &str,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<String, ClaudeError> {
+            Err(ClaudeError::MalformedResponse(
+                "No text content in response".to_string(),
+            ))
+        }
+
+        async fn generate_with_blocks(
+            &self,
+            _system_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _user_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<(String, crate::api::claude::CacheMetrics), ClaudeError> {
+            Err(ClaudeError::MalformedResponse(
+                "No text content in response".to_string(),
+            ))
+        }
+    }
+
     async fn setup_pool_with_tracks() -> sqlx::SqlitePool {
         let pool = crate::db::create_test_pool().await;
 
@@ -1424,6 +1480,30 @@ mod tests {
         let claude = TimeoutClaude;
         let result = generate_setlist(&pool, &claude, "user1", "test", None).await;
         assert!(matches!(result, Err(SetlistError::Timeout)));
+    }
+
+    // QT-01: ClaudeError::Api maps to SetlistError::ClaudeError
+    #[tokio::test]
+    async fn test_api_error_claude_maps_to_claude_error() {
+        let pool = setup_pool_with_tracks().await;
+        let claude = ApiErrorClaude;
+        let result = generate_setlist(&pool, &claude, "user1", "test", None).await;
+        assert!(
+            matches!(result, Err(SetlistError::ClaudeError(_))),
+            "ClaudeError::Api should map to SetlistError::ClaudeError"
+        );
+    }
+
+    // QT-01: ClaudeError::MalformedResponse maps to SetlistError::ClaudeError
+    #[tokio::test]
+    async fn test_malformed_response_error_maps_to_claude_error() {
+        let pool = setup_pool_with_tracks().await;
+        let claude = MalformedResponseClaude;
+        let result = generate_setlist(&pool, &claude, "user1", "test", None).await;
+        assert!(
+            matches!(result, Err(SetlistError::ClaudeError(_))),
+            "ClaudeError::MalformedResponse should map to SetlistError::ClaudeError"
+        );
     }
 
     // M2: Test track_count validation
