@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use crate::db::crate_models::{CrateRow, CrateSummary, CrateTrackRow};
 use crate::db::crates;
+use crate::db::setlists as db_setlists;
 use crate::error::AppError;
 
 // ---------------------------------------------------------------------------
@@ -148,6 +149,15 @@ async fn add_setlist_handler(
         .ok_or_else(|| AppError::NotFound(format!("crate {id} not found")))?;
     if crate_row.user_id != user_id {
         return Err(AppError::NotFound(format!("crate {id} not found")));
+    }
+    let setlist_row = db_setlists::get_setlist(&state.pool, &setlist_id)
+        .await
+        .map_err(AppError::Database)?
+        .ok_or_else(|| AppError::NotFound(format!("setlist {setlist_id} not found")))?;
+    if setlist_row.user_id != user_id {
+        return Err(AppError::NotFound(format!(
+            "setlist {setlist_id} not found"
+        )));
     }
     let tracks_added = crates::add_tracks_from_setlist(&state.pool, &id, &setlist_id)
         .await

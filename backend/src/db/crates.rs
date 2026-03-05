@@ -131,6 +131,7 @@ pub async fn add_tracks_from_setlist(
     .fetch_all(pool)
     .await?;
 
+    let mut tx = pool.begin().await?;
     let mut added: i64 = 0;
     for row in rows {
         let id = Uuid::new_v4().to_string();
@@ -149,10 +150,11 @@ pub async fn add_tracks_from_setlist(
         .bind(row.energy)
         .bind(&row.spotify_uri)
         .bind(setlist_id)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
         added += result.rows_affected() as i64;
     }
+    tx.commit().await?;
     Ok(added)
 }
 
