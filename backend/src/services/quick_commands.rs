@@ -98,6 +98,9 @@ mod tests {
             source: "suggestion".to_string(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }
     }
 

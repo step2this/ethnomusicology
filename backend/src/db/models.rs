@@ -141,4 +141,7 @@ pub struct SetlistTrackRow {
     pub source: String,
     pub acquisition_info: Option<String>,
     pub spotify_uri: Option<String>,
+    pub confidence: Option<String>,
+    pub verification_flag: Option<String>,
+    pub verification_note: Option<String>,
 }

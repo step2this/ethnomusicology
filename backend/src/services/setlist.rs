@@ -198,6 +198,8 @@ pub struct SetlistTrackResponse {
     pub track_id: Option<String>,
     pub spotify_uri: Option<String>,
     pub confidence: Option<String>,
+    pub verification_flag: Option<String>,
+    pub verification_note: Option<String>,
 }
 
 impl From<SetlistTrackRow> for SetlistTrackResponse {
@@ -216,7 +218,9 @@ impl From<SetlistTrackRow> for SetlistTrackResponse {
             source: row.source,
             track_id: row.track_id,
             spotify_uri: row.spotify_uri,
-            confidence: None,
+            confidence: row.confidence,
+            verification_flag: row.verification_flag,
+            verification_note: row.verification_note,
         }
     }
 }
@@ -507,6 +511,13 @@ pub async fn generate_setlist_from_request(
             source: source.clone(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: entry
+                .confidence
+                .as_deref()
+                .map(|c| c.to_lowercase())
+                .filter(|c| matches!(c.as_str(), "high" | "medium" | "low")),
+            verification_flag: None,
+            verification_note: None,
         };
 
         // M4: Only attempt track DB write if setlist was persisted
@@ -536,6 +547,8 @@ pub async fn generate_setlist_from_request(
                 .as_deref()
                 .map(|c| c.to_lowercase())
                 .filter(|c| matches!(c.as_str(), "high" | "medium" | "low")),
+            verification_flag: None,
+            verification_note: None,
         });
     }
 
@@ -577,6 +590,9 @@ pub async fn generate_setlist_from_request(
                 source: r.source.clone(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: r.confidence.clone(),
+                verification_flag: None,
+                verification_note: None,
             })
             .collect();
         let match_count = compute_seed_match_count(seed_text, &track_rows);
@@ -792,6 +808,8 @@ pub async fn arrange_setlist(
             track_id: track.track_id.clone(),
             spotify_uri: track.spotify_uri.clone(),
             confidence: None,
+            verification_flag: None,
+            verification_note: None,
         });
     }
 
@@ -1552,6 +1570,9 @@ mod tests {
                 source: "suggestion".to_string(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             };
             db::insert_setlist_track(&pool, &track_row).await.unwrap();
         }
@@ -2111,6 +2132,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2129,6 +2153,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2158,6 +2185,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2176,6 +2206,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2205,6 +2238,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2223,6 +2259,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2246,6 +2285,8 @@ mod tests {
             track_id: Some("t1".into()),
             spotify_uri: None,
             confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 100.0);
     }
@@ -2267,6 +2308,8 @@ mod tests {
             track_id: None,
             spotify_uri: None,
             confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 0.0);
     }
@@ -2302,6 +2345,9 @@ mod tests {
             source: "suggestion".into(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_seed_match_count("Desert Rose", &tracks), 1);
     }
@@ -2325,6 +2371,9 @@ mod tests {
             source: "suggestion".into(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(
             compute_seed_match_count("desert rose", &tracks),
@@ -2352,6 +2401,9 @@ mod tests {
             source: "suggestion".into(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_seed_match_count("Desert Rose", &tracks), 0);
     }
