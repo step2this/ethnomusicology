@@ -538,7 +538,35 @@ pub async fn generate_setlist_from_request(
         });
     }
 
-    // Optional verification pass (SP-007)
+    // MusicBrainz grounding: verify tracks against real database (35M+ recordings)
+    // This is additive — upgrades confidence for verified tracks, doesn't penalize unverified ones
+    {
+        let mb_client = reqwest::Client::builder()
+            .user_agent("tarab-studio/0.1.0 (https://tarab.studio)")
+            .build()
+            .unwrap_or_default();
+        for track in &mut track_responses {
+            if let Some(mb_match) =
+                crate::services::musicbrainz::search_recording(&mb_client, &track.artist, &track.title)
+                    .await
+            {
+                // Track verified in MusicBrainz — upgrade confidence to high
+                if track.confidence.as_deref() != Some("high") {
+                    tracing::info!(
+                        "MusicBrainz verified pos {}: '{}' by '{}' (score: {:.0}, ISRC: {:?})",
+                        track.position,
+                        track.title,
+                        track.artist,
+                        mb_match.score,
+                        mb_match.isrc,
+                    );
+                    track.confidence = Some("high".to_string());
+                }
+            }
+        }
+    }
+
+    // Optional LLM verification pass (SP-007)
     if req.verify {
         match verify_setlist(claude, &track_responses).await {
             Ok(verified) => {
