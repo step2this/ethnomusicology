@@ -856,16 +856,22 @@ pub async fn arrange_setlist(
 // Quality validation (T9)
 // ---------------------------------------------------------------------------
 
-/// Compute BPM warnings from SetlistTrackRow slices (used by get_setlist and arrange).
-pub fn compute_bpm_warnings(tracks: &[SetlistTrackRow]) -> Vec<BpmWarning> {
+/// Generic BPM warning computation. Accepts a slice of any type and a closure
+/// that extracts `(position, bpm)` from each element.
+fn compute_bpm_warnings_generic<T, F>(tracks: &[T], extract: F) -> Vec<BpmWarning>
+where
+    F: Fn(&T) -> (i32, Option<f64>),
+{
     let mut warnings = Vec::new();
     for i in 0..tracks.len().saturating_sub(1) {
-        if let (Some(bpm_a), Some(bpm_b)) = (tracks[i].bpm, tracks[i + 1].bpm) {
+        let (pos_a, bpm_a) = extract(&tracks[i]);
+        let (pos_b, bpm_b) = extract(&tracks[i + 1]);
+        if let (Some(bpm_a), Some(bpm_b)) = (bpm_a, bpm_b) {
             let delta = bpm_b - bpm_a;
             if delta.abs() > 6.0 {
                 warnings.push(BpmWarning {
-                    from_position: tracks[i].position,
-                    to_position: tracks[i + 1].position,
+                    from_position: pos_a,
+                    to_position: pos_b,
                     bpm_delta: delta,
                 });
             }
@@ -874,22 +880,14 @@ pub fn compute_bpm_warnings(tracks: &[SetlistTrackRow]) -> Vec<BpmWarning> {
     warnings
 }
 
+/// Compute BPM warnings from SetlistTrackRow slices (used by get_setlist and arrange).
+pub fn compute_bpm_warnings(tracks: &[SetlistTrackRow]) -> Vec<BpmWarning> {
+    compute_bpm_warnings_generic(tracks, |t| (t.position, t.bpm))
+}
+
 /// Compute BPM warnings from SetlistTrackResponse slices (used during generation).
 fn compute_bpm_warnings_from_responses(tracks: &[SetlistTrackResponse]) -> Vec<BpmWarning> {
-    let mut warnings = Vec::new();
-    for i in 0..tracks.len().saturating_sub(1) {
-        if let (Some(bpm_a), Some(bpm_b)) = (tracks[i].bpm, tracks[i + 1].bpm) {
-            let delta = bpm_b - bpm_a;
-            if delta.abs() > 6.0 {
-                warnings.push(BpmWarning {
-                    from_position: tracks[i].position,
-                    to_position: tracks[i + 1].position,
-                    bpm_delta: delta,
-                });
-            }
-        }
-    }
-    warnings
+    compute_bpm_warnings_generic(tracks, |t| (t.position, t.bpm))
 }
 
 /// Compute catalog percentage: count of tracks with source == "catalog" / total × 100.
