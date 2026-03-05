@@ -103,13 +103,15 @@ pub async fn enrich_tracks(
         });
     }
 
-    // 2. Check daily usage cap
+    // 2. Check daily usage cap and trim the batch to stay within it
     let daily_count = crate::db::tracks::get_daily_enrichment_count(pool, user_id).await?;
     if daily_count >= DAILY_CAP as i64 {
         return Err(EnrichmentError::CostCapExceeded(format!(
             "Daily enrichment limit of {DAILY_CAP} tracks reached ({daily_count} used today)"
         )));
     }
+    let remaining_cap = (DAILY_CAP as i64 - daily_count) as usize;
+    let tracks = &tracks[..tracks.len().min(remaining_cap)];
 
     // 3. Process in batches
     let mut total_enriched: u32 = 0;
@@ -441,5 +443,44 @@ mod tests {
                 .await
                 .unwrap();
         assert!(enriched_at.is_some());
+    }
+
+    // QT-05: Cost cap overshoot prevention
+    // If daily_count = DAILY_CAP - 2, only 2 tracks should be processed even if 10 are queued
+    #[tokio::test]
+    async fn test_cost_cap_does_not_overshoot() {
+        let pool = setup_pool_with_unenriched_tracks(10).await;
+
+        // Pre-fill usage so only 2 tracks remain in today's cap (cap is 250)
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        sqlx::query(
+            "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ('u1', 'user1', ?, 248)",
+        )
+        .bind(&today)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        // Mock responds to the first 2 positions in the trimmed batch
+        let response = mock_enrichment_response(2);
+        let claude = MockClaude { response };
+
+        let result = enrich_tracks(&pool, &claude, "user1").await.unwrap();
+
+        // At most 2 tracks should have been attempted (cap - already_used = 250 - 248 = 2)
+        assert_eq!(
+            result.enriched + result.errors + result.skipped,
+            2,
+            "Should process exactly 2 tracks to stay within the cap"
+        );
+
+        // Usage counter should not exceed cap
+        let new_count = crate::db::tracks::get_daily_enrichment_count(&pool, "user1")
+            .await
+            .unwrap();
+        assert!(
+            new_count <= DAILY_CAP as i64,
+            "Daily count {new_count} should not exceed cap {DAILY_CAP}"
+        );
     }
 }
