@@ -50,6 +50,9 @@ pub enum SetlistError {
 
     #[error("Playlist not found: {0}")]
     PlaylistNotFound(String),
+
+    #[error("Generation limit exceeded: {0}")]
+    GenerationLimitExceeded(String),
 }
 
 impl IntoResponse for SetlistError {
@@ -94,6 +97,11 @@ impl IntoResponse for SetlistError {
             SetlistError::PlaylistNotFound(m) => {
                 (StatusCode::NOT_FOUND, "PLAYLIST_NOT_FOUND", m.clone())
             }
+            SetlistError::GenerationLimitExceeded(m) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "GENERATION_LIMIT_EXCEEDED",
+                m.clone(),
+            ),
         };
 
         let body = serde_json::json!({
@@ -261,6 +269,8 @@ const MAX_PROMPT_LEN: usize = 2000;
 const DEFAULT_TRACK_COUNT: u32 = 10;
 const MIN_TRACK_COUNT: u32 = 1;
 const MAX_TRACK_COUNT: u32 = 50;
+/// Maximum setlist generations per user per day.
+const DAILY_GENERATION_CAP: i64 = 50;
 
 /// Legacy generate_setlist function — delegates to the new request-based overload for backward compat.
 pub async fn generate_setlist(
@@ -322,6 +332,16 @@ pub async fn generate_setlist_from_request(
                 bpm_range.min, bpm_range.max
             )));
         }
+    }
+
+    // DF-03: Check daily generation cap before calling LLM
+    let daily_gen_count = crate::db::tracks::get_daily_generation_count(pool, &req.user_id)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?;
+    if daily_gen_count >= DAILY_GENERATION_CAP {
+        return Err(SetlistError::GenerationLimitExceeded(format!(
+            "Daily generation limit of {DAILY_GENERATION_CAP} reached ({daily_gen_count} used today)"
+        )));
     }
 
     // Catalog loading: source_playlist_id filtering or full catalog
@@ -622,6 +642,14 @@ pub async fn generate_setlist_from_request(
     let catalog_percentage = compute_catalog_percentage(&track_responses);
     let catalog_warning = compute_catalog_warning(catalog_percentage);
     let bpm_warnings = compute_bpm_warnings_from_responses(&track_responses);
+
+    // DF-03: Increment generation counter (best-effort; failure does not block response)
+    if let Err(e) = crate::db::tracks::increment_generation_usage(pool, &req.user_id).await {
+        tracing::warn!(
+            "Failed to increment generation usage for {}: {e}",
+            req.user_id
+        );
+    }
 
     // M4: Use temporary ID if DB write failed, otherwise fetch created_at
     let (final_id, created_at) = if db_write_failed {
@@ -2621,5 +2649,50 @@ mod tests {
             Some("Replaced: was 'Old Title' by 'Original Artist'")
         );
         assert_eq!(result[2].confidence.as_deref(), Some("medium"));
+    }
+
+    // DF-03: Daily generation limit
+    #[tokio::test]
+    async fn test_daily_generation_limit_enforced() {
+        let pool = setup_pool_with_tracks().await;
+
+        // Pre-fill to the cap
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        sqlx::query(
+            "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES ('u1', 'user1', ?, 50)",
+        )
+        .bind(&today)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let claude = MockClaude {
+            response: valid_llm_json(None),
+        };
+        let result = generate_setlist(&pool, &claude, "user1", "chill vibes", None).await;
+        assert!(
+            matches!(result, Err(SetlistError::GenerationLimitExceeded(_))),
+            "Should reject after hitting daily cap"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_daily_generation_limit_increments_on_success() {
+        let pool = setup_pool_with_tracks().await;
+        let claude = MockClaude {
+            response: valid_llm_json(None),
+        };
+
+        generate_setlist(&pool, &claude, "user1", "chill vibes", None)
+            .await
+            .unwrap();
+
+        let count = crate::db::tracks::get_daily_generation_count(&pool, "user1")
+            .await
+            .unwrap();
+        assert_eq!(
+            count, 1,
+            "Generation count should be incremented after success"
+        );
     }
 }
