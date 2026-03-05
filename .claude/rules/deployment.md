@@ -80,6 +80,9 @@ SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT_URI=https://tarab.studio/api/auth/spotify/callback
 ANTHROPIC_API_KEY=
 TOKEN_ENCRYPTION_KEY=          # openssl rand -base64 32
+ADMIN_TOKEN=                   # openssl rand -hex 32 — used by wipe endpoint (X-Admin-Token header)
+SOUNDCLOUD_CLIENT_ID=
+SOUNDCLOUD_CLIENT_SECRET=
 ```
 
 ## Deploy Process (`scripts/deploy.sh`)
@@ -87,7 +90,7 @@ TOKEN_ENCRYPTION_KEY=          # openssl rand -base64 32
 GitHub Actions SCP's the binary and frontend to timestamped paths, then calls this script with `TIMESTAMP` set.
 
 1. `chmod +x` the new binary
-2. Atomic symlink swap (via `ln -sf` + `mv -f .tmp`) for both binary and frontend
+2. Atomic symlink swap (via `ln -sf` + `mv -Tf .tmp`) for both binary and frontend
 3. `systemctl restart ethnomusicology`
 4. Health check: `GET http://localhost:3001/api/health` with exponential backoff (up to 60s, 10 attempts)
 5. On success: prune old binaries/frontends (keep last 3)

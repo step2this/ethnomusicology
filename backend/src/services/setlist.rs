@@ -175,6 +175,7 @@ pub struct GenerateSetlistRequest {
     pub seed_tracklist: Option<String>,
     pub creative_mode: Option<bool>,
     pub bpm_range: Option<BpmRange>,
+    pub verify: bool,
 }
 
 pub struct BpmRange {
@@ -198,6 +199,8 @@ pub struct SetlistTrackResponse {
     pub track_id: Option<String>,
     pub spotify_uri: Option<String>,
     pub confidence: Option<String>,
+    pub verification_flag: Option<String>,
+    pub verification_note: Option<String>,
 }
 
 impl From<SetlistTrackRow> for SetlistTrackResponse {
@@ -216,7 +219,9 @@ impl From<SetlistTrackRow> for SetlistTrackResponse {
             source: row.source,
             track_id: row.track_id,
             spotify_uri: row.spotify_uri,
-            confidence: None,
+            confidence: row.confidence,
+            verification_flag: row.verification_flag,
+            verification_note: row.verification_note,
         }
     }
 }
@@ -274,6 +279,7 @@ pub async fn generate_setlist(
         seed_tracklist: None,
         creative_mode: None,
         bpm_range: None,
+        verify: false,
     };
     generate_setlist_from_request(pool, claude, req).await
 }
@@ -462,9 +468,8 @@ pub async fn generate_setlist_from_request(
         }
     };
 
-    // Process tracks
+    // Process tracks: build responses in memory first, verify optionally, then persist
     let mut track_responses = Vec::with_capacity(valid_entries.len());
-    let mut any_track_write_failed = db_write_failed;
 
     for (i, entry) in valid_entries.iter().enumerate() {
         let position = (i + 1) as i32;
@@ -490,33 +495,6 @@ pub async fn generate_setlist_from_request(
             ),
         };
 
-        let track_row = SetlistTrackRow {
-            id: uuid::Uuid::new_v4().to_string(),
-            setlist_id: setlist_id.clone(),
-            track_id: validated_track_id.clone(),
-            position,
-            original_position: position,
-            title: entry.title.clone(),
-            artist: entry.artist.clone(),
-            bpm: entry.bpm,
-            key: entry.key.clone(),
-            camelot: entry.camelot.clone(),
-            energy: entry.energy.map(|e| e as f64),
-            transition_note: entry.transition_note.clone(),
-            transition_score: None,
-            source: source.clone(),
-            acquisition_info: None,
-            spotify_uri: None,
-        };
-
-        // M4: Only attempt track DB write if setlist was persisted
-        if !db_write_failed {
-            if let Err(e) = db::insert_setlist_track(pool, &track_row).await {
-                tracing::error!("Failed to persist setlist track: {e}");
-                any_track_write_failed = true;
-            }
-        }
-
         track_responses.push(SetlistTrackResponse {
             position,
             title: entry.title.clone(),
@@ -536,7 +514,56 @@ pub async fn generate_setlist_from_request(
                 .as_deref()
                 .map(|c| c.to_lowercase())
                 .filter(|c| matches!(c.as_str(), "high" | "medium" | "low")),
+            verification_flag: None,
+            verification_note: None,
         });
+    }
+
+    // Optional verification pass (SP-007)
+    if req.verify {
+        match verify_setlist(claude, &track_responses).await {
+            Ok(verified) => {
+                track_responses = verified;
+            }
+            Err(e) => {
+                tracing::warn!("Verification failed, using unverified tracks: {e}");
+                extra_notes.push(
+                    "Verification unavailable, confidence scores are self-reported.".to_string(),
+                );
+            }
+        }
+    }
+
+    // Persist tracks AFTER verification so DB has final state
+    let mut any_track_write_failed = db_write_failed;
+    if !db_write_failed {
+        for track in &track_responses {
+            let track_row = SetlistTrackRow {
+                id: uuid::Uuid::new_v4().to_string(),
+                setlist_id: setlist_id.clone(),
+                track_id: track.track_id.clone(),
+                position: track.position,
+                original_position: track.original_position,
+                title: track.title.clone(),
+                artist: track.artist.clone(),
+                bpm: track.bpm,
+                key: track.key.clone(),
+                camelot: track.camelot.clone(),
+                energy: track.energy,
+                transition_note: track.transition_note.clone(),
+                transition_score: track.transition_score,
+                source: track.source.clone(),
+                acquisition_info: None,
+                spotify_uri: None,
+                confidence: track.confidence.clone(),
+                verification_flag: track.verification_flag.clone(),
+                verification_note: track.verification_note.clone(),
+            };
+            if let Err(e) = db::insert_setlist_track(pool, &track_row).await {
+                tracing::error!("Failed to persist setlist track: {e}");
+                any_track_write_failed = true;
+            }
+        }
     }
 
     // Build notes with possible DB warning and extra notes
@@ -577,6 +604,9 @@ pub async fn generate_setlist_from_request(
                 source: r.source.clone(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: r.confidence.clone(),
+                verification_flag: None,
+                verification_note: None,
             })
             .collect();
         let match_count = compute_seed_match_count(seed_text, &track_rows);
@@ -792,6 +822,8 @@ pub async fn arrange_setlist(
             track_id: track.track_id.clone(),
             spotify_uri: track.spotify_uri.clone(),
             confidence: None,
+            verification_flag: None,
+            verification_note: None,
         });
     }
 
@@ -989,11 +1021,13 @@ pub async fn verify_setlist(
             }
             // If the verifier flagged and replaced, update title/artist
             if v.flag.as_deref() == Some("replaced") {
+                let original_title = track.title.clone();
+                let original_artist = track.artist.clone();
                 tracing::info!(
                     "Verification replaced pos {}: '{}' by '{}' → '{}' by '{}'",
                     track.position,
-                    track.title,
-                    track.artist,
+                    original_title,
+                    original_artist,
                     v.title,
                     v.artist
                 );
@@ -1003,13 +1037,21 @@ pub async fn verify_setlist(
                 if track.confidence.as_deref() != Some("low") {
                     track.confidence = Some("medium".to_string());
                 }
+                track.verification_note = Some(format!(
+                    "Replaced: was '{}' by '{}'",
+                    original_title, original_artist
+                ));
             }
-            // If flagged as wrong_artist or no_such_track, downgrade confidence
+            // If flagged, downgrade confidence and propagate correction note
             if matches!(
                 v.flag.as_deref(),
-                Some("wrong_artist") | Some("no_such_track") | Some("constructed_title")
+                Some("wrong_artist")
+                    | Some("no_such_track")
+                    | Some("constructed_title")
+                    | Some("uncertain")
             ) {
                 track.confidence = Some("low".to_string());
+                track.verification_note = v.correction.clone();
                 tracing::warn!(
                     "Verification flagged pos {}: '{}' by '{}' as {:?} — {}",
                     track.position,
@@ -1019,6 +1061,8 @@ pub async fn verify_setlist(
                     v.correction.as_deref().unwrap_or("no correction")
                 );
             }
+            // Propagate the flag to the response
+            track.verification_flag = v.flag.clone();
         }
     }
 
@@ -1552,6 +1596,9 @@ mod tests {
                 source: "suggestion".to_string(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             };
             db::insert_setlist_track(&pool, &track_row).await.unwrap();
         }
@@ -1679,6 +1726,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1717,6 +1765,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1746,6 +1795,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::EmptyCatalog)));
@@ -1766,6 +1816,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::PlaylistNotFound(_))));
@@ -1809,6 +1860,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1865,6 +1917,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1895,6 +1948,7 @@ mod tests {
             ),
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         // Should not error — seed_tracklist is passed to Claude prompt
         let resp = generate_setlist_from_request(&pool, &claude, req)
@@ -1918,6 +1972,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: Some(true),
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1943,6 +1998,7 @@ mod tests {
                 min: 120.0,
                 max: 130.0,
             }),
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1968,6 +2024,7 @@ mod tests {
                 min: 50.0,
                 max: 130.0,
             }),
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -1991,6 +2048,7 @@ mod tests {
                 min: 100.0,
                 max: 210.0,
             }),
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2014,6 +2072,7 @@ mod tests {
                 min: 140.0,
                 max: 120.0,
             }),
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2035,6 +2094,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2060,6 +2120,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2111,6 +2172,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2129,6 +2193,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2158,6 +2225,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2176,6 +2246,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2205,6 +2278,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
             SetlistTrackRow {
                 id: "2".into(),
@@ -2223,6 +2299,9 @@ mod tests {
                 source: "suggestion".into(),
                 acquisition_info: None,
                 spotify_uri: None,
+                confidence: None,
+                verification_flag: None,
+                verification_note: None,
             },
         ];
         let warnings = compute_bpm_warnings(&tracks);
@@ -2246,6 +2325,8 @@ mod tests {
             track_id: Some("t1".into()),
             spotify_uri: None,
             confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 100.0);
     }
@@ -2267,6 +2348,8 @@ mod tests {
             track_id: None,
             spotify_uri: None,
             confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 0.0);
     }
@@ -2302,6 +2385,9 @@ mod tests {
             source: "suggestion".into(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_seed_match_count("Desert Rose", &tracks), 1);
     }
@@ -2325,6 +2411,9 @@ mod tests {
             source: "suggestion".into(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(
             compute_seed_match_count("desert rose", &tracks),
@@ -2352,7 +2441,108 @@ mod tests {
             source: "suggestion".into(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         }];
         assert_eq!(compute_seed_match_count("Desert Rose", &tracks), 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // T4: verify_setlist flag propagation tests
+    // -----------------------------------------------------------------------
+
+    fn make_response_track(
+        position: i32,
+        title: &str,
+        artist: &str,
+        confidence: Option<&str>,
+    ) -> SetlistTrackResponse {
+        SetlistTrackResponse {
+            position,
+            title: title.into(),
+            artist: artist.into(),
+            bpm: None,
+            key: None,
+            camelot: None,
+            energy: None,
+            transition_note: None,
+            transition_score: None,
+            original_position: position,
+            source: "suggestion".into(),
+            track_id: None,
+            spotify_uri: None,
+            confidence: confidence.map(|s| s.into()),
+            verification_flag: None,
+            verification_note: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_verify_setlist_propagates_flag_and_note() {
+        let tracks = vec![
+            make_response_track(1, "Real Track", "Real Artist", Some("high")),
+            make_response_track(2, "Fake Track", "Wrong Artist", Some("medium")),
+            make_response_track(3, "Old Title", "Original Artist", Some("high")),
+        ];
+
+        let mock_response = serde_json::json!({
+            "tracks": [
+                {
+                    "position": 1,
+                    "title": "Real Track",
+                    "artist": "Real Artist",
+                    "confidence": "high",
+                    "flag": null,
+                    "correction": null
+                },
+                {
+                    "position": 2,
+                    "title": "Fake Track",
+                    "artist": "Wrong Artist",
+                    "confidence": "low",
+                    "flag": "wrong_artist",
+                    "correction": "Artist name is incorrect"
+                },
+                {
+                    "position": 3,
+                    "title": "New Title",
+                    "artist": "Original Artist",
+                    "confidence": "medium",
+                    "flag": "replaced",
+                    "correction": null
+                }
+            ],
+            "summary": "Two issues found"
+        });
+
+        let claude = MockClaude {
+            response: mock_response.to_string(),
+        };
+
+        let result = verify_setlist(&claude, &tracks).await.unwrap();
+        assert_eq!(result.len(), 3);
+
+        // Track 1: no flag, confidence unchanged
+        assert_eq!(result[0].verification_flag, None);
+        assert_eq!(result[0].verification_note, None);
+        assert_eq!(result[0].confidence.as_deref(), Some("high"));
+
+        // Track 2: wrong_artist flag propagated, confidence downgraded, note set
+        assert_eq!(result[1].verification_flag.as_deref(), Some("wrong_artist"));
+        assert_eq!(
+            result[1].verification_note.as_deref(),
+            Some("Artist name is incorrect")
+        );
+        assert_eq!(result[1].confidence.as_deref(), Some("low"));
+
+        // Track 3: replaced — title updated, note describes original, flag set
+        assert_eq!(result[2].verification_flag.as_deref(), Some("replaced"));
+        assert_eq!(result[2].title, "New Title");
+        assert_eq!(
+            result[2].verification_note.as_deref(),
+            Some("Replaced: was 'Old Title' by 'Original Artist'")
+        );
+        assert_eq!(result[2].confidence.as_deref(), Some("medium"));
     }
 }

@@ -17,12 +17,12 @@
 | UC-018 | mood_tags, enriched_at | ✅ | ST-005 (enriched_at column + update; mood_tags post-MVP) |
 | UC-019 | Sequential preview playback | ✅ | Deezer 30s previews + Web Audio API + backend proxy. Crossfade removed (too complex for 30s clips). |
 | UC-019 | Transport controls (prev/next/pause) | ✅ | Phase 3: auto-advance, PlaybackStatus enum. PR #4 merged. |
-| UC-019 | Deezer field-specific search | ⬜ | Phase 4: `artist:"X" track:"Y" strict=on` — replaces freeform (~20-30% error rate on electronic) |
-| UC-019 | Deezer ISRC lookup | ⬜ | Phase 4: `GET /track/isrc:{ISRC}` — exact match when Spotify ISRC available |
-| UC-019 | Playback debugging infrastructure | 🔄 | Per-track Deezer search status indicators + search query tooltips |
+| UC-019 | Deezer field-specific search | ✅ | Phase 4: `artist:"X" track:"Y" strict=on` — replaces freeform (~20-30% error rate on electronic) |
+| UC-019 | Deezer ISRC lookup | ✅ | Phase 4: `GET /track/isrc:{ISRC}` — exact match when Spotify ISRC available |
+| UC-019 | Playback debugging infrastructure | ✅ | Per-track Deezer search status indicators + search query tooltips |
 | UC-019 | iTunes Search API fallback | ✅ | ST-008: unified /api/audio/search, Deezer→iTunes fallback, Apple CDN proxy |
-| UC-019 | SoundCloud preview fallback | ⬜ | Phase 5.1: OAuth required, underground/indie catalog |
-| UC-019 | Track attribution links | 🔄 | Clickable title/artist → Google search, Spotify links for catalog tracks |
+| UC-019 | SoundCloud preview fallback | ✅ | ST-009: OAuth 2.1 Client Credentials, preview_mp3_128_url, CDN redirect resolved server-side |
+| UC-019 | Track attribution links | ✅ | Clickable title/artist → Google search, Spotify links for catalog tracks |
 | UC-019 | Waveform visualization | ⬜ | Deferred — post-MVP polish |
 | UC-020 | Google search links | ✅ | Implemented on track title/artist |
 | UC-020 | Multi-store purchase link panel | ⬜ | Phase 6: Beatport, Apple Music (affiliate), Bandcamp, Traxsource, Juno |
@@ -31,9 +31,14 @@
 | UC-023 | Version history + undo | ✅ | ST-007 backend + frontend. PR #5 merged. |
 | UC-023 | >50% change guard | ✅ | ST-007 backend (change_warning field). PR #5 merged. |
 
+| SP-007 | LLM self-verification spike | ✅ | music_skill.md + verification_prompt.md + confidence calibration (high≈90% real, medium≈25%) |
+| ST-010 | Confidence persisted to DB | ✅ | Migration 009_verification.sql; confidence + verification_notes on setlist_tracks |
+| ST-010 | verify_setlist() wired into generation | ✅ | Opt-in via `verify: true` flag in GenerateSetlistRequest |
+| ST-010 | Confidence badge UI | ✅ | ConfidenceBadge widget on track tiles (color-coded chip + tooltip) |
+
 Status: ⬜ backlog, 🔄 doing, ✅ done
 
-## Test Counts (as of 2026-03-04)
-- Backend: 352 tests
-- Frontend: 150 tests
-- Total: 502 tests
+## Test Counts (as of 2026-03-05)
+- Backend: 367 tests
+- Frontend: 156 tests
+- Total: 523 tests

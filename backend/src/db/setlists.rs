@@ -27,7 +27,7 @@ pub async fn insert_setlist_track(
     row: &SetlistTrackRow,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info, confidence, verification_flag, verification_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(&row.id)
     .bind(&row.setlist_id)
@@ -44,6 +44,9 @@ pub async fn insert_setlist_track(
     .bind(row.transition_score)
     .bind(&row.source)
     .bind(&row.acquisition_info)
+    .bind(&row.confidence)
+    .bind(&row.verification_flag)
+    .bind(&row.verification_note)
     .execute(pool)
     .await?;
     Ok(())
@@ -70,7 +73,7 @@ pub async fn get_setlist_tracks(
         "SELECT st.id, st.setlist_id, st.track_id, st.position, st.original_position, \
          st.title, st.artist, st.bpm, st.key, st.camelot, st.energy, \
          st.transition_note, st.transition_score, st.source, st.acquisition_info, \
-         t.spotify_uri \
+         t.spotify_uri, st.confidence, st.verification_flag, st.verification_note \
          FROM setlist_tracks st LEFT JOIN tracks t ON st.track_id = t.id \
          WHERE st.setlist_id = ? ORDER BY st.position ASC",
     )
@@ -205,6 +208,9 @@ mod tests {
             source: "suggestion".to_string(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         };
 
         insert_setlist_track(&pool, &track).await.unwrap();
@@ -272,6 +278,9 @@ mod tests {
             source: "suggestion".to_string(),
             acquisition_info: None,
             spotify_uri: None,
+            confidence: None,
+            verification_flag: None,
+            verification_note: None,
         };
         insert_setlist_track(&pool, &track).await.unwrap();
 

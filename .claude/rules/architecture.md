@@ -30,6 +30,7 @@ paths:
 - Camelot conversion: `from_spotify_key()` + `from_notation()` in `services/camelot.rs` (implemented in ST-005). Supports Spotify pitch_class/mode, essentia note/scale, and direct Camelot notation.
 - Shared `Arc<dyn ClaudeClientTrait>` across routes — one client instance for setlist generation and enrichment
 - Artist data: relational (`artists` + `track_artists` JOIN), API flattens to comma-separated string
+- Preview fallback chain: Deezer ISRC → Deezer field search → iTunes → SoundCloud → no-preview
 
 ## External Integrations
 
@@ -37,7 +38,8 @@ paths:
 |---------|---------|-----------|
 | Spotify | Music import + metadata (UC-001) | Integrated, OAuth. Audio Features API DEPRECATED Nov 2024 — do NOT use. Import and catalog only. |
 | Deezer | 30s preview playback (UC-019) | Search API (no auth). Backend proxies MP3 streams to avoid CORS. `deezer_preview_url` persisted on tracks table. |
+| iTunes/Apple Music | Preview fallback (30s AAC), free, no auth | Integrated (ST-008). 100M+ catalog. Unified /api/audio/search endpoint with match scoring + Apple CDN proxy. |
+| SoundCloud | Preview fallback (128kbps MP3), OAuth 2.1 | Integrated (ST-009). Client Credentials flow, `preview_mp3_128_url`, CDN redirect resolved server-side. Circuit breaker. Credentials in /etc/ethnomusicology/env. |
 | Beatport | DJ track source (deferred) | v4 API, OAuth2 w/ public client_id workaround. No official dev access. Rate limits unknown (SP-001) |
-| SoundCloud | Discovery + streaming (deferred) | Public API, OAuth 2.1. CORS issues with streaming URL 302 redirects (SP-002) |
-| Anthropic/Claude | Setlist generation + enrichment + refinement | Sonnet default, Opus for complex refinement. Enrichment: batch BPM/key/energy estimation (ST-005). Refinement: multi-turn converse() (ST-007). |
+| Anthropic/Claude | Setlist generation + enrichment + refinement + verification | Sonnet default, Opus for complex refinement. Enrichment: batch BPM/key/energy estimation (ST-005). Refinement: multi-turn converse() (ST-007). Verification: second-pass fact-checker via verify_setlist() (ST-010). |
 | essentia | Audio analysis (deferred post-MVP) | Python sidecar (1-2 GB), async queue. Key → Camelot via `from_notation()` (ready in ST-005) |
