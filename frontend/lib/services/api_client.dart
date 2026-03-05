@@ -89,6 +89,7 @@ class ApiClient {
     bool? creativeMode,
     double? bpmMin,
     double? bpmMax,
+    bool? verify,
   }) async {
     final data = <String, dynamic>{'prompt': prompt};
     if (trackCount != null) data['track_count'] = trackCount;
@@ -101,6 +102,7 @@ class ApiClient {
     if (bpmMin != null && bpmMax != null) {
       data['bpm_range'] = {'min': bpmMin, 'max': bpmMax};
     }
+    if (verify != null) data['verify'] = verify;
     final response = await _dio.post('/setlists/generate', data: data);
     return Setlist.fromJson(response.data as Map<String, dynamic>);
   }

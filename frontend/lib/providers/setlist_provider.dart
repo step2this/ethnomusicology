@@ -64,6 +64,7 @@ class SetlistNotifier extends Notifier<SetlistState> {
     bool? creativeMode,
     double? bpmMin,
     double? bpmMax,
+    bool? verify,
   }) async {
     state = SetlistState(
       isGenerating: true,
@@ -81,6 +82,7 @@ class SetlistNotifier extends Notifier<SetlistState> {
         creativeMode: creativeMode,
         bpmMin: bpmMin,
         bpmMax: bpmMax,
+        verify: verify,
       );
       state = state.copyWith(
         setlist: () => setlist,

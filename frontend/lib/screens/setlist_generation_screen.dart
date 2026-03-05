@@ -100,6 +100,7 @@ class _SetlistGenerationScreenState
         creativeMode,
         bpmMin,
         bpmMax,
+        verify,
       }) {
         ref.read(setlistProvider.notifier).generateSetlist(
               prompt,
@@ -110,6 +111,7 @@ class _SetlistGenerationScreenState
               seedTracklist: seedTracklist,
               bpmMin: bpmMin,
               bpmMax: bpmMax,
+              verify: verify,
             );
       },
     );
