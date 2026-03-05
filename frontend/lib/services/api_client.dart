@@ -1,8 +1,10 @@
 import 'package:dio/dio.dart';
 
+import '../models/crate.dart';
 import '../models/refinement.dart';
 import '../models/setlist.dart';
 import '../models/track_list_response.dart';
+import '../providers/setlist_library_provider.dart';
 
 class ApiClient {
   static const _baseUrl = '/api';
@@ -120,6 +122,65 @@ class ApiClient {
   Future<Setlist> getSetlist(String id) async {
     final response = await _dio.get('/setlists/$id');
     return Setlist.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<List<SetlistSummary>> listSetlists() async {
+    final response = await _dio.get('/setlists');
+    final list = response.data as List<dynamic>;
+    return list
+        .map((e) => SetlistSummary.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<void> deleteSetlist(String id) async {
+    await _dio.delete('/setlists/$id');
+  }
+
+  Future<Setlist> updateSetlist(String id, {String? name}) async {
+    final response = await _dio.patch(
+      '/setlists/$id',
+      data: {'name': name},
+    );
+    return Setlist.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<Setlist> duplicateSetlist(String id) async {
+    final response = await _dio.post('/setlists/$id/duplicate');
+    return Setlist.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  // -------------------------------------------------------------------------
+  // Crates
+  // -------------------------------------------------------------------------
+
+  Future<List<Crate>> listCrates() async {
+    final response = await _dio.get('/crates');
+    final list = response.data as List<dynamic>;
+    return list
+        .map((e) => Crate.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<Crate> createCrate(String name) async {
+    final response = await _dio.post('/crates', data: {'name': name});
+    return Crate.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<CrateDetail> getCrate(String id) async {
+    final response = await _dio.get('/crates/$id');
+    return CrateDetail.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  Future<void> deleteCrate(String id) async {
+    await _dio.delete('/crates/$id');
+  }
+
+  Future<void> addSetlistToCrate(String crateId, String setlistId) async {
+    await _dio.post('/crates/$crateId/setlists/$setlistId');
+  }
+
+  Future<void> removeCrateTrack(String crateId, String trackId) async {
+    await _dio.delete('/crates/$crateId/tracks/$trackId');
   }
 
   // -------------------------------------------------------------------------

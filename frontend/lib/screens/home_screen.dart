@@ -31,6 +31,18 @@ class HomeScreen extends StatelessWidget {
               label: const Text('Track Catalog'),
             ),
             const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => context.go(AppRoutes.setlistLibrary),
+              icon: const Icon(Icons.queue_music),
+              label: const Text('My Setlists'),
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => context.go(AppRoutes.crateLibrary),
+              icon: const Icon(Icons.inbox),
+              label: const Text('My Crates'),
+            ),
+            const SizedBox(height: 12),
             OutlinedButton.icon(
               onPressed: () => context.go(AppRoutes.spotifyImport),
               icon: const Icon(Icons.download),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/api_provider.dart';
 import '../providers/audio_provider.dart';
 import '../providers/deezer_provider.dart';
 import '../providers/refinement_provider.dart';
@@ -43,6 +44,11 @@ class _SetlistGenerationScreenState
         centerTitle: true,
         actions: [
           if (state.hasSetlist) ...[
+            IconButton(
+              icon: const Icon(Icons.save_outlined),
+              onPressed: () => _showSaveDialog(context, state),
+              tooltip: 'Save setlist',
+            ),
             IconButton(
               icon: const Icon(Icons.history),
               onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
@@ -153,5 +159,55 @@ class _SetlistGenerationScreenState
     ref.read(setlistProvider.notifier).reset();
     ref.read(audioPlaybackProvider.notifier).stop();
     ref.read(refinementProvider.notifier).reset();
+  }
+
+  void _showSaveDialog(BuildContext context, SetlistState state) {
+    final setlist = state.setlist!;
+    final controller = TextEditingController(text: setlist.name ?? '');
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Save Setlist'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            hintText: 'e.g. Friday Night Set',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              Navigator.of(ctx).pop();
+              try {
+                await ref.read(apiClientProvider).updateSetlist(
+                      setlist.id,
+                      name: name,
+                    );
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('"$name" saved')),
+                  );
+                }
+              } on Exception catch (e) {
+                if (ctx.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Save failed: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 }
