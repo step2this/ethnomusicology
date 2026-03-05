@@ -45,6 +45,7 @@ pub struct LlmTrackEntry {
     pub transition_note: Option<String>,
     pub source: Option<String>,
     pub track_id: Option<String>,
+    pub confidence: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -313,6 +314,9 @@ pub fn strip_markdown_fences(text: &str) -> &str {
 // Enhanced prompt builders
 // ---------------------------------------------------------------------------
 
+/// Music verification skill document, injected into system prompt.
+const MUSIC_SKILL: &str = include_str!("../prompts/music_skill.md");
+
 /// Build the enhanced system prompt as structured content blocks with cache control.
 pub fn build_enhanced_system_prompt(
     catalog_text: &str,
@@ -376,7 +380,8 @@ Respond with ONLY valid JSON (no markdown fences, no explanation):
       "energy": 5,
       "transition_note": "Blend low-end, match kick",
       "source": "catalog",
-      "track_id": "uuid-or-null"
+      "track_id": "uuid-or-null",
+      "confidence": "high"
     }
   ],
   "notes": "Brief description of the set flow..."
@@ -393,12 +398,21 @@ Respond with ONLY valid JSON (no markdown fences, no explanation):
     };
 
     vec![
+        // Static skill doc first for best cache hit rates (never changes)
+        RequestContentBlock::Text {
+            text: MUSIC_SKILL.to_string(),
+            cache_control: Some(CacheControl {
+                control_type: "ephemeral".to_string(),
+            }),
+        },
+        // Persona varies with energy_profile + creative_mode
         RequestContentBlock::Text {
             text: persona,
             cache_control: Some(CacheControl {
                 control_type: "ephemeral".to_string(),
             }),
         },
+        // Catalog is most variable (per-user)
         RequestContentBlock::Text {
             text: catalog_block,
             cache_control: Some(CacheControl {
@@ -678,8 +692,8 @@ mod tests {
     #[test]
     fn test_enhanced_system_prompt_includes_energy_profile() {
         let blocks = build_enhanced_system_prompt("track1\ntrack2", Some("warm-up"), false);
-        assert_eq!(blocks.len(), 2);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        assert_eq!(blocks.len(), 3);
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(
             text.contains("Start with low energy tracks (3-4)"),
             "Expected warm-up energy text, got: {}",
@@ -690,35 +704,35 @@ mod tests {
     #[test]
     fn test_enhanced_system_prompt_peak_time_profile() {
         let blocks = build_enhanced_system_prompt("catalog", Some("peak-time"), false);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("Maintain high energy (7-9)"));
     }
 
     #[test]
     fn test_enhanced_system_prompt_journey_profile() {
         let blocks = build_enhanced_system_prompt("catalog", Some("journey"), false);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("Start low (3), build to a peak (9)"));
     }
 
     #[test]
     fn test_enhanced_system_prompt_steady_profile() {
         let blocks = build_enhanced_system_prompt("catalog", Some("steady"), false);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("consistent medium energy (5-7)"));
     }
 
     #[test]
     fn test_enhanced_system_prompt_no_energy_profile() {
         let blocks = build_enhanced_system_prompt("catalog", None, false);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(!text.contains("Energy Profile"));
     }
 
     #[test]
     fn test_enhanced_system_prompt_creative_mode() {
         let blocks = build_enhanced_system_prompt("catalog", None, true);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("Be creative and unexpected"));
         assert!(text.contains("surprising but compatible"));
     }
@@ -726,23 +740,37 @@ mod tests {
     #[test]
     fn test_enhanced_system_prompt_no_creative_mode() {
         let blocks = build_enhanced_system_prompt("catalog", None, false);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(!text.contains("Creative Mode"));
     }
 
     #[test]
-    fn test_enhanced_system_prompt_catalog_in_second_block() {
+    fn test_enhanced_system_prompt_catalog_in_third_block() {
         let catalog = "t1 | Desert Rose | 102 | 8A\nt2 | Habibi | 128 | 9A";
         let blocks = build_enhanced_system_prompt(catalog, None, false);
-        assert_eq!(blocks.len(), 2);
-        let RequestContentBlock::Text { ref text, .. } = blocks[1];
+        assert_eq!(blocks.len(), 3);
+        let RequestContentBlock::Text { ref text, .. } = blocks[2];
         assert!(text.contains("Desert Rose"));
         assert!(text.contains("Habibi"));
         assert!(text.contains("Available Catalog"));
     }
 
     #[test]
-    fn test_enhanced_system_prompt_cache_control_on_both_blocks() {
+    fn test_enhanced_system_prompt_skill_block() {
+        let blocks = build_enhanced_system_prompt("catalog", None, false);
+        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        assert!(
+            text.contains("Track Verification Skill"),
+            "Expected skill doc in block[0]"
+        );
+        assert!(
+            text.contains("confidence"),
+            "Skill doc should mention confidence field"
+        );
+    }
+
+    #[test]
+    fn test_enhanced_system_prompt_cache_control_on_all_blocks() {
         let blocks = build_enhanced_system_prompt("catalog", Some("warm-up"), true);
         for block in &blocks {
             let RequestContentBlock::Text {
@@ -1160,7 +1188,7 @@ mod tests {
     #[test]
     fn test_enhanced_system_prompt_includes_camelot_rules() {
         let blocks = build_enhanced_system_prompt("catalog", None, false);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("Camelot Wheel Rules"));
         assert!(text.contains("Transition Techniques"));
     }
@@ -1168,7 +1196,7 @@ mod tests {
     #[test]
     fn test_enhanced_system_prompt_includes_output_format() {
         let blocks = build_enhanced_system_prompt("catalog", None, false);
-        let RequestContentBlock::Text { ref text, .. } = blocks[0];
+        let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("Output Format"));
         assert!(text.contains("ONLY valid JSON"));
     }

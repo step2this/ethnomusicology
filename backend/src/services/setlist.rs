@@ -197,6 +197,7 @@ pub struct SetlistTrackResponse {
     pub source: String,
     pub track_id: Option<String>,
     pub spotify_uri: Option<String>,
+    pub confidence: Option<String>,
 }
 
 impl From<SetlistTrackRow> for SetlistTrackResponse {
@@ -215,6 +216,7 @@ impl From<SetlistTrackRow> for SetlistTrackResponse {
             source: row.source,
             track_id: row.track_id,
             spotify_uri: row.spotify_uri,
+            confidence: None,
         }
     }
 }
@@ -529,6 +531,11 @@ pub async fn generate_setlist_from_request(
             source,
             track_id: validated_track_id,
             spotify_uri: None,
+            confidence: entry
+                .confidence
+                .as_deref()
+                .map(|c| c.to_lowercase())
+                .filter(|c| matches!(c.as_str(), "high" | "medium" | "low")),
         });
     }
 
@@ -784,6 +791,7 @@ pub async fn arrange_setlist(
             source: track.source.clone(),
             track_id: track.track_id.clone(),
             spotify_uri: track.spotify_uri.clone(),
+            confidence: None,
         });
     }
 
@@ -896,6 +904,144 @@ pub fn compute_seed_match_count(seed_text: &str, tracks: &[SetlistTrackRow]) -> 
         }
     }
     count
+}
+
+// ---------------------------------------------------------------------------
+// Verification loop (SP-007)
+// ---------------------------------------------------------------------------
+
+/// Verification prompt for the second-pass fact-checker.
+const VERIFICATION_PROMPT: &str = include_str!("../prompts/verification_prompt.md");
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct VerificationResponse {
+    pub tracks: Vec<VerificationEntry>,
+    pub summary: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+pub struct VerificationEntry {
+    pub position: i32,
+    pub title: String,
+    pub artist: String,
+    pub original_title: Option<String>,
+    pub original_artist: Option<String>,
+    pub confidence: Option<String>,
+    pub flag: Option<String>,
+    pub correction: Option<String>,
+}
+
+/// Run a second-pass verification on a generated setlist.
+/// Returns the original tracks with confidence adjusted and flags applied.
+pub async fn verify_setlist(
+    claude: &dyn ClaudeClientTrait,
+    tracks: &[SetlistTrackResponse],
+) -> Result<Vec<SetlistTrackResponse>, SetlistError> {
+    // Build a simplified JSON of the tracks for the fact-checker
+    let tracks_for_review: Vec<serde_json::Value> = tracks
+        .iter()
+        .map(|t| {
+            serde_json::json!({
+                "position": t.position,
+                "title": t.title,
+                "artist": t.artist,
+                "bpm": t.bpm,
+                "key": t.key,
+                "energy": t.energy,
+                "confidence": t.confidence,
+            })
+        })
+        .collect();
+
+    let user_prompt = serde_json::to_string_pretty(&serde_json::json!({
+        "tracks": tracks_for_review,
+    }))
+    .unwrap_or_default();
+
+    let response = claude
+        .generate_setlist(VERIFICATION_PROMPT, &user_prompt, DEFAULT_MODEL, 4096)
+        .await
+        .map_err(SetlistError::from)?;
+
+    let cleaned = crate::api::claude::strip_markdown_fences(&response);
+    let verification: VerificationResponse = match serde_json::from_str(cleaned) {
+        Ok(v) => v,
+        Err(e) => {
+            tracing::warn!("Verification parse failed: {e}, skipping verification");
+            return Ok(tracks.to_vec());
+        }
+    };
+
+    // Build a lookup from position to verification entry
+    let verify_map: std::collections::HashMap<i32, &VerificationEntry> = verification
+        .tracks
+        .iter()
+        .map(|v| (v.position, v))
+        .collect();
+
+    // Apply verification results to original tracks
+    let mut verified_tracks = tracks.to_vec();
+    for track in &mut verified_tracks {
+        if let Some(v) = verify_map.get(&track.position) {
+            // Update confidence from verification
+            if let Some(ref conf) = v.confidence {
+                track.confidence = Some(conf.clone());
+            }
+            // If the verifier flagged and replaced, update title/artist
+            if v.flag.as_deref() == Some("replaced") {
+                tracing::info!(
+                    "Verification replaced pos {}: '{}' by '{}' → '{}' by '{}'",
+                    track.position,
+                    track.title,
+                    track.artist,
+                    v.title,
+                    v.artist
+                );
+                track.title = v.title.clone();
+                track.artist = v.artist.clone();
+                // Replacement tracks are at best medium confidence
+                if track.confidence.as_deref() != Some("low") {
+                    track.confidence = Some("medium".to_string());
+                }
+            }
+            // If flagged as wrong_artist or no_such_track, downgrade confidence
+            if matches!(
+                v.flag.as_deref(),
+                Some("wrong_artist") | Some("no_such_track") | Some("constructed_title")
+            ) {
+                track.confidence = Some("low".to_string());
+                tracing::warn!(
+                    "Verification flagged pos {}: '{}' by '{}' as {:?} — {}",
+                    track.position,
+                    track.title,
+                    track.artist,
+                    v.flag,
+                    v.correction.as_deref().unwrap_or("no correction")
+                );
+            }
+        }
+    }
+
+    // Warn about position mismatches
+    let unmatched: Vec<i32> = verification
+        .tracks
+        .iter()
+        .filter(|v| !tracks.iter().any(|t| t.position == v.position))
+        .map(|v| v.position)
+        .collect();
+    if !unmatched.is_empty() {
+        tracing::warn!(
+            "Verification returned {} tracks with positions not in input: {:?}",
+            unmatched.len(),
+            unmatched
+        );
+    }
+
+    if let Some(ref summary) = verification.summary {
+        tracing::info!("Verification summary: {summary}");
+    }
+
+    Ok(verified_tracks)
 }
 
 // ---------------------------------------------------------------------------
@@ -2099,6 +2245,7 @@ mod tests {
             source: "catalog".into(),
             track_id: Some("t1".into()),
             spotify_uri: None,
+            confidence: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 100.0);
     }
@@ -2119,6 +2266,7 @@ mod tests {
             source: "suggestion".into(),
             track_id: None,
             spotify_uri: None,
+            confidence: None,
         }];
         assert_eq!(compute_catalog_percentage(&tracks), 0.0);
     }
