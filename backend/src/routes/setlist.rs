@@ -202,7 +202,19 @@ async fn list_setlists_handler(
 async fn delete_setlist_handler(
     State(state): State<Arc<SetlistRouteState>>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<StatusCode, SetlistError> {
+    let user_id = headers
+        .get("X-User-Id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("dev-user");
+    let row = db::get_setlist(&state.pool, &id)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?
+        .ok_or_else(|| SetlistError::NotFound(format!("Setlist {id} not found")))?;
+    if row.user_id != user_id {
+        return Err(SetlistError::NotFound(format!("Setlist {id} not found")));
+    }
     let deleted = db::delete_setlist(&state.pool, &id)
         .await
         .map_err(|e| SetlistError::Database(e.to_string()))?;
@@ -216,10 +228,20 @@ async fn delete_setlist_handler(
 async fn rename_setlist_handler(
     State(state): State<Arc<SetlistRouteState>>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     Json(req): Json<RenameRequest>,
 ) -> Result<Json<SetlistResponse>, SetlistError> {
-    // Verify setlist exists
-    setlist::get_setlist(&state.pool, &id).await?;
+    let user_id = headers
+        .get("X-User-Id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("dev-user");
+    let row = db::get_setlist(&state.pool, &id)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?
+        .ok_or_else(|| SetlistError::NotFound(format!("Setlist {id} not found")))?;
+    if row.user_id != user_id {
+        return Err(SetlistError::NotFound(format!("Setlist {id} not found")));
+    }
     db::update_setlist_name(&state.pool, &id, &req.name)
         .await
         .map_err(|e| SetlistError::Database(e.to_string()))?;
@@ -230,8 +252,20 @@ async fn rename_setlist_handler(
 async fn duplicate_setlist_handler(
     State(state): State<Arc<SetlistRouteState>>,
     Path(id): Path<String>,
+    headers: HeaderMap,
     body: Option<Json<DuplicateRequest>>,
 ) -> Result<(StatusCode, Json<SetlistResponse>), SetlistError> {
+    let user_id = headers
+        .get("X-User-Id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("dev-user");
+    let row = db::get_setlist(&state.pool, &id)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?
+        .ok_or_else(|| SetlistError::NotFound(format!("Setlist {id} not found")))?;
+    if row.user_id != user_id {
+        return Err(SetlistError::NotFound(format!("Setlist {id} not found")));
+    }
     let new_name = body.as_ref().and_then(|b| b.name.as_deref());
     let new_id = db::duplicate_setlist(&state.pool, &id, new_name)
         .await

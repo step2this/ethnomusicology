@@ -101,11 +101,16 @@ async fn create_crate_handler(
 async fn get_crate_handler(
     State(state): State<Arc<CrateRouteState>>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<Json<CrateDetailResponse>, AppError> {
+    let user_id = extract_user_id(&headers);
     let crate_row = crates::get_crate(&state.pool, &id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::NotFound(format!("crate {id} not found")))?;
+    if crate_row.user_id != user_id {
+        return Err(AppError::NotFound(format!("crate {id} not found")));
+    }
     let tracks = crates::get_crate_tracks(&state.pool, &id)
         .await
         .map_err(AppError::Database)?;
@@ -115,12 +120,16 @@ async fn get_crate_handler(
 async fn delete_crate_handler(
     State(state): State<Arc<CrateRouteState>>,
     Path(id): Path<String>,
+    headers: HeaderMap,
 ) -> Result<StatusCode, AppError> {
-    // 404 if not found
-    crates::get_crate(&state.pool, &id)
+    let user_id = extract_user_id(&headers);
+    let crate_row = crates::get_crate(&state.pool, &id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::NotFound(format!("crate {id} not found")))?;
+    if crate_row.user_id != user_id {
+        return Err(AppError::NotFound(format!("crate {id} not found")));
+    }
     crates::delete_crate(&state.pool, &id)
         .await
         .map_err(AppError::Database)?;
@@ -130,12 +139,16 @@ async fn delete_crate_handler(
 async fn add_setlist_handler(
     State(state): State<Arc<CrateRouteState>>,
     Path((id, setlist_id)): Path<(String, String)>,
+    headers: HeaderMap,
 ) -> Result<Json<AddSetlistResponse>, AppError> {
-    // 404 if crate not found
-    crates::get_crate(&state.pool, &id)
+    let user_id = extract_user_id(&headers);
+    let crate_row = crates::get_crate(&state.pool, &id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::NotFound(format!("crate {id} not found")))?;
+    if crate_row.user_id != user_id {
+        return Err(AppError::NotFound(format!("crate {id} not found")));
+    }
     let tracks_added = crates::add_tracks_from_setlist(&state.pool, &id, &setlist_id)
         .await
         .map_err(AppError::Database)?;
@@ -145,7 +158,16 @@ async fn add_setlist_handler(
 async fn remove_track_handler(
     State(state): State<Arc<CrateRouteState>>,
     Path((id, track_id)): Path<(String, String)>,
+    headers: HeaderMap,
 ) -> Result<StatusCode, AppError> {
+    let user_id = extract_user_id(&headers);
+    let crate_row = crates::get_crate(&state.pool, &id)
+        .await
+        .map_err(AppError::Database)?
+        .ok_or_else(|| AppError::NotFound(format!("crate {id} not found")))?;
+    if crate_row.user_id != user_id {
+        return Err(AppError::NotFound(format!("crate {id} not found")));
+    }
     let affected = crates::remove_crate_track(&state.pool, &id, &track_id)
         .await
         .map_err(AppError::Database)?;
@@ -201,7 +223,13 @@ mod tests {
 
     async fn get_json(app: Router, uri: &str) -> (u16, serde_json::Value) {
         let resp = app
-            .oneshot(Request::builder().uri(uri).body(Body::empty()).unwrap())
+            .oneshot(
+                Request::builder()
+                    .uri(uri)
+                    .header("X-User-Id", "user-1")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
             .await
             .unwrap();
         let status = resp.status().as_u16();
@@ -243,6 +271,7 @@ mod tests {
                 Request::builder()
                     .method("DELETE")
                     .uri(uri)
+                    .header("X-User-Id", "user-1")
                     .body(Body::empty())
                     .unwrap(),
             )
@@ -374,6 +403,7 @@ mod tests {
                 Request::builder()
                     .method("POST")
                     .uri("/crates/c1/add-setlist/sl-1")
+                    .header("X-User-Id", "user-1")
                     .body(Body::empty())
                     .unwrap(),
             )

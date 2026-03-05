@@ -220,18 +220,7 @@ pub async fn duplicate_setlist(
             ))
         });
 
-    // Insert new setlist row
-    sqlx::query(
-        "INSERT INTO setlists (id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile) \
-         SELECT ?, user_id, prompt, model, ?, notes, harmonic_flow_score, energy_profile FROM setlists WHERE id = ?",
-    )
-    .bind(&new_id)
-    .bind(&resolved_name)
-    .bind(id)
-    .execute(pool)
-    .await?;
-
-    // Copy tracks with new UUIDs
+    // Load tracks before starting the transaction (read-only)
     let tracks = sqlx::query_as::<_, SetlistTrackRow>(
         "SELECT st.id, st.setlist_id, st.track_id, st.position, st.original_position, \
          st.title, st.artist, st.bpm, st.key, st.camelot, st.energy, \
@@ -242,6 +231,19 @@ pub async fn duplicate_setlist(
     )
     .bind(id)
     .fetch_all(pool)
+    .await?;
+
+    // Wrap all writes in a transaction
+    let mut tx = pool.begin().await?;
+
+    sqlx::query(
+        "INSERT INTO setlists (id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile) \
+         SELECT ?, user_id, prompt, model, ?, notes, harmonic_flow_score, energy_profile FROM setlists WHERE id = ?",
+    )
+    .bind(&new_id)
+    .bind(&resolved_name)
+    .bind(id)
+    .execute(&mut *tx)
     .await?;
 
     for track in tracks {
@@ -271,9 +273,11 @@ pub async fn duplicate_setlist(
         .bind(&track.confidence)
         .bind(&track.verification_flag)
         .bind(&track.verification_note)
-        .execute(pool)
+        .execute(&mut *tx)
         .await?;
     }
+
+    tx.commit().await?;
 
     Ok(Some(new_id))
 }
