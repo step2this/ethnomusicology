@@ -1,4 +1,6 @@
 pub mod artists;
+pub mod crate_models;
+pub mod crates;
 pub mod imports;
 pub mod models;
 pub mod refinement;
