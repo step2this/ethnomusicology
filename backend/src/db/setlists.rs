@@ -27,7 +27,7 @@ pub async fn insert_setlist_track(
     row: &SetlistTrackRow,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info, confidence, verification_flag, verification_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
     )
     .bind(&row.id)
     .bind(&row.setlist_id)
@@ -44,6 +44,9 @@ pub async fn insert_setlist_track(
     .bind(row.transition_score)
     .bind(&row.source)
     .bind(&row.acquisition_info)
+    .bind(&row.confidence)
+    .bind(&row.verification_flag)
+    .bind(&row.verification_note)
     .execute(pool)
     .await?;
     Ok(())

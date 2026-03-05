@@ -1007,11 +1007,13 @@ pub async fn verify_setlist(
             }
             // If the verifier flagged and replaced, update title/artist
             if v.flag.as_deref() == Some("replaced") {
+                let original_title = track.title.clone();
+                let original_artist = track.artist.clone();
                 tracing::info!(
                     "Verification replaced pos {}: '{}' by '{}' → '{}' by '{}'",
                     track.position,
-                    track.title,
-                    track.artist,
+                    original_title,
+                    original_artist,
                     v.title,
                     v.artist
                 );
@@ -1021,6 +1023,10 @@ pub async fn verify_setlist(
                 if track.confidence.as_deref() != Some("low") {
                     track.confidence = Some("medium".to_string());
                 }
+                track.verification_note = Some(format!(
+                    "Replaced: was '{}' by '{}'",
+                    original_title, original_artist
+                ));
             }
             // If flagged as wrong_artist or no_such_track, downgrade confidence
             if matches!(
@@ -1028,6 +1034,7 @@ pub async fn verify_setlist(
                 Some("wrong_artist") | Some("no_such_track") | Some("constructed_title")
             ) {
                 track.confidence = Some("low".to_string());
+                track.verification_note = v.correction.clone();
                 tracing::warn!(
                     "Verification flagged pos {}: '{}' by '{}' as {:?} — {}",
                     track.position,
@@ -1037,6 +1044,8 @@ pub async fn verify_setlist(
                     v.correction.as_deref().unwrap_or("no correction")
                 );
             }
+            // Propagate the flag to the response
+            track.verification_flag = v.flag.clone();
         }
     }
 
@@ -2406,5 +2415,103 @@ mod tests {
             verification_note: None,
         }];
         assert_eq!(compute_seed_match_count("Desert Rose", &tracks), 0);
+    }
+
+    // -----------------------------------------------------------------------
+    // T4: verify_setlist flag propagation tests
+    // -----------------------------------------------------------------------
+
+    fn make_response_track(
+        position: i32,
+        title: &str,
+        artist: &str,
+        confidence: Option<&str>,
+    ) -> SetlistTrackResponse {
+        SetlistTrackResponse {
+            position,
+            title: title.into(),
+            artist: artist.into(),
+            bpm: None,
+            key: None,
+            camelot: None,
+            energy: None,
+            transition_note: None,
+            transition_score: None,
+            original_position: position,
+            source: "suggestion".into(),
+            track_id: None,
+            spotify_uri: None,
+            confidence: confidence.map(|s| s.into()),
+            verification_flag: None,
+            verification_note: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_verify_setlist_propagates_flag_and_note() {
+        let tracks = vec![
+            make_response_track(1, "Real Track", "Real Artist", Some("high")),
+            make_response_track(2, "Fake Track", "Wrong Artist", Some("medium")),
+            make_response_track(3, "Old Title", "Original Artist", Some("high")),
+        ];
+
+        let mock_response = serde_json::json!({
+            "tracks": [
+                {
+                    "position": 1,
+                    "title": "Real Track",
+                    "artist": "Real Artist",
+                    "confidence": "high",
+                    "flag": null,
+                    "correction": null
+                },
+                {
+                    "position": 2,
+                    "title": "Fake Track",
+                    "artist": "Wrong Artist",
+                    "confidence": "low",
+                    "flag": "wrong_artist",
+                    "correction": "Artist name is incorrect"
+                },
+                {
+                    "position": 3,
+                    "title": "New Title",
+                    "artist": "Original Artist",
+                    "confidence": "medium",
+                    "flag": "replaced",
+                    "correction": null
+                }
+            ],
+            "summary": "Two issues found"
+        });
+
+        let claude = MockClaude {
+            response: mock_response.to_string(),
+        };
+
+        let result = verify_setlist(&claude, &tracks).await.unwrap();
+        assert_eq!(result.len(), 3);
+
+        // Track 1: no flag, confidence unchanged
+        assert_eq!(result[0].verification_flag, None);
+        assert_eq!(result[0].verification_note, None);
+        assert_eq!(result[0].confidence.as_deref(), Some("high"));
+
+        // Track 2: wrong_artist flag propagated, confidence downgraded, note set
+        assert_eq!(result[1].verification_flag.as_deref(), Some("wrong_artist"));
+        assert_eq!(
+            result[1].verification_note.as_deref(),
+            Some("Artist name is incorrect")
+        );
+        assert_eq!(result[1].confidence.as_deref(), Some("low"));
+
+        // Track 3: replaced — title updated, note describes original, flag set
+        assert_eq!(result[2].verification_flag.as_deref(), Some("replaced"));
+        assert_eq!(result[2].title, "New Title");
+        assert_eq!(
+            result[2].verification_note.as_deref(),
+            Some("Replaced: was 'Old Title' by 'Original Artist'")
+        );
+        assert_eq!(result[2].confidence.as_deref(), Some("medium"));
     }
 }
