@@ -197,6 +197,19 @@ pub async fn get_daily_enrichment_count(
     Ok(count.unwrap_or(0))
 }
 
+/// Reset errored tracks so they can be re-enriched.
+/// Clears enrichment_error and sets needs_enrichment = 1 for all tracks
+/// where enrichment_error IS NOT NULL.
+/// Returns the number of tracks reset.
+pub async fn retry_errored_tracks(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE tracks SET enrichment_error = NULL, needs_enrichment = 1 WHERE enrichment_error IS NOT NULL",
+    )
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
 /// Get today's generation count for a user.
 pub async fn get_daily_generation_count(
     pool: &SqlitePool,

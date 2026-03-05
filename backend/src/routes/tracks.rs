@@ -1,5 +1,5 @@
 use axum::extract::{Query, State};
-use axum::routing::get;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
@@ -156,12 +156,31 @@ async fn list_tracks(
 }
 
 // ---------------------------------------------------------------------------
+// Retry errored tracks handler
+// ---------------------------------------------------------------------------
+
+#[derive(Debug, Serialize)]
+struct RetryErroredResponse {
+    reset: u64,
+}
+
+async fn retry_errored_tracks(
+    State(pool): State<SqlitePool>,
+) -> Result<Json<RetryErroredResponse>, AppError> {
+    let reset = crate::db::tracks::retry_errored_tracks(&pool)
+        .await
+        .map_err(AppError::Database)?;
+    Ok(Json(RetryErroredResponse { reset }))
+}
+
+// ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
 pub fn tracks_router(pool: SqlitePool) -> Router {
     Router::new()
         .route("/tracks", get(list_tracks))
+        .route("/tracks/retry-errored", post(retry_errored_tracks))
         .with_state(pool)
 }
 
@@ -173,7 +192,7 @@ pub fn tracks_router(pool: SqlitePool) -> Router {
 mod tests {
     use super::*;
     use axum::body::Body;
-    use axum::http::Request;
+    use axum::http::{Request, StatusCode};
     use tower::ServiceExt;
 
     async fn setup() -> Router {
@@ -330,5 +349,83 @@ mod tests {
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["data"].as_array().unwrap().len(), 0);
         assert!(json["total"].as_i64().unwrap() > 0);
+    }
+
+    #[tokio::test]
+    async fn test_retry_errored_no_errored_tracks_returns_zero() {
+        let pool = crate::db::create_test_pool().await;
+        let app = tracks_router(pool);
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/tracks/retry-errored")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["reset"], 0);
+    }
+
+    #[tokio::test]
+    async fn test_retry_errored_resets_errored_tracks() {
+        let pool = crate::db::create_test_pool().await;
+
+        // Insert two tracks with enrichment errors
+        sqlx::query(
+            "INSERT INTO tracks (id, title, source, needs_enrichment, enrichment_error) VALUES (?, ?, 'spotify', 0, 'Parse error')",
+        )
+        .bind("t-err-1")
+        .bind("Error Track 1")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        sqlx::query(
+            "INSERT INTO tracks (id, title, source, needs_enrichment, enrichment_error) VALUES (?, ?, 'spotify', 0, 'Claude API error')",
+        )
+        .bind("t-err-2")
+        .bind("Error Track 2")
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let app = tracks_router(pool.clone());
+
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/tracks/retry-errored")
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
+        let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
+        assert_eq!(json["reset"], 2);
+
+        // Verify tracks now have needs_enrichment = 1 and error cleared
+        let (needs, error): (i32, Option<String>) = sqlx::query_as(
+            "SELECT needs_enrichment, enrichment_error FROM tracks WHERE id = 't-err-1'",
+        )
+        .fetch_one(&pool)
+        .await
+        .unwrap();
+        assert_eq!(needs, 1);
+        assert!(error.is_none());
     }
 }
