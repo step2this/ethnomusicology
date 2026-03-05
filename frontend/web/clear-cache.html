@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head><title>Clear Cache</title></head>
+<body>
+<h2>Clearing service workers and caches...</h2>
+<pre id="log"></pre>
+<script>
+const log = document.getElementById('log');
+function out(msg) { log.textContent += msg + '\n'; }
+
+(async () => {
+  // Unregister all service workers
+  const regs = await navigator.serviceWorker.getRegistrations();
+  out(`Found ${regs.length} service worker(s)`);
+  for (const reg of regs) {
+    await reg.unregister();
+    out(`Unregistered: ${reg.scope}`);
+  }
+
+  // Clear all caches
+  const keys = await caches.keys();
+  out(`Found ${keys.length} cache(s)`);
+  for (const key of keys) {
+    await caches.delete(key);
+    out(`Deleted cache: ${key}`);
+  }
+
+  out('\nDone! Redirecting in 2 seconds...');
+  setTimeout(() => window.location.href = '/', 2000);
+})();
+</script>
+</body>
+</html>
