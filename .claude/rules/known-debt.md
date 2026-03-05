@@ -42,3 +42,7 @@ paths:
 | Source attribution consistency | Compliance | Low | SoundCloud requires uploader credit + source label + backlink. Apple ToS requires store badge proximity. Deezer has no explicit requirement but we show links for consistency. All three should have "via [Source]" labels — currently only icons. Ships with ST-009. |
 | Deploy script `mv -Tf` fix | Infra | Resolved | Fixed `mv -f` → `mv -Tf` in deploy.sh. Root cause: `mv -f` follows symlinks to directories. Both repo and production copies updated. |
 | Deezer search fallback (RESOLVED) | Playback | Resolved | Replaced with field-specific search `artist:"X" track:"Y" strict=on` + iTunes fallback (ST-008). Old freeform search was ~20-30% miss rate. |
+| ~~confidence not persisted to DB~~ | ~~SP-007 debt~~ | ~~Resolved~~ | ~~Resolved in ST-010: migration 009_verification.sql adds confidence + verification_notes columns.~~ |
+| ST-008 retrospective not written | Audit | Low | ST-008 (iTunes preview fallback) completed in a parallel session. No retrospective doc exists at `docs/retrospectives/st-008-*.md`. |
+| ST-009 retrospective not written | Audit | Low | ST-009 (SoundCloud preview) completed. No retrospective doc exists at `docs/retrospectives/st-009-*.md`. |
+| Prompt caching for verification call | ST-010 critic | Low | `verify_setlist()` makes a second LLM call but does not apply cache_control to the verification_prompt.md content block. Cost overhead on every verified generation. Wire prompt caching in a follow-up. |
