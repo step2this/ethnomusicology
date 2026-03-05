@@ -1042,10 +1042,13 @@ pub async fn verify_setlist(
                     original_title, original_artist
                 ));
             }
-            // If flagged as wrong_artist or no_such_track, downgrade confidence
+            // If flagged, downgrade confidence and propagate correction note
             if matches!(
                 v.flag.as_deref(),
-                Some("wrong_artist") | Some("no_such_track") | Some("constructed_title")
+                Some("wrong_artist")
+                    | Some("no_such_track")
+                    | Some("constructed_title")
+                    | Some("uncertain")
             ) {
                 track.confidence = Some("low".to_string());
                 track.verification_note = v.correction.clone();
