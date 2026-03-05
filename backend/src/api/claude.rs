@@ -161,7 +161,7 @@ impl ClaudeClient {
     pub fn new(api_key: impl Into<String>) -> Self {
         Self {
             http: reqwest::Client::builder()
-                .timeout(std::time::Duration::from_secs(30))
+                .timeout(std::time::Duration::from_secs(90))
                 .build()
                 .expect("Failed to build HTTP client"),
             api_key: api_key.into(),
