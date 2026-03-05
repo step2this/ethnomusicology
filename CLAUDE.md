@@ -13,7 +13,11 @@ Use the Forge (`.claude/` directory) for all development:
 4. `design-crit` — Run for any UC with a frontend screen (Brief → Facet Plan → Crit Loops → Design Direction)
 5. **Devil's Advocate Review** — After every plan is drafted, run a devil's advocate review before implementation. Use a Plan agent to find weaknesses, gaps, missing pieces, parallelism risks, integration seams, scope creep, and testing gaps. Address all critical and high-severity findings before coding begins.
 6. Implement with agent teams — **lead MUST delegate to subagents, never implement solo** (see Agent Teams section)
-7. **Critic Review** — Spawn a fresh-context critic agent to review the diff before verification. This is NOT optional. Critic also checks **plan-vs-code compliance** — are all planned features implemented? (ST-005 retro: auto-enrich trigger was planned but dropped during task decomposition and no one caught it.)
+7. **Two-Pass Critic Review** — Two sequential critic passes before verification. Both are MANDATORY — no exceptions, including tech debt PRs.
+   - **7a. Security & Architecture Critic** — Spawn a fresh-context critic agent. Reads the diff cold. Checks: auth bypass, injection risks, data leaks, missing ownership checks, plan-vs-code compliance, missed edge cases, dead code, unused imports, test gaps. Critic sends feedback with file:line references. Lead assigns fixes before proceeding.
+   - **7b. Code Quality Review** — Spawn a second fresh-context critic agent focused on language-specific quality:
+     - **Rust**: ownership patterns, unwrap() in handlers, error propagation (? vs expect), clippy idioms, missing `?` on DB calls, transaction correctness, unused derives
+     - **Flutter**: ALL new screens registered in router (routing completeness is CRITICAL — Phase 8 retro: unregistered route would have shipped as dead feature), error handling on async actions, loading states on mutations, theme tokens vs hardcoded values, ConsumerWidget vs StatelessWidget appropriateness, provider access patterns
 8. `/verify-uc` — Validate implementation against postconditions
 9. `/grade-work` — Score completed work
 10. **Retrospective** — Write `docs/retrospectives/st-NNN-slug.md`, update action items, feed lessons into CLAUDE.md
@@ -37,19 +41,38 @@ Use the Forge (`.claude/` directory) for all development:
 - **Pure-function modules** (scoring, algorithms, parsers) are ideal subagent targets — isolated, testable, no coordination overhead
 - **Integration/wiring modules** (main.rs, routes, mod.rs) stay with the lead since they depend on all other modules
 
-### Code Review: Critic Agent (REQUIRED)
+### Code Review: Two-Pass Critic Protocol (REQUIRED)
 
-> **MANDATORY: Every implementation MUST have a separate critic review before `/verify-uc`.**
-> The critic agent runs in a FRESH context — it has NOT watched the code being written.
+> **MANDATORY: Every implementation MUST have BOTH critic passes before `/verify-uc`.**
+> **No exceptions — including tech debt PRs, "small fixes", and hotfixes.**
+> Each critic agent runs in a FRESH context — it has NOT watched the code being written.
 > This breaks the "I wrote it so I think it's fine" blind spot.
+> A single critic cannot be expert in security AND Rust idioms AND Flutter patterns. Split the work.
+
+**Pass 7a: Security & Architecture Critic**
 
 After builders complete their work and quality gates pass:
-1. Spawn a **Critic Agent** (general-purpose, fresh context, no worktree)
+1. Spawn a **Critic Agent** (fresh context, no worktree, use opus model)
 2. Critic reads the diff (`git diff main...HEAD`), the plan, and the test output
-3. Critic looks for: missed edge cases, dead code, unused imports, naming inconsistencies, security issues, plan deviations, test gaps
-4. Critic sends feedback to lead via messaging — specific, actionable, with file:line references
+3. Critic checks: missed edge cases, dead code, unused imports, naming inconsistencies, security issues (auth bypass, injection, data leaks, missing ownership checks), plan-vs-code compliance, test gaps
+4. Critic sends feedback to lead — specific, actionable, with file:line references
 5. Lead assigns fixes to builders or applies wiring fixes directly
-6. Only after critic approves does the lead proceed to `/verify-uc`
+
+**Pass 7b: Code Quality Review**
+
+After 7a findings are resolved:
+1. Spawn a **second fresh-context Critic Agent** focused on language quality (use opus model)
+2. Critic reads the same diff
+3. **Rust checklist**: unwrap() in request handlers (must use ?), error propagation patterns, transaction correctness, clippy idiom violations, dead derives, missing error variants
+4. **Flutter checklist**:
+   - ROUTING: Every new screen class MUST appear in `lib/config/routes.dart` — unreachable screens are CRITICAL bugs (Phase 8 retro: `SetlistDetailScreen` was unrouted and would have shipped as a dead feature)
+   - Error handling on all delete/mutate operations (show SnackBar or dialog on failure)
+   - Loading state indicators on async actions (CircularProgressIndicator or disabled button)
+   - Theme tokens (`Theme.of(context).colorScheme.*`) not hardcoded Color() values
+   - ConsumerWidget vs StatelessWidget: use ConsumerWidget only when reading providers
+   - Provider access: `ref.watch` in build, `ref.read(notifier)` for actions
+5. Critic sends feedback with file:line references
+6. Lead assigns fixes before proceeding to `/verify-uc`
 
 ## Quality Gates
 
