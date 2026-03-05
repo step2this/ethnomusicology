@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../providers/api_provider.dart';
 import '../providers/audio_provider.dart';
 import '../providers/deezer_provider.dart';
 import '../providers/refinement_provider.dart';
@@ -10,7 +11,9 @@ import '../widgets/setlist_result_view.dart';
 import '../widgets/version_history_panel.dart';
 
 class SetlistGenerationScreen extends ConsumerStatefulWidget {
-  const SetlistGenerationScreen({super.key});
+  final String? setlistId;
+
+  const SetlistGenerationScreen({super.key, this.setlistId});
 
   @override
   ConsumerState<SetlistGenerationScreen> createState() =>
@@ -20,6 +23,30 @@ class SetlistGenerationScreen extends ConsumerStatefulWidget {
 class _SetlistGenerationScreenState
     extends ConsumerState<SetlistGenerationScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.setlistId != null) {
+      // Load the setlist after the first frame so providers are ready.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadSetlist());
+    }
+  }
+
+  Future<void> _loadSetlist() async {
+    final id = widget.setlistId!;
+    ref.read(setlistProvider.notifier).setLoading();
+    try {
+      final setlist = await ref.read(apiClientProvider).getSetlist(id);
+      if (mounted) {
+        ref.read(setlistProvider.notifier).setSetlist(setlist);
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ref.read(setlistProvider.notifier).setError('Failed to load setlist: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,6 +70,11 @@ class _SetlistGenerationScreenState
         centerTitle: true,
         actions: [
           if (state.hasSetlist) ...[
+            IconButton(
+              icon: const Icon(Icons.save_outlined),
+              onPressed: () => _showSaveDialog(context, state),
+              tooltip: 'Save setlist',
+            ),
             IconButton(
               icon: const Icon(Icons.history),
               onPressed: () => _scaffoldKey.currentState?.openEndDrawer(),
@@ -153,5 +185,57 @@ class _SetlistGenerationScreenState
     ref.read(setlistProvider.notifier).reset();
     ref.read(audioPlaybackProvider.notifier).stop();
     ref.read(refinementProvider.notifier).reset();
+  }
+
+  void _showSaveDialog(BuildContext context, SetlistState state) {
+    final setlist = state.setlist!;
+    final controller = TextEditingController(text: setlist.name ?? '');
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Save Setlist'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          decoration: const InputDecoration(
+            labelText: 'Name',
+            hintText: 'e.g. Friday Night Set',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final name = controller.text.trim();
+              if (name.isEmpty) return;
+              // Capture messenger before closing dialog (async gap below).
+              final messenger = ScaffoldMessenger.of(context);
+              Navigator.of(ctx).pop();
+              try {
+                await ref.read(apiClientProvider).updateSetlist(
+                      setlist.id,
+                      name: name,
+                    );
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('"$name" saved')),
+                  );
+                }
+              } on Exception catch (e) {
+                if (mounted) {
+                  messenger.showSnackBar(
+                    SnackBar(content: Text('Save failed: $e')),
+                  );
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
   }
 }

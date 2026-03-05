@@ -117,6 +117,18 @@ class SetlistNotifier extends Notifier<SetlistState> {
     }
   }
 
+  void setLoading() {
+    state = const SetlistState(isGenerating: true);
+  }
+
+  void setSetlist(Setlist setlist) {
+    state = SetlistState(setlist: setlist);
+  }
+
+  void setError(String error) {
+    state = SetlistState(error: error);
+  }
+
   void reset() {
     state = const SetlistState();
   }

@@ -1,6 +1,7 @@
 pub mod admin;
 pub mod audio;
 pub mod auth;
+pub mod crates;
 pub mod dev;
 pub mod enrich;
 pub mod import;

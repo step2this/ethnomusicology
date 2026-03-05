@@ -47,6 +47,20 @@ paths:
 - **Commit per-phase, not monolithic**: 27 files and ~5,600 lines in one commit makes bisect impossible and PR review painful. Each phase or builder should produce its own commit.
 - **Shut down idle builders proactively**: Builders that finish their phase and sit idle consume notification bandwidth and cause confusion. Shut them down as soon as their tasks complete.
 
+## Phase 8 Session (2026-03-05)
+
+- **A single critic review step is insufficient for a multi-language project.** Security/architecture review and code quality review are different skills requiring different checklists. One critic cannot be expert in security AND Rust idioms AND Flutter patterns simultaneously — depth suffers across all dimensions. The fix: two mandatory passes (7a security/arch, 7b language quality) with separate checklists and separate fresh-context agents.
+
+- **Flutter routing completeness is a CRITICAL review item.** The `SetlistDetailScreen` was implemented but never registered in `lib/config/routes.dart`. Users could generate and save setlists but could never view them from the library — a dead feature that would have shipped to production. The 7b code quality checklist now mandates: "every new screen class MUST appear in the router." This is the single highest-value Flutter-specific check.
+
+- **"Just cleanup" PRs need review too.** PR #11 (tech debt, 13 items across backend and frontend) had NO critic review — it was treated as "just small fixes." The assumption that small refactors are safe is the same assumption that lets typos become outages. The updated process: every PR gets both passes, no exceptions including tech debt, hotfixes, and doc updates that touch code.
+
+- **Code quality review catches different bugs than security review.** A security critic looks for auth bypass, injection, data leaks. A code quality reviewer looks for unreachable screens, missing error states, broken navigation, and incorrect provider access patterns. These are orthogonal. ST-007 was the only prior session with a separate frontend critic, and it produced the cleanest Flutter code in the project. That was not a coincidence — it was a process win that wasn't codified.
+
+- **The user should not be the quality gate.** The entire point of the Forge workflow is that process steps are automatic. When the user must say "wait, did you do a code quality review?" the process has failed. The checklists in 7a and 7b must be explicit enough that the agent follows them without prompting.
+
+- **Devil's Advocate on Phase 8 plan caught 5 issues pre-build.** SQLite FK enforcement gap, Spotify CC flow needing scratch build, models.rs ownership split, multi-table delete ordering, parallel audio search optimization — all fixed before any builder touched code. The devil's advocate step continues to be the highest-ROI quality gate in the Forge.
+
 ## Spike Findings Summary
 
 | Spike | Hypothesis | Result | Key Decision |

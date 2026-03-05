@@ -148,6 +148,8 @@ pub struct SetlistResponse {
     pub id: String,
     pub prompt: String,
     pub model: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     pub tracks: Vec<SetlistTrackResponse>,
     pub notes: Option<String>,
     pub harmonic_flow_score: Option<f64>,
@@ -184,6 +186,7 @@ pub struct GenerateSetlistRequest {
     pub creative_mode: Option<bool>,
     pub bpm_range: Option<BpmRange>,
     pub verify: bool,
+    pub name: Option<String>,
 }
 
 pub struct BpmRange {
@@ -290,6 +293,7 @@ pub async fn generate_setlist(
         creative_mode: None,
         bpm_range: None,
         verify: false,
+        name: None,
     };
     generate_setlist_from_request(pool, claude, req).await
 }
@@ -472,6 +476,7 @@ pub async fn generate_setlist_from_request(
         user_id: req.user_id.clone(),
         prompt: prompt.clone(),
         model: DEFAULT_MODEL.to_string(),
+        name: req.name.clone(),
         notes: llm_response.notes.clone(),
         harmonic_flow_score: None,
         energy_profile: req.energy_profile.as_ref().map(|p| p.to_string()),
@@ -711,6 +716,7 @@ pub async fn generate_setlist_from_request(
         id: final_id,
         prompt: prompt.clone(),
         model: DEFAULT_MODEL.to_string(),
+        name: req.name.clone(),
         tracks: track_responses,
         notes,
         harmonic_flow_score: None,
@@ -751,6 +757,7 @@ pub async fn get_setlist(
         id: setlist.id,
         prompt: setlist.prompt,
         model: setlist.model,
+        name: setlist.name,
         tracks: track_responses,
         notes: setlist.notes,
         harmonic_flow_score: setlist.harmonic_flow_score,
@@ -815,6 +822,7 @@ pub async fn arrange_setlist(
             id: setlist_row.id,
             prompt: setlist_row.prompt,
             model: setlist_row.model,
+            name: setlist_row.name,
             tracks: vec![track_response],
             notes: setlist_row.notes,
             harmonic_flow_score: Some(100.0),
@@ -902,6 +910,7 @@ pub async fn arrange_setlist(
         id: setlist_row.id,
         prompt: setlist_row.prompt,
         model: setlist_row.model,
+        name: setlist_row.name,
         tracks: track_responses,
         notes: setlist_row.notes,
         harmonic_flow_score: Some(result.harmonic_flow_score),
@@ -1721,6 +1730,7 @@ mod tests {
             user_id: "user1".to_string(),
             prompt: "test arrange".to_string(),
             model: "test-model".to_string(),
+            name: None,
             notes: None,
             harmonic_flow_score: None,
             energy_profile: energy_profile.map(|s| s.to_string()),
@@ -1886,6 +1896,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1925,6 +1936,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1955,6 +1967,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::EmptyCatalog)));
@@ -1976,6 +1989,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::PlaylistNotFound(_))));
@@ -2020,6 +2034,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2077,6 +2092,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2108,6 +2124,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         // Should not error — seed_tracklist is passed to Claude prompt
         let resp = generate_setlist_from_request(&pool, &claude, req)
@@ -2132,6 +2149,7 @@ mod tests {
             creative_mode: Some(true),
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2158,6 +2176,7 @@ mod tests {
                 max: 130.0,
             }),
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2184,6 +2203,7 @@ mod tests {
                 max: 130.0,
             }),
             verify: false,
+            name: None,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2208,6 +2228,7 @@ mod tests {
                 max: 210.0,
             }),
             verify: false,
+            name: None,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2232,6 +2253,7 @@ mod tests {
                 max: 120.0,
             }),
             verify: false,
+            name: None,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2254,6 +2276,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2280,6 +2303,7 @@ mod tests {
             creative_mode: None,
             bpm_range: None,
             verify: false,
+            name: None,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await

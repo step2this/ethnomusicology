@@ -43,6 +43,7 @@ class Setlist {
   final String prompt;
   final String model;
   final List<SetlistTrack> tracks;
+  final String? name;
   final String? notes;
   final double? harmonicFlowScore;
   final ScoreBreakdown? scoreBreakdown;
@@ -57,6 +58,7 @@ class Setlist {
     required this.prompt,
     required this.model,
     required this.tracks,
+    this.name,
     this.notes,
     this.harmonicFlowScore,
     this.scoreBreakdown,
@@ -72,6 +74,7 @@ class Setlist {
     String? prompt,
     String? model,
     List<SetlistTrack>? tracks,
+    String? Function()? name,
     String? Function()? notes,
     double? Function()? harmonicFlowScore,
     ScoreBreakdown? Function()? scoreBreakdown,
@@ -86,6 +89,7 @@ class Setlist {
       prompt: prompt ?? this.prompt,
       model: model ?? this.model,
       tracks: tracks ?? this.tracks,
+      name: name != null ? name() : this.name,
       notes: notes != null ? notes() : this.notes,
       harmonicFlowScore: harmonicFlowScore != null ? harmonicFlowScore() : this.harmonicFlowScore,
       scoreBreakdown: scoreBreakdown != null ? scoreBreakdown() : this.scoreBreakdown,
@@ -105,6 +109,7 @@ class Setlist {
       tracks: (json['tracks'] as List<dynamic>)
           .map((t) => SetlistTrack.fromJson(t as Map<String, dynamic>))
           .toList(),
+      name: json['name'] as String?,
       notes: json['notes'] as String?,
       harmonicFlowScore: (json['harmonic_flow_score'] as num?)?.toDouble(),
       scoreBreakdown: json['score_breakdown'] != null

@@ -1,57 +1,65 @@
-# Session Handoff — 2026-03-05
+# Session Handoff — 2026-03-05 (Evening)
 
-## Branch: `st-010-verification-loop-confidence-ui` (PR #10, CI green, pending merge)
+## Branch
+`phase-8-setlists-crates-spotify` — freshly created off `main` (clean, no changes yet)
 
-### Status: ST-010 COMPLETE — all 8 tasks done, awaiting merge
+## Test Counts
+- Backend: 370 tests passing
+- Frontend: 156 tests passing
+- Total: 526
 
-### What Was Done This Session
+## What Was Done This Session
 
-**SP-007 (spike, merged to main):** LLM self-verification spike — skill doc injection, confidence field calibration, verify_setlist() scaffolding. Key findings: high confidence ≈ 90% real tracks, medium ≈ 25%, low = creative suggestion. music_skill.md + verification_prompt.md both shipped.
+### SP-007: LLM Self-Verification Spike (COMPLETE → merged to main)
+- Created `music_skill.md` (~500 token skill doc injected into every generation)
+- Created `verification_prompt.md` (fact-checker persona for second-pass)
+- Added `confidence` field (high/medium/low) throughout the stack
+- Tested live: genre-term fabrication eliminated, confidence calibration useful
 
-**Process audit:** Reviewed all documentation for accuracy; found branch/test count/migration count drift. All docs updated to match ground truth.
+### ST-010: Verification Loop + Confidence UI (COMPLETE → PR #10 merged)
+- 8 tasks, 2 builders + lead, zero file conflicts
+- `verify: true` opt-in flag, persist-after-verify restructure
+- Frontend confidence dot badges + inline verification notes
 
-**ST-010 implementation (PR #10, 8 tasks, all passing):**
-- Migration 009_verification.sql: adds `confidence` + `verification_notes` columns to setlist_tracks
-- DB layer: `SetlistTrackRow` extended, setlists.rs writes/reads confidence on persist/load
-- Service layer: `verify_setlist()` wired into `generate_setlist()` via opt-in `verify: true` flag in `GenerateSetlistRequest`
-- Routes: `POST /api/setlists/generate` accepts `verify` boolean; confidence returned in response
-- Quick commands: verification-aware track filtering
-- Frontend model: `SetlistTrack.confidence` field (high/medium/low/null)
-- Frontend widget: `ConfidenceBadge` on track tiles (color-coded chip, tooltip with notes)
-- Tests: `verification_integration.rs` backend integration tests + `confidence_badge_test.dart` widget tests
+### Tech Debt Wave 1 (COMPLETE → PR #11 merged)
+- 13 debt items resolved across backend and frontend
+- Process audit: 8 docs reconciled
 
-### Files Changed on ST-010 Branch
+### Diversity Tuning + MusicBrainz Grounding (COMPLETE → PR #13 merged)
+- MusicBrainz API client: verifies tracks against 35M+ recordings
+- Graduated verification spectrum, diversity guidance in prompts
+- Unique artists per set improved from 58% to 75%
 
-```
-backend/migrations/009_verification.sql
-backend/src/db/models.rs
-backend/src/db/setlists.rs
-backend/src/routes/setlist.rs
-backend/src/services/quick_commands.rs
-backend/src/services/setlist.rs
-backend/tests/verification_integration.rs
-docs/steel-threads/st-010-wire-verification-loop-and-confidence-ui.md
-docs/tasks/st-010-tasks.md
-frontend/lib/models/setlist_track.dart
-frontend/lib/widgets/setlist_track_tile.dart
-frontend/test/widgets/confidence_badge_test.dart
-```
+### Bug Fixes & Infrastructure
+- Timeout chain fixed: Claude API 90s, Caddy 120s, Dio 120s
+- Service worker cache: permanent 3-part fix (cleanup SW + cache-bust + headers)
+- `scripts/post-build-web.sh` — MUST run after flutter build web before deploy
+- Diagnostic error messages for timeouts/connection issues
 
-### Test Counts
-- Backend: 367 tests
-- Frontend: 156 tests
-- **Total: 523 tests, all passing**
+## What's In Progress
 
-### Current Deployment
-- `tarab.studio` — ST-009 deployed (Deezer + iTunes + SoundCloud), ST-010 pending merge
-- SoundCloud credentials configured in `/etc/ethnomusicology/env`
-- 9 migrations total after ST-010 merges (009_verification.sql)
-- Catalog EMPTY — user needs to re-import Spotify playlist
+### Phase 8: Saved Setlists, Crates, and Spotify Discovery
+- **Branch**: `phase-8-setlists-crates-spotify` (clean, ready to start)
+- **Plan**: `/home/ubuntu/.claude/plans/toasty-popping-wirth.md` (approved, devil's advocate reviewed)
+- **Scope**: 3 workstreams, 8 tasks, 5 builders + lead
 
-### Next Steps
-1. **Merge PR #10** — ST-010 verification loop + confidence UI
-2. **Deploy to tarab.studio** — run `sqlx migrate run` (or let startup apply 009)
-3. **Live verification** — generate a setlist with `verify: true`, confirm confidence badges appear
-4. **Tech debt cleanup** — address critic findings: prompt caching for verification call not implemented
-5. **ST-004 retrospective** — still missing (known debt)
-6. **Phase 6: Purchase link panel (UC-020)** — multi-store links (Beatport, Apple affiliate, Traxsource, Juno)
+#### Key Devil's Advocate Fixes to Apply
+1. SQLite FK enforcement OFF → use explicit multi-table DELETE in transaction
+2. Spotify CC flow needs building from scratch (follow SoundCloud pattern)
+3. models.rs ownership split: Builder A owns models.rs, Builder B uses crate_models.rs
+4. Delete handles 4 tables: conversations → version_tracks → versions → tracks → setlist
+5. Spotify search runs parallel with audio search (tokio::join!)
+
+## Deployed State
+- **tarab.studio**: Running latest main (PR #13)
+- MusicBrainz grounding + verify toggle + confidence badges all live
+- `scripts/post-build-web.sh` MUST be run after flutter build web before deploying
+
+## Next Session Instructions
+1. Read this file + the plan at `/home/ubuntu/.claude/plans/toasty-popping-wirth.md`
+2. Create team, start T1 (migrations) + T4 (Spotify CC) in parallel
+3. After T1: T2 (setlist CRUD) + T3 (crate CRUD) in parallel
+4. After T2+T3+T4: T5 (lead wiring)
+5. Then frontend: T6 → T7 → T8
+6. Critic review before merge
+7. Deploy + test: generate → save → library → crate → Spotify link
