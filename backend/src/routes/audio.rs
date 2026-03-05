@@ -9,8 +9,8 @@ use axum::{
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
 use std::sync::OnceLock;
-use std::time::Duration;
-use tokio::sync::{Mutex, Semaphore};
+use std::time::{Duration, Instant};
+use tokio::sync::{Mutex, RwLock, Semaphore};
 use tokio::time::timeout;
 
 use crate::services::soundcloud::SoundCloudClient;
@@ -21,6 +21,8 @@ use crate::services::soundcloud::SoundCloudClient;
 
 static ITUNES_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
 static SOUNDCLOUD_CLIENT: OnceLock<Mutex<Option<SoundCloudClient>>> = OnceLock::new();
+static SPOTIFY_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
+static SPOTIFY_CC_TOKEN: OnceLock<RwLock<Option<(String, Instant)>>> = OnceLock::new();
 
 fn soundcloud_client() -> &'static Mutex<Option<SoundCloudClient>> {
     SOUNDCLOUD_CLIENT.get_or_init(|| Mutex::new(SoundCloudClient::new_from_env()))
@@ -28,6 +30,14 @@ fn soundcloud_client() -> &'static Mutex<Option<SoundCloudClient>> {
 
 fn itunes_semaphore() -> &'static Semaphore {
     ITUNES_SEMAPHORE.get_or_init(|| Semaphore::new(20))
+}
+
+fn spotify_semaphore() -> &'static Semaphore {
+    SPOTIFY_SEMAPHORE.get_or_init(|| Semaphore::new(5))
+}
+
+fn spotify_cc_token() -> &'static RwLock<Option<(String, Instant)>> {
+    SPOTIFY_CC_TOKEN.get_or_init(|| RwLock::new(None))
 }
 
 // ---------------------------------------------------------------------------
@@ -90,6 +100,7 @@ pub struct AudioSearchResponse {
     itunes_id: Option<u64>,
     soundcloud_id: Option<String>,
     uploader_name: Option<String>,
+    spotify_uri: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -109,6 +120,38 @@ struct ItunesTrack {
     preview_url: Option<String>,
     #[serde(rename = "trackViewUrl")]
     track_view_url: Option<String>,
+}
+
+// ---------------------------------------------------------------------------
+// Spotify Client Credentials types
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct SpotifyCCTokenResponse {
+    access_token: String,
+    expires_in: u64,
+}
+
+#[derive(Deserialize)]
+struct SpotifySearchResponse {
+    tracks: SpotifySearchTracks,
+}
+
+#[derive(Deserialize)]
+struct SpotifySearchTracks {
+    items: Vec<SpotifySearchTrack>,
+}
+
+#[derive(Deserialize)]
+struct SpotifySearchTrack {
+    uri: String,
+    name: String,
+    artists: Vec<SpotifySearchArtist>,
+}
+
+#[derive(Deserialize)]
+struct SpotifySearchArtist {
+    name: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -239,10 +282,105 @@ async fn itunes_search(
 }
 
 // ---------------------------------------------------------------------------
+// Spotify Client Credentials token cache + search
+// ---------------------------------------------------------------------------
+
+/// Fetches a Spotify Client Credentials access token, using a cached value
+/// when still valid (with 60 s buffer before expiry).
+async fn spotify_cc_token_get(http: &reqwest::Client) -> Option<String> {
+    let client_id = std::env::var("SPOTIFY_CLIENT_ID").ok()?;
+    let client_secret = std::env::var("SPOTIFY_CLIENT_SECRET").ok()?;
+    if client_id.is_empty() || client_secret.is_empty() {
+        return None;
+    }
+
+    // Fast path: read lock to check cached token.
+    {
+        let guard = spotify_cc_token().read().await;
+        if let Some((ref token, expiry)) = *guard {
+            if Instant::now() + Duration::from_secs(60) < expiry {
+                return Some(token.clone());
+            }
+        }
+    }
+
+    // Slow path: write lock, double-check, then fetch.
+    let mut guard = spotify_cc_token().write().await;
+    if let Some((ref token, expiry)) = *guard {
+        if Instant::now() + Duration::from_secs(60) < expiry {
+            return Some(token.clone());
+        }
+    }
+
+    let resp = timeout(
+        Duration::from_secs(5),
+        http.post("https://accounts.spotify.com/api/token")
+            .basic_auth(&client_id, Some(&client_secret))
+            .form(&[("grant_type", "client_credentials")])
+            .send(),
+    )
+    .await
+    .ok()?
+    .ok()?;
+
+    if !resp.status().is_success() {
+        return None;
+    }
+
+    let tr: SpotifyCCTokenResponse = resp.json().await.ok()?;
+    let expiry = Instant::now() + Duration::from_secs(tr.expires_in);
+    *guard = Some((tr.access_token.clone(), expiry));
+    Some(tr.access_token)
+}
+
+/// Searches Spotify for a track URI using Client Credentials.
+/// Returns `spotify:track:<id>` on a match, `None` otherwise.
+async fn spotify_search(artist: &str, title: &str) -> Option<String> {
+    let _permit = spotify_semaphore().acquire().await.ok()?;
+    let client = reqwest::Client::new();
+
+    let token = spotify_cc_token_get(&client).await?;
+    let q = format!(r#"track:"{}" artist:"{}""#, title, artist);
+
+    let resp = timeout(
+        Duration::from_secs(3),
+        client
+            .get("https://api.spotify.com/v1/search")
+            .query(&[("q", q.as_str()), ("type", "track"), ("limit", "5")])
+            .bearer_auth(&token)
+            .send(),
+    )
+    .await
+    .ok()?
+    .ok()?;
+
+    if !resp.status().is_success() {
+        return None;
+    }
+
+    let data: SpotifySearchResponse = resp.json().await.ok()?;
+
+    data.tracks
+        .items
+        .into_iter()
+        .find(|t| {
+            let result_artist = t.artists.first().map(|a| a.name.as_str()).unwrap_or("");
+            crate::services::match_scoring::is_acceptable_match(
+                title,
+                artist,
+                &t.name,
+                result_artist,
+            )
+        })
+        .map(|t| t.uri)
+}
+
+// ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
 
-/// Unified audio search: tries Deezer (strict → fuzzy) then iTunes.
+/// Unified audio search: tries Deezer (strict → fuzzy) then iTunes, then SoundCloud.
+/// Spotify URI lookup runs in parallel with the first Deezer search.
 async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoResponse {
     let client = reqwest::Client::new();
     let title = &params.title;
@@ -251,9 +389,14 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
     let deezer_query = format!(r#"artist:"{}" track:"{}""#, artist, title);
     let mut search_queries = vec![deezer_query];
 
+    // Run Deezer strict and Spotify URI search in parallel.
+    let (deezer_strict, spotify_uri) = tokio::join!(
+        deezer_field_search(&client, artist, title, true),
+        spotify_search(artist, title)
+    );
+
     // 1. Try Deezer strict
-    if let Some((deezer_id, preview_url)) = deezer_field_search(&client, artist, title, true).await
-    {
+    if let Some((deezer_id, preview_url)) = deezer_strict {
         return Json(AudioSearchResponse {
             source: Some("deezer".to_string()),
             preview_url: Some(build_proxy_url(&preview_url)),
@@ -263,6 +406,7 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
             itunes_id: None,
             soundcloud_id: None,
             uploader_name: None,
+            spotify_uri,
         })
         .into_response();
     }
@@ -279,6 +423,7 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
             itunes_id: None,
             soundcloud_id: None,
             uploader_name: None,
+            spotify_uri,
         })
         .into_response();
     }
@@ -297,6 +442,7 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
             itunes_id: Some(itunes_id),
             soundcloud_id: None,
             uploader_name: None,
+            spotify_uri,
         })
         .into_response();
     }
@@ -317,6 +463,7 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
                     itunes_id: None,
                     soundcloud_id: Some(m.soundcloud_id),
                     uploader_name: Some(m.uploader_name),
+                    spotify_uri,
                 })
                 .into_response();
             }
@@ -334,6 +481,7 @@ async fn audio_search(Query(params): Query<AudioSearchParams>) -> impl IntoRespo
         itunes_id: None,
         soundcloud_id: None,
         uploader_name: None,
+        spotify_uri,
     })
     .into_response()
 }
@@ -580,6 +728,7 @@ mod tests {
             itunes_id: Some(123456789),
             soundcloud_id: None,
             uploader_name: None,
+            spotify_uri: None,
         };
         let json = serde_json::to_value(&resp).unwrap();
         assert_eq!(json["source"], "itunes");
@@ -587,6 +736,25 @@ mod tests {
         assert!(json["deezer_id"].is_null());
         assert!(json["soundcloud_id"].is_null());
         assert!(json["uploader_name"].is_null());
+        assert!(json["spotify_uri"].is_null());
+    }
+
+    #[test]
+    fn test_audio_search_response_with_spotify_uri() {
+        let resp = AudioSearchResponse {
+            source: Some("deezer".to_string()),
+            preview_url: Some("/api/audio/proxy?url=https%3A%2F%2Fdzcdn.net%2Ffoo.mp3".to_string()),
+            external_url: Some("https://www.deezer.com/track/12345".to_string()),
+            search_queries: vec![r#"artist:"Avicii" track:"Levels""#.to_string()],
+            deezer_id: Some(12345),
+            itunes_id: None,
+            soundcloud_id: None,
+            uploader_name: None,
+            spotify_uri: Some("spotify:track:3qT4bUD1MaWpGrTwcvguhb".to_string()),
+        };
+        let json = serde_json::to_value(&resp).unwrap();
+        assert_eq!(json["source"], "deezer");
+        assert_eq!(json["spotify_uri"], "spotify:track:3qT4bUD1MaWpGrTwcvguhb");
     }
 
     #[test]
@@ -600,6 +768,7 @@ mod tests {
             itunes_id: None,
             soundcloud_id: Some("soundcloud:tracks:1066423924".to_string()),
             uploader_name: Some("Paperclip People".to_string()),
+            spotify_uri: None,
         };
         let json = serde_json::to_value(&resp).unwrap();
         assert_eq!(json["source"], "soundcloud");
@@ -607,6 +776,7 @@ mod tests {
         assert_eq!(json["uploader_name"], "Paperclip People");
         assert!(json["deezer_id"].is_null());
         assert!(json["itunes_id"].is_null());
+        assert!(json["spotify_uri"].is_null());
     }
 
     #[test]
@@ -623,9 +793,45 @@ mod tests {
             itunes_id: None,
             soundcloud_id: None,
             uploader_name: None,
+            spotify_uri: None,
         };
         let json = serde_json::to_value(&resp).unwrap();
         assert!(json["source"].is_null());
         assert_eq!(json["search_queries"].as_array().unwrap().len(), 2);
+        assert!(json["spotify_uri"].is_null());
+    }
+
+    #[test]
+    fn test_spotify_search_response_deserializes() {
+        let json = r#"{
+            "tracks": {
+                "href": "https://api.spotify.com/v1/search",
+                "items": [
+                    {
+                        "uri": "spotify:track:3qT4bUD1MaWpGrTwcvguhb",
+                        "name": "Levels",
+                        "artists": [{"name": "Avicii"}]
+                    }
+                ],
+                "limit": 5,
+                "total": 1
+            }
+        }"#;
+        let resp: SpotifySearchResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(resp.tracks.items.len(), 1);
+        assert_eq!(
+            resp.tracks.items[0].uri,
+            "spotify:track:3qT4bUD1MaWpGrTwcvguhb"
+        );
+        assert_eq!(resp.tracks.items[0].name, "Levels");
+        assert_eq!(resp.tracks.items[0].artists[0].name, "Avicii");
+    }
+
+    #[test]
+    fn test_spotify_cc_token_response_deserializes() {
+        let json = r#"{"access_token":"BQD...","token_type":"Bearer","expires_in":3600}"#;
+        let tr: SpotifyCCTokenResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(tr.access_token, "BQD...");
+        assert_eq!(tr.expires_in, 3600);
     }
 }
