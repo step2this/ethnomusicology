@@ -231,13 +231,12 @@ void main() {
     expect(find.text('Unexpected but compatible combinations'),
         findsOneWidget);
 
-    // Toggle it on
-    await tester.tap(find.byType(SwitchListTile));
+    // Toggle creative mode on (there are 2 SwitchListTiles — verify + creative)
+    final creativeTile = find.widgetWithText(SwitchListTile, 'Creative Mode');
+    await tester.tap(creativeTile);
     await tester.pumpAndSettle();
 
-    final switchTile = tester.widget<SwitchListTile>(
-      find.byType(SwitchListTile),
-    );
+    final switchTile = tester.widget<SwitchListTile>(creativeTile);
     expect(switchTile.value, isTrue);
   });
 

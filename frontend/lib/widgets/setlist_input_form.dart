@@ -34,7 +34,7 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
 
   String? _selectedEnergyProfile;
   bool _creativeMode = false;
-  bool _verifyTracks = false;
+  bool _verifyTracks = true;
   double _trackCount = AppConstants.defaultTrackCount;
   bool _showAdvanced = false;
   bool _isImporting = false;
@@ -163,6 +163,15 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        SwitchListTile(
+          title: const Text('Verify tracks'),
+          subtitle: const Text('Double-check attributions with MusicBrainz (adds ~15s)'),
+          value: _verifyTracks,
+          onChanged: (v) => setState(() => _verifyTracks = v),
+          dense: true,
+          contentPadding: EdgeInsets.zero,
+        ),
+        const SizedBox(height: 4),
         InkWell(
           onTap: () => setState(() => _showAdvanced = !_showAdvanced),
           child: Row(
@@ -202,15 +211,6 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            title: const Text('Verify tracks'),
-            subtitle: const Text('Double-check attributions (slower)'),
-            value: _verifyTracks,
-            onChanged: (v) => setState(() => _verifyTracks = v),
-            dense: true,
-            contentPadding: EdgeInsets.zero,
           ),
         ],
       ],
