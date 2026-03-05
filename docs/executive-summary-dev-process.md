@@ -26,20 +26,51 @@ This is not an analogy. It is the same algorithm applied recursively. The insigh
 
 ## How It Works in Practice
 
-Every feature begins with a written specification that defines what "done" looks like in measurable terms. Before implementation starts, an adversarial review challenges the plan: Are there naming conflicts with existing code? Will the test infrastructure support the new feature? Has out-of-scope work crept in? In one case, this fifteen-minute review caught three issues that would have blocked an entire team of six agents working in parallel -- saving an estimated four to six hours of rework.
+Every feature begins with a written use case that defines what "done" looks like in measurable terms -- for example, *"Given a prompt 'deep house for sunset,' the system returns 12-15 tracks with BPM within 118-128 and Camelot-compatible keys for adjacent tracks."* Before implementation starts, an adversarial review challenges the plan: Are there naming conflicts with existing code? Will the test infrastructure support the new feature? Has out-of-scope work crept in? A typical finding looks like: *"CRITICAL: `ContentBlock` is already defined in the Claude API response module. The new request module redefines it, causing a name collision that will fail compilation across all six builder agents."* In one case, this fifteen-minute review caught three such issues that would have blocked an entire team of six agents working in parallel -- saving an estimated four to six hours of rework.
 
 When unknowns exist, we research before building. A thirty-minute investigation confirmed that a critical third-party API had been deprecated months earlier. Without that check, the team would have built an integration, deployed it, received errors in production, and then pivoted -- losing days. Six such investigations were conducted over the project's lifetime, and each one prevented at least one wrong turn.
 
-Implementation is distributed across multiple AI agents working on non-overlapping areas of the codebase. Each agent handles a focused piece of work and stays within a bounded context. A coordinating agent reviews boundaries and connects the pieces but does not write implementation code itself. This separation was introduced after the first major feature -- built by a single agent writing 2,800 lines across fourteen files -- degraded in quality as the session progressed. The agent that started the session making zero errors per task was averaging five correction cycles per task by the end. Distributing work across fresh agents eliminated this degradation entirely.
+The reviewed plan is decomposed into tasks with an explicit dependency graph -- for instance, *T1 (database schema) and T2 (Camelot wheel algorithm) can run in parallel; T5 (route handler) blocks on both.* Implementation is then distributed across multiple AI agents working on non-overlapping areas of the codebase. One agent owns `services/camelot.rs`, another owns `services/enrichment.rs`, a third owns `routes/setlist.rs`. They share a trait interface at the boundary so they never block each other and never touch the same file. A coordinating agent reviews boundaries and connects the pieces but does not write implementation code itself. This separation was introduced after the first major feature -- built by a single agent writing 2,800 lines across fourteen files -- degraded in quality as the session progressed. The agent that started the session making zero errors per task was averaging five correction cycles per task by the end. Distributing work across fresh agents eliminated this degradation entirely.
 
-After implementation, a separate reviewer examines the work from scratch, with no knowledge of how the code was written. This reviewer has caught bugs that no amount of self-review would find:
+After implementation, a separate critic examines the work from scratch, with no knowledge of how the code was written. A real finding: *"services/setlist.rs:412 -- `compute_seed_match_count` is defined and tested but never called from `generate_setlist`. The enrichment feature described in the plan is dead code."* The critic also checks plan-vs-code compliance: did every planned capability actually get wired up? This reviewer has caught bugs that no amount of self-review would find:
 
 - A text-processing function that would crash on Arabic music titles -- the product's primary use case -- because it split on byte boundaries instead of character boundaries
 - A core feature that was defined, tested in isolation, but never connected to the rest of the system, meaning it would have shipped as dead code
 - A user-facing input flow that passed raw data where a processed identifier was expected, guaranteeing an error on first use
 - A track-ordering bug that silently placed the first track last in every setlist
 
-These are not obscure edge cases. They are the kind of mistakes that erode user trust on day one. The reviewer catches them because fresh perspective identifies what familiarity overlooks.
+These are not obscure edge cases. They are the kind of mistakes that erode user trust on day one. The reviewer catches them because fresh perspective identifies what familiarity overlooks. Only after the critic approves does verification run: each postcondition from the original use case is checked mechanically -- *"POST /api/setlist with verify=true returns tracks where every verification_flag is either null or 'replaced'; no 'no_such_track' flags survive."*
+
+---
+
+## The Loop in Code
+
+The verification loop is not just a process diagram -- it compiles. Here is the core of the `verify_setlist` function (Rust, simplified):
+
+```rust
+pub async fn verify_setlist(
+    claude: &dyn ClaudeClientTrait,   // trait-based: real API or test mock
+    tracks: &[SetlistTrackResponse],
+) -> Result<Vec<SetlistTrackResponse>> {
+    let response = claude.generate_setlist(VERIFICATION_PROMPT, ...).await?;
+    let verification: VerificationResponse = serde_json::from_str(&response)?;
+
+    let mut verified = tracks.to_vec();
+    for track in &mut verified {
+        if let Some(v) = verify_map.get(&track.position) {
+            if matches!(v.flag.as_deref(),
+                Some("wrong_artist") | Some("no_such_track") | Some("constructed_title")
+            ) {
+                track.confidence = Some("low".to_string());  // downgrade, never upgrade
+                track.verification_note = v.correction.clone();
+            }
+        }
+    }
+    Ok(verified)
+}
+```
+
+Three things make this work. First, `ClaudeClientTrait` means the entire LLM call is mockable -- tests inject a `MockClaude` that returns canned JSON, so verification logic runs in milliseconds without network calls. Second, the confidence field is normalized on input (`filter(|c| matches!(c.as_str(), "high" | "medium" | "low"))`) and only ever downgraded by verification, never upgraded -- a ratchet that prevents the system from inflating its own certainty. Third, a 30-line skill document (`include_str!("../prompts/music_skill.md")`) is compiled into the binary and injected into every LLM system prompt, teaching the model the three rules of track verification before it generates anything. The verification loop is not bolted on after the fact. It is load-bearing architecture.
 
 ---
 

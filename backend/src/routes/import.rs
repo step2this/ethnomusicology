@@ -1,7 +1,7 @@
-use axum::extract::{Path, State};
+use axum::extract::State;
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::routing::{get, post};
+use axum::routing::post;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
 use sqlx::SqlitePool;
@@ -140,15 +140,6 @@ async fn import_spotify(
     Ok(Json(ImportResponse::from(summary)))
 }
 
-async fn get_import_status(
-    Path(import_id): Path<String>,
-) -> Result<Json<ImportResponse>, ImportError> {
-    // TODO: Implement actual DB lookup when T5 is ready
-    Err(ImportError::NotFound(format!(
-        "Import {import_id} not found"
-    )))
-}
-
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
@@ -156,7 +147,6 @@ async fn get_import_status(
 pub fn import_router(state: Arc<ImportState>) -> Router {
     Router::new()
         .route("/import/spotify", post(import_spotify))
-        .route("/import/{id}", get(get_import_status))
         .with_state(state)
 }
 
@@ -263,34 +253,6 @@ mod tests {
             .unwrap();
 
         assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-    }
-
-    #[tokio::test]
-    async fn test_get_import_status_not_found() {
-        let pool = crate::db::create_test_pool().await;
-        let state = Arc::new(ImportState {
-            spotify: SpotifyClient::new("id", "secret"),
-            repo: Arc::new(TestRepo::new()),
-            pool,
-            encryption_key: [0u8; 32],
-            claude: Arc::new(MockClaude {
-                response: "{}".to_string(),
-            }),
-        });
-
-        let app = import_router(state);
-
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .uri("/import/nonexistent")
-                    .body(Body::empty())
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 
     #[tokio::test]

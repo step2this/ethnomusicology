@@ -197,6 +197,54 @@ pub async fn get_daily_enrichment_count(
     Ok(count.unwrap_or(0))
 }
 
+/// Reset errored tracks so they can be re-enriched.
+/// Clears enrichment_error and sets needs_enrichment = 1 for all tracks
+/// where enrichment_error IS NOT NULL.
+/// Returns the number of tracks reset.
+pub async fn retry_errored_tracks(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
+    let result = sqlx::query(
+        "UPDATE tracks SET enrichment_error = NULL, needs_enrichment = 1 WHERE enrichment_error IS NOT NULL",
+    )
+    .execute(pool)
+    .await?;
+    Ok(result.rows_affected())
+}
+
+/// Get today's generation count for a user.
+pub async fn get_daily_generation_count(
+    pool: &SqlitePool,
+    user_id: &str,
+) -> Result<i64, sqlx::Error> {
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let count: Option<i64> = sqlx::query_scalar(
+        "SELECT generation_count FROM user_usage WHERE user_id = ? AND date = ?",
+    )
+    .bind(user_id)
+    .bind(&today)
+    .fetch_optional(pool)
+    .await?;
+    Ok(count.unwrap_or(0))
+}
+
+/// Increment the generation usage counter for a user.
+pub async fn increment_generation_usage(
+    pool: &SqlitePool,
+    user_id: &str,
+) -> Result<(), sqlx::Error> {
+    let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+    let id = uuid::Uuid::new_v4().to_string();
+    sqlx::query(
+        "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES (?, ?, ?, 1)
+         ON CONFLICT(user_id, date) DO UPDATE SET generation_count = generation_count + 1",
+    )
+    .bind(&id)
+    .bind(user_id)
+    .bind(&today)
+    .execute(pool)
+    .await?;
+    Ok(())
+}
+
 /// Increment the enrichment usage counter for a user.
 pub async fn increment_enrichment_usage(
     pool: &SqlitePool,

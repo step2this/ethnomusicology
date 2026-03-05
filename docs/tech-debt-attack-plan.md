@@ -7,13 +7,7 @@
 
 ## Category 1: Quick Wins (< 1 hour each)
 
-### QW-01: Fix stale API info endpoint description
-- **Description**: `main.rs` `api_info()` still says "occasions, African and Middle Eastern traditions" instead of DJ-first platform description.
-- **Source**: known-debt.md (Audit)
-- **Priority**: P3
-- **Effort**: S (5 min)
-- **Dependencies**: None
-- **File**: `backend/src/main.rs`
+### ~~QW-01: Fix stale API info endpoint description~~ — RESOLVED (already updated in code)
 
 ### QW-02: Remove dead `apply_*` functions in quick_commands.rs
 - **Description**: `apply_shuffle`, `apply_sort_by_bpm`, `apply_reverse` operate on `SetlistTrackRow` but service uses `VersionTrackRow`. Only called from their own tests. Remove or unify with generic trait.
@@ -59,7 +53,7 @@
 - **Description**: SoundCloud requires uploader credit + source label + backlink. Apple ToS requires store badge proximity. Currently only icons shown. Add text labels for all three sources.
 - **Source**: known-debt.md (Compliance)
 - **Priority**: P2
-- **Effort**: S (45 min)
+- **Effort**: M (2-4 hours — 3 services with different ToS requirements + testing)
 - **Dependencies**: None
 - **File**: `frontend/lib/widgets/setlist_track_tile.dart`
 
@@ -118,16 +112,11 @@
 
 ## Category 3: Deferred Features (planned but not built)
 
-### DF-01: ST-010 — Wire Verification Loop and Confidence UI
-- **Description**: Wire `verify_setlist()` into the generation pipeline (opt-in `verify: true`). Add DB migration for confidence/verification_flag/verification_note columns. Frontend confidence dot badges. SP-007 proved the concept; ST-010 productionizes it.
-- **Source**: ST-010 steel thread, SP-007 findings
-- **Priority**: P1
-- **Effort**: L (full steel thread, ~1-2 days)
-- **Dependencies**: None (SP-007 complete, `verify_setlist()` exists)
-- **Deferred items within ST-010**:
-  - V2 search-result feedback loop (Deezer results back to Claude)
+### ~~DF-01: ST-010 — Wire Verification Loop and Confidence UI~~ — RESOLVED (PR #10 merged)
+- Deferred items remaining from ST-010:
+  - V2 search-result feedback loop (Deezer results back to Claude) → FS-03
   - Verification for refinement/conversation flow
-  - Confidence calibration at scale
+  - Confidence calibration at scale → FS-04
   - Prompt caching for verification call
   - Performance under concurrent verification requests
 
@@ -234,27 +223,11 @@
 - **Effort**: S (30 min — write scoped IAM policy)
 - **Dependencies**: Must be done BEFORE PG-06 (CI/CD activation)
 
-### AI-02: Replace `CorsLayer::permissive()` with domain-scoped CORS
-- **Description**: Unconditional permissive CORS in `main.rs`. Should allow only `tarab.studio` (and localhost in dev mode).
-- **Source**: known-debt.md, AWS deploy plan T1
-- **Priority**: P1
-- **Effort**: S (30 min)
-- **Dependencies**: None
+### ~~AI-02: Replace `CorsLayer::permissive()` with domain-scoped CORS~~ — RESOLVED (domain-scoped in production, permissive only in dev mode)
 
-### AI-03: Add graceful shutdown on SIGTERM
-- **Description**: `axum::serve` runs bare. `systemctl restart` drops in-flight requests. Wire `with_graceful_shutdown(tokio::signal)`.
-- **Source**: known-debt.md, AWS deploy plan review
-- **Priority**: P1
-- **Effort**: S (30 min)
-- **Dependencies**: None
+### ~~AI-03: Add graceful shutdown on SIGTERM~~ — RESOLVED (`with_graceful_shutdown(shutdown_signal())` already wired)
 
-### AI-04: Deduplicate `create_test_pool()` across test files
-- **Description**: `tests/setlist_api_test.rs` has its own `create_test_pool()` that diverges from `db/mod.rs`. Has caused failures in ST-005 and ST-006 — second-most recurring footgun in the project. Refactor to single canonical pool builder, `pub` exported for integration tests.
-- **Source**: ST-006 retro action #5, known-debt.md (HIGH), bitten twice
-- **Priority**: P0
-- **Effort**: S (1 hour)
-- **Dependencies**: None
-- **Files**: `backend/src/db/mod.rs`, `backend/tests/setlist_api_test.rs`, any other test files with their own pool
+### ~~AI-04: Deduplicate `create_test_pool()` across test files~~ — RESOLVED (all integration tests delegate to canonical `db::create_test_pool()`)
 
 ### AI-05: Wire `EnergyProfile` enum into `build_enhanced_system_prompt`
 - **Description**: Takes `Option<&str>` and matches string literals instead of `Option<&EnergyProfile>`. Bypasses compiler enforcement.
@@ -277,12 +250,7 @@
 - **Effort**: M (1-2 hours)
 - **Dependencies**: None
 
-### AI-08: Migration versioning before ALTER TABLE
-- **Description**: Current migrations use `CREATE TABLE IF NOT EXISTS` (re-run safe). First `ALTER TABLE` migration will fail on re-run. Need to ensure `sqlx::migrate!()` tracking is reliable before ST-010 adds columns.
-- **Source**: known-debt.md
-- **Priority**: P1
-- **Effort**: S (verify `sqlx::migrate!()` tracking works, document behavior)
-- **Dependencies**: Must be confirmed BEFORE DF-01 (ST-010)
+### ~~AI-08: Migration versioning before ALTER TABLE~~ — RESOLVED (ST-010 migration 009 used ALTER TABLE successfully; `sqlx::migrate!()` tracks applied migrations via `_sqlx_migrations` table)
 
 ### AI-09: Distinguish `Timeout`/`ServiceBusy` in RefinementError
 - **Description**: `Timeout` and `ServiceBusy` error variants missing from `RefinementError`. Clients can't distinguish timeout from other LLM errors.
@@ -451,15 +419,7 @@ These items prevent bugs and security issues. Do them before adding features.
 1. "Enrichment improvements" — DF-03, DF-04, DF-05
 2. "Test coverage gaps" — QT-02, QT-03, QT-04, QT-06, AI-08
 
-### Wave 5: ST-010 Verification Loop (after Wave 4)
-
-| Item | Description | Effort |
-|------|-------------|--------|
-| **DF-01** | ST-010: Wire verification loop + confidence UI | L |
-
-**This is a full steel thread** — use the Forge process (`/uc-review`, `/task-decompose`, multi-agent team). The steel thread doc already exists at `docs/steel-threads/st-010-wire-verification-loop-and-confidence-ui.md`.
-
-Ensure AI-08 (migration versioning) is confirmed before starting.
+### ~~Wave 5: ST-010 Verification Loop~~ — RESOLVED (PR #10 merged 2026-03-05)
 
 ### Wave 6: Infrastructure & UX (after or parallel with Wave 5)
 
@@ -509,8 +469,15 @@ Ensure AI-08 (migration versioning) is confirmed before starting.
 **Estimated total effort**: Waves 1-4 can be completed in 2-3 focused sessions. Wave 5 (ST-010) is 1-2 days. Waves 6-7 are ongoing backlog.
 
 **P0 items (do immediately)**:
-1. AI-01: Scope down IAM (security risk)
-2. AI-04: Deduplicate `create_test_pool()` (recurring footgun, bitten twice)
+1. AI-01: Scope down IAM (security risk) — the only remaining P0
+
+**Resolved since plan creation** (2026-03-05):
+- ~~AI-02~~: CORS already domain-scoped in production
+- ~~AI-03~~: Graceful shutdown already wired
+- ~~AI-04~~: Test pools already use canonical builder
+- ~~AI-08~~: Migration versioning confirmed working (ST-010 migration 009)
+- ~~DF-01~~: ST-010 merged (PR #10)
+- ~~QW-01~~: API description already updated
 
 **One action to take right now regardless of everything else**:
-- Submit Beatport API v4 application (DF-06) — it's zero-effort to apply and the approval timeline is the bottleneck.
+- Submit Beatport API v4 application (DF-06) — approval takes weeks, the application itself takes 30-60 minutes to write well.

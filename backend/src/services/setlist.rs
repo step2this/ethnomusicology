@@ -50,6 +50,9 @@ pub enum SetlistError {
 
     #[error("Playlist not found: {0}")]
     PlaylistNotFound(String),
+
+    #[error("Generation limit exceeded: {0}")]
+    GenerationLimitExceeded(String),
 }
 
 impl IntoResponse for SetlistError {
@@ -94,6 +97,11 @@ impl IntoResponse for SetlistError {
             SetlistError::PlaylistNotFound(m) => {
                 (StatusCode::NOT_FOUND, "PLAYLIST_NOT_FOUND", m.clone())
             }
+            SetlistError::GenerationLimitExceeded(m) => (
+                StatusCode::TOO_MANY_REQUESTS,
+                "GENERATION_LIMIT_EXCEEDED",
+                m.clone(),
+            ),
         };
 
         let body = serde_json::json!({
@@ -261,6 +269,8 @@ const MAX_PROMPT_LEN: usize = 2000;
 const DEFAULT_TRACK_COUNT: u32 = 10;
 const MIN_TRACK_COUNT: u32 = 1;
 const MAX_TRACK_COUNT: u32 = 50;
+/// Maximum setlist generations per user per day.
+const DAILY_GENERATION_CAP: i64 = 50;
 
 /// Legacy generate_setlist function — delegates to the new request-based overload for backward compat.
 pub async fn generate_setlist(
@@ -324,6 +334,16 @@ pub async fn generate_setlist_from_request(
         }
     }
 
+    // DF-03: Check daily generation cap before calling LLM
+    let daily_gen_count = crate::db::tracks::get_daily_generation_count(pool, &req.user_id)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?;
+    if daily_gen_count >= DAILY_GENERATION_CAP {
+        return Err(SetlistError::GenerationLimitExceeded(format!(
+            "Daily generation limit of {DAILY_GENERATION_CAP} reached ({daily_gen_count} used today)"
+        )));
+    }
+
     // Catalog loading: source_playlist_id filtering or full catalog
     let mut extra_notes: Vec<String> = Vec::new();
     let catalog = if let Some(ref playlist_id) = req.source_playlist_id {
@@ -374,12 +394,11 @@ pub async fn generate_setlist_from_request(
 
     // Build prompts using enhanced prompt builders
     let catalog_text = serialize_catalog(&catalog);
-    let energy_profile_str = req.energy_profile.as_ref().map(|p| p.to_string());
     let creative_mode = req.creative_mode.unwrap_or(false);
     let bpm_range_tuple = req.bpm_range.as_ref().map(|r| (r.min, r.max));
 
     let system_blocks =
-        build_enhanced_system_prompt(&catalog_text, energy_profile_str.as_deref(), creative_mode);
+        build_enhanced_system_prompt(&catalog_text, req.energy_profile.as_ref(), creative_mode);
     let user_text = format!("Create a setlist of {count} tracks based on this prompt: {prompt}");
     let user_blocks =
         build_enhanced_user_prompt(&user_text, req.seed_tracklist.as_deref(), bpm_range_tuple);
@@ -624,6 +643,14 @@ pub async fn generate_setlist_from_request(
     let catalog_warning = compute_catalog_warning(catalog_percentage);
     let bpm_warnings = compute_bpm_warnings_from_responses(&track_responses);
 
+    // DF-03: Increment generation counter (best-effort; failure does not block response)
+    if let Err(e) = crate::db::tracks::increment_generation_usage(pool, &req.user_id).await {
+        tracing::warn!(
+            "Failed to increment generation usage for {}: {e}",
+            req.user_id
+        );
+    }
+
     // M4: Use temporary ID if DB write failed, otherwise fetch created_at
     let (final_id, created_at) = if db_write_failed {
         let temp_id = format!("unsaved-{}", uuid::Uuid::new_v4());
@@ -856,16 +883,22 @@ pub async fn arrange_setlist(
 // Quality validation (T9)
 // ---------------------------------------------------------------------------
 
-/// Compute BPM warnings from SetlistTrackRow slices (used by get_setlist and arrange).
-pub fn compute_bpm_warnings(tracks: &[SetlistTrackRow]) -> Vec<BpmWarning> {
+/// Generic BPM warning computation. Accepts a slice of any type and a closure
+/// that extracts `(position, bpm)` from each element.
+fn compute_bpm_warnings_generic<T, F>(tracks: &[T], extract: F) -> Vec<BpmWarning>
+where
+    F: Fn(&T) -> (i32, Option<f64>),
+{
     let mut warnings = Vec::new();
     for i in 0..tracks.len().saturating_sub(1) {
-        if let (Some(bpm_a), Some(bpm_b)) = (tracks[i].bpm, tracks[i + 1].bpm) {
+        let (pos_a, bpm_a) = extract(&tracks[i]);
+        let (pos_b, bpm_b) = extract(&tracks[i + 1]);
+        if let (Some(bpm_a), Some(bpm_b)) = (bpm_a, bpm_b) {
             let delta = bpm_b - bpm_a;
             if delta.abs() > 6.0 {
                 warnings.push(BpmWarning {
-                    from_position: tracks[i].position,
-                    to_position: tracks[i + 1].position,
+                    from_position: pos_a,
+                    to_position: pos_b,
                     bpm_delta: delta,
                 });
             }
@@ -874,22 +907,14 @@ pub fn compute_bpm_warnings(tracks: &[SetlistTrackRow]) -> Vec<BpmWarning> {
     warnings
 }
 
+/// Compute BPM warnings from SetlistTrackRow slices (used by get_setlist and arrange).
+pub fn compute_bpm_warnings(tracks: &[SetlistTrackRow]) -> Vec<BpmWarning> {
+    compute_bpm_warnings_generic(tracks, |t| (t.position, t.bpm))
+}
+
 /// Compute BPM warnings from SetlistTrackResponse slices (used during generation).
 fn compute_bpm_warnings_from_responses(tracks: &[SetlistTrackResponse]) -> Vec<BpmWarning> {
-    let mut warnings = Vec::new();
-    for i in 0..tracks.len().saturating_sub(1) {
-        if let (Some(bpm_a), Some(bpm_b)) = (tracks[i].bpm, tracks[i + 1].bpm) {
-            let delta = bpm_b - bpm_a;
-            if delta.abs() > 6.0 {
-                warnings.push(BpmWarning {
-                    from_position: tracks[i].position,
-                    to_position: tracks[i + 1].position,
-                    bpm_delta: delta,
-                });
-            }
-        }
-    }
-    warnings
+    compute_bpm_warnings_generic(tracks, |t| (t.position, t.bpm))
 }
 
 /// Compute catalog percentage: count of tracks with source == "catalog" / total × 100.
@@ -1216,6 +1241,62 @@ mod tests {
         }
     }
 
+    /// Returns ClaudeError::Api (simulates a non-200 HTTP error like 401 or 500).
+    struct ApiErrorClaude;
+
+    #[async_trait::async_trait]
+    impl ClaudeClientTrait for ApiErrorClaude {
+        async fn generate_setlist(
+            &self,
+            _system_prompt: &str,
+            _user_prompt: &str,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<String, ClaudeError> {
+            Err(ClaudeError::Api("HTTP 401: Unauthorized".to_string()))
+        }
+
+        async fn generate_with_blocks(
+            &self,
+            _system_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _user_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<(String, crate::api::claude::CacheMetrics), ClaudeError> {
+            Err(ClaudeError::Api("HTTP 401: Unauthorized".to_string()))
+        }
+    }
+
+    /// Returns ClaudeError::MalformedResponse (response parsed but content block missing).
+    struct MalformedResponseClaude;
+
+    #[async_trait::async_trait]
+    impl ClaudeClientTrait for MalformedResponseClaude {
+        async fn generate_setlist(
+            &self,
+            _system_prompt: &str,
+            _user_prompt: &str,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<String, ClaudeError> {
+            Err(ClaudeError::MalformedResponse(
+                "No text content in response".to_string(),
+            ))
+        }
+
+        async fn generate_with_blocks(
+            &self,
+            _system_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _user_blocks: Vec<crate::api::claude::RequestContentBlock>,
+            _model: &str,
+            _max_tokens: u32,
+        ) -> Result<(String, crate::api::claude::CacheMetrics), ClaudeError> {
+            Err(ClaudeError::MalformedResponse(
+                "No text content in response".to_string(),
+            ))
+        }
+    }
+
     async fn setup_pool_with_tracks() -> sqlx::SqlitePool {
         let pool = crate::db::create_test_pool().await;
 
@@ -1427,6 +1508,30 @@ mod tests {
         let claude = TimeoutClaude;
         let result = generate_setlist(&pool, &claude, "user1", "test", None).await;
         assert!(matches!(result, Err(SetlistError::Timeout)));
+    }
+
+    // QT-01: ClaudeError::Api maps to SetlistError::ClaudeError
+    #[tokio::test]
+    async fn test_api_error_claude_maps_to_claude_error() {
+        let pool = setup_pool_with_tracks().await;
+        let claude = ApiErrorClaude;
+        let result = generate_setlist(&pool, &claude, "user1", "test", None).await;
+        assert!(
+            matches!(result, Err(SetlistError::ClaudeError(_))),
+            "ClaudeError::Api should map to SetlistError::ClaudeError"
+        );
+    }
+
+    // QT-01: ClaudeError::MalformedResponse maps to SetlistError::ClaudeError
+    #[tokio::test]
+    async fn test_malformed_response_error_maps_to_claude_error() {
+        let pool = setup_pool_with_tracks().await;
+        let claude = MalformedResponseClaude;
+        let result = generate_setlist(&pool, &claude, "user1", "test", None).await;
+        assert!(
+            matches!(result, Err(SetlistError::ClaudeError(_))),
+            "ClaudeError::MalformedResponse should map to SetlistError::ClaudeError"
+        );
     }
 
     // M2: Test track_count validation
@@ -2544,5 +2649,50 @@ mod tests {
             Some("Replaced: was 'Old Title' by 'Original Artist'")
         );
         assert_eq!(result[2].confidence.as_deref(), Some("medium"));
+    }
+
+    // DF-03: Daily generation limit
+    #[tokio::test]
+    async fn test_daily_generation_limit_enforced() {
+        let pool = setup_pool_with_tracks().await;
+
+        // Pre-fill to the cap
+        let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
+        sqlx::query(
+            "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES ('u1', 'user1', ?, 50)",
+        )
+        .bind(&today)
+        .execute(&pool)
+        .await
+        .unwrap();
+
+        let claude = MockClaude {
+            response: valid_llm_json(None),
+        };
+        let result = generate_setlist(&pool, &claude, "user1", "chill vibes", None).await;
+        assert!(
+            matches!(result, Err(SetlistError::GenerationLimitExceeded(_))),
+            "Should reject after hitting daily cap"
+        );
+    }
+
+    #[tokio::test]
+    async fn test_daily_generation_limit_increments_on_success() {
+        let pool = setup_pool_with_tracks().await;
+        let claude = MockClaude {
+            response: valid_llm_json(None),
+        };
+
+        generate_setlist(&pool, &claude, "user1", "chill vibes", None)
+            .await
+            .unwrap();
+
+        let count = crate::db::tracks::get_daily_generation_count(&pool, "user1")
+            .await
+            .unwrap();
+        assert_eq!(
+            count, 1,
+            "Generation count should be incremented after success"
+        );
     }
 }

@@ -91,7 +91,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
 
     try {
       await _playCurrentTrack(tracks, previewState);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         status: PlaybackStatus.error,
         error: () => 'Failed to play: $e',
@@ -211,7 +211,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
 
     try {
       await _playCurrentTrack(tracks, previewState);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         status: PlaybackStatus.error,
         error: () => 'Failed to play next: $e',
@@ -241,7 +241,7 @@ class AudioPlaybackNotifier extends Notifier<AudioPlaybackState> {
 
     try {
       await _playCurrentTrack(tracks, previewState);
-    } catch (e) {
+    } on Exception catch (e) {
       state = state.copyWith(
         status: PlaybackStatus.error,
         error: () => 'Failed to play previous: $e',

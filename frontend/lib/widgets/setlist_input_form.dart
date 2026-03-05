@@ -14,6 +14,7 @@ class SetlistInputForm extends ConsumerStatefulWidget {
     bool? creativeMode,
     double? bpmMin,
     double? bpmMax,
+    bool? verify,
   }) onGenerate;
 
   const SetlistInputForm({super.key, required this.onGenerate});
@@ -33,6 +34,7 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
 
   String? _selectedEnergyProfile;
   bool _creativeMode = false;
+  bool _verifyTracks = false;
   double _trackCount = AppConstants.defaultTrackCount;
   bool _showAdvanced = false;
   bool _isImporting = false;
@@ -201,6 +203,15 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
               ),
             ],
           ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            title: const Text('Verify tracks'),
+            subtitle: const Text('Double-check attributions (slower)'),
+            value: _verifyTracks,
+            onChanged: (v) => setState(() => _verifyTracks = v),
+            dense: true,
+            contentPadding: EdgeInsets.zero,
+          ),
         ],
       ],
     );
@@ -312,6 +323,7 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
       creativeMode: _creativeMode ? true : null,
       bpmMin: _parseBpm(_bpmMinController.text),
       bpmMax: _parseBpm(_bpmMaxController.text),
+      verify: _verifyTracks ? true : null,
     );
   }
 
@@ -349,9 +361,10 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
           creativeMode: _creativeMode ? true : null,
           bpmMin: _parseBpm(_bpmMinController.text),
           bpmMax: _parseBpm(_bpmMaxController.text),
+          verify: _verifyTracks ? true : null,
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
         _isImporting = false;
         _importError = e.toString();
@@ -370,6 +383,7 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
       creativeMode: _creativeMode ? true : null,
       bpmMin: _parseBpm(_bpmMinController.text),
       bpmMax: _parseBpm(_bpmMaxController.text),
+      verify: _verifyTracks ? true : null,
     );
   }
 }
