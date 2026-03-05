@@ -11,7 +11,9 @@ import '../widgets/setlist_result_view.dart';
 import '../widgets/version_history_panel.dart';
 
 class SetlistGenerationScreen extends ConsumerStatefulWidget {
-  const SetlistGenerationScreen({super.key});
+  final String? setlistId;
+
+  const SetlistGenerationScreen({super.key, this.setlistId});
 
   @override
   ConsumerState<SetlistGenerationScreen> createState() =>
@@ -21,6 +23,30 @@ class SetlistGenerationScreen extends ConsumerStatefulWidget {
 class _SetlistGenerationScreenState
     extends ConsumerState<SetlistGenerationScreen> {
   final _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.setlistId != null) {
+      // Load the setlist after the first frame so providers are ready.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadSetlist());
+    }
+  }
+
+  Future<void> _loadSetlist() async {
+    final id = widget.setlistId!;
+    ref.read(setlistProvider.notifier).setLoading();
+    try {
+      final setlist = await ref.read(apiClientProvider).getSetlist(id);
+      if (mounted) {
+        ref.read(setlistProvider.notifier).setSetlist(setlist);
+      }
+    } on Exception catch (e) {
+      if (mounted) {
+        ref.read(setlistProvider.notifier).setError('Failed to load setlist: $e');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -185,20 +211,22 @@ class _SetlistGenerationScreenState
             onPressed: () async {
               final name = controller.text.trim();
               if (name.isEmpty) return;
+              // Capture messenger before closing dialog (async gap below).
+              final messenger = ScaffoldMessenger.of(context);
               Navigator.of(ctx).pop();
               try {
                 await ref.read(apiClientProvider).updateSetlist(
                       setlist.id,
                       name: name,
                     );
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (mounted) {
+                  messenger.showSnackBar(
                     SnackBar(content: Text('"$name" saved')),
                   );
                 }
               } on Exception catch (e) {
-                if (ctx.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
+                if (mounted) {
+                  messenger.showSnackBar(
                     SnackBar(content: Text('Save failed: $e')),
                   );
                 }

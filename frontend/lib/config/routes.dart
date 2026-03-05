@@ -17,9 +17,9 @@ class AppRoutes {
   static const String trackCatalog = '/tracks';
   static const String setlistGenerate = '/setlist/generate';
   static const String setlistLibrary = '/setlists';
-  static const String setlistView = '/setlists';
+  static const String setlistView = '/setlists/:id';
   static const String crateLibrary = '/crates';
-  static const String crateDetail = '/crates';
+  static const String crateDetail = '/crates/:id';
 }
 
 final router = GoRouter(
@@ -47,7 +47,9 @@ final router = GoRouter(
     ),
     GoRoute(
       path: '/setlists/:id',
-      builder: (context, state) => const SetlistGenerationScreen(),
+      builder: (context, state) => SetlistGenerationScreen(
+        setlistId: state.pathParameters['id'],
+      ),
     ),
     GoRoute(
       path: AppRoutes.crateLibrary,

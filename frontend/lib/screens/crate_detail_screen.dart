@@ -157,16 +157,26 @@ class _CrateDetailScreenState extends ConsumerState<CrateDetailScreen> {
     }
   }
 
-  Future<void> _showAddFromSetlistDialog(BuildContext context) async {
+  Future<void> _showAddFromSetlistDialog(BuildContext _) async {
+    // Capture messenger before any async gap so we can show snackbars safely.
+    final messenger = ScaffoldMessenger.of(context);
     final libraryState = ref.read(setlistLibraryProvider);
     if (libraryState.setlists.isEmpty) {
       await ref.read(setlistLibraryProvider.notifier).loadSetlists();
       if (!mounted) return;
-      // ignore: use_build_context_synchronously
-      await _showAddFromSetlistDialog(context);
-      return;
+      final updated = ref.read(setlistLibraryProvider);
+      if (updated.setlists.isEmpty) {
+        messenger.showSnackBar(
+          const SnackBar(
+            content: Text(
+                'No saved setlists found. Generate and save a setlist first.'),
+          ),
+        );
+        return;
+      }
     }
 
+    if (!mounted) return;
     showDialog<void>(
       context: context,
       builder: (ctx) {
