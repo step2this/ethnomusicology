@@ -39,6 +39,8 @@ pub struct GenerateRequest {
     pub creative_mode: Option<bool>,
     #[serde(default)]
     pub bpm_range: Option<BpmRangeRequest>,
+    #[serde(default)]
+    pub verify: Option<bool>,
 }
 
 #[derive(Deserialize)]
@@ -99,6 +101,7 @@ async fn generate_setlist_handler(
             min: r.min,
             max: r.max,
         }),
+        verify: req.verify.unwrap_or(false),
     };
 
     let response =

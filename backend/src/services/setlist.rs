@@ -175,6 +175,7 @@ pub struct GenerateSetlistRequest {
     pub seed_tracklist: Option<String>,
     pub creative_mode: Option<bool>,
     pub bpm_range: Option<BpmRange>,
+    pub verify: bool,
 }
 
 pub struct BpmRange {
@@ -278,6 +279,7 @@ pub async fn generate_setlist(
         seed_tracklist: None,
         creative_mode: None,
         bpm_range: None,
+        verify: false,
     };
     generate_setlist_from_request(pool, claude, req).await
 }
@@ -466,9 +468,8 @@ pub async fn generate_setlist_from_request(
         }
     };
 
-    // Process tracks
+    // Process tracks: build responses in memory first, verify optionally, then persist
     let mut track_responses = Vec::with_capacity(valid_entries.len());
-    let mut any_track_write_failed = db_write_failed;
 
     for (i, entry) in valid_entries.iter().enumerate() {
         let position = (i + 1) as i32;
@@ -494,40 +495,6 @@ pub async fn generate_setlist_from_request(
             ),
         };
 
-        let track_row = SetlistTrackRow {
-            id: uuid::Uuid::new_v4().to_string(),
-            setlist_id: setlist_id.clone(),
-            track_id: validated_track_id.clone(),
-            position,
-            original_position: position,
-            title: entry.title.clone(),
-            artist: entry.artist.clone(),
-            bpm: entry.bpm,
-            key: entry.key.clone(),
-            camelot: entry.camelot.clone(),
-            energy: entry.energy.map(|e| e as f64),
-            transition_note: entry.transition_note.clone(),
-            transition_score: None,
-            source: source.clone(),
-            acquisition_info: None,
-            spotify_uri: None,
-            confidence: entry
-                .confidence
-                .as_deref()
-                .map(|c| c.to_lowercase())
-                .filter(|c| matches!(c.as_str(), "high" | "medium" | "low")),
-            verification_flag: None,
-            verification_note: None,
-        };
-
-        // M4: Only attempt track DB write if setlist was persisted
-        if !db_write_failed {
-            if let Err(e) = db::insert_setlist_track(pool, &track_row).await {
-                tracing::error!("Failed to persist setlist track: {e}");
-                any_track_write_failed = true;
-            }
-        }
-
         track_responses.push(SetlistTrackResponse {
             position,
             title: entry.title.clone(),
@@ -550,6 +517,53 @@ pub async fn generate_setlist_from_request(
             verification_flag: None,
             verification_note: None,
         });
+    }
+
+    // Optional verification pass (SP-007)
+    if req.verify {
+        match verify_setlist(claude, &track_responses).await {
+            Ok(verified) => {
+                track_responses = verified;
+            }
+            Err(e) => {
+                tracing::warn!("Verification failed, using unverified tracks: {e}");
+                extra_notes.push(
+                    "Verification unavailable, confidence scores are self-reported.".to_string(),
+                );
+            }
+        }
+    }
+
+    // Persist tracks AFTER verification so DB has final state
+    let mut any_track_write_failed = db_write_failed;
+    if !db_write_failed {
+        for track in &track_responses {
+            let track_row = SetlistTrackRow {
+                id: uuid::Uuid::new_v4().to_string(),
+                setlist_id: setlist_id.clone(),
+                track_id: track.track_id.clone(),
+                position: track.position,
+                original_position: track.original_position,
+                title: track.title.clone(),
+                artist: track.artist.clone(),
+                bpm: track.bpm,
+                key: track.key.clone(),
+                camelot: track.camelot.clone(),
+                energy: track.energy,
+                transition_note: track.transition_note.clone(),
+                transition_score: track.transition_score,
+                source: track.source.clone(),
+                acquisition_info: None,
+                spotify_uri: None,
+                confidence: track.confidence.clone(),
+                verification_flag: track.verification_flag.clone(),
+                verification_note: track.verification_note.clone(),
+            };
+            if let Err(e) = db::insert_setlist_track(pool, &track_row).await {
+                tracing::error!("Failed to persist setlist track: {e}");
+                any_track_write_failed = true;
+            }
+        }
     }
 
     // Build notes with possible DB warning and extra notes
@@ -1709,6 +1723,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1747,6 +1762,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1776,6 +1792,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::EmptyCatalog)));
@@ -1796,6 +1813,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::PlaylistNotFound(_))));
@@ -1839,6 +1857,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1895,6 +1914,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1925,6 +1945,7 @@ mod tests {
             ),
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         // Should not error — seed_tracklist is passed to Claude prompt
         let resp = generate_setlist_from_request(&pool, &claude, req)
@@ -1948,6 +1969,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: Some(true),
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1973,6 +1995,7 @@ mod tests {
                 min: 120.0,
                 max: 130.0,
             }),
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -1998,6 +2021,7 @@ mod tests {
                 min: 50.0,
                 max: 130.0,
             }),
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2021,6 +2045,7 @@ mod tests {
                 min: 100.0,
                 max: 210.0,
             }),
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2044,6 +2069,7 @@ mod tests {
                 min: 140.0,
                 max: 120.0,
             }),
+            verify: false,
         };
         let result = generate_setlist_from_request(&pool, &claude, req).await;
         assert!(matches!(result, Err(SetlistError::InvalidBpmRange(_))));
@@ -2065,6 +2091,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
@@ -2090,6 +2117,7 @@ mod tests {
             seed_tracklist: None,
             creative_mode: None,
             bpm_range: None,
+            verify: false,
         };
         let resp = generate_setlist_from_request(&pool, &claude, req)
             .await
