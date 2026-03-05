@@ -78,8 +78,7 @@ pub async fn search_recording(
 
     // Escape Lucene special chars in artist/title before building query
     fn escape_lucene(s: &str) -> String {
-        s.replace('\\', "\\\\")
-            .replace('"', "\\\"")
+        s.replace('\\', "\\\\").replace('"', "\\\"")
     }
     let query = format!(
         "artist:\"{}\" AND recording:\"{}\"",
@@ -91,7 +90,11 @@ pub async fn search_recording(
         Duration::from_secs(5),
         client
             .get("https://musicbrainz.org/ws/2/recording")
-            .query(&[("query", &query), ("fmt", &"json".to_string()), ("limit", &"5".to_string())])
+            .query(&[
+                ("query", &query),
+                ("fmt", &"json".to_string()),
+                ("limit", &"5".to_string()),
+            ])
             .header(
                 reqwest::header::USER_AGENT,
                 "tarab-studio/0.1.0 (https://tarab.studio)",

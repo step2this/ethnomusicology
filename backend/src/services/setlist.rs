@@ -541,7 +541,8 @@ pub async fn generate_setlist_from_request(
     // MusicBrainz grounding: verify tracks against real database (35M+ recordings)
     // Additive only — upgrades confidence for verified tracks, doesn't penalize unverified ones
     // Cap at 20 tracks to limit latency (1 req/sec rate limit)
-    let mut mb_verified_positions: std::collections::HashSet<i32> = std::collections::HashSet::new();
+    let mut mb_verified_positions: std::collections::HashSet<i32> =
+        std::collections::HashSet::new();
     {
         let mb_client = reqwest::Client::builder()
             .user_agent("tarab-studio/0.1.0 (https://tarab.studio)")
@@ -549,9 +550,12 @@ pub async fn generate_setlist_from_request(
             .expect("Failed to build MusicBrainz HTTP client");
         let mb_limit = track_responses.len().min(20);
         for track in track_responses.iter_mut().take(mb_limit) {
-            if let Some(mb_match) =
-                crate::services::musicbrainz::search_recording(&mb_client, &track.artist, &track.title)
-                    .await
+            if let Some(mb_match) = crate::services::musicbrainz::search_recording(
+                &mb_client,
+                &track.artist,
+                &track.title,
+            )
+            .await
             {
                 tracing::info!(
                     "MusicBrainz verified pos {}: '{}' by '{}' (score: {:.0}, ISRC: {:?})",
