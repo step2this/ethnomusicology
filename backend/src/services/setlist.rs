@@ -1067,24 +1067,37 @@ pub async fn verify_setlist(
                     original_title, original_artist
                 ));
             }
-            // If flagged, downgrade confidence and propagate correction note
-            if matches!(
-                v.flag.as_deref(),
-                Some("wrong_artist")
-                    | Some("no_such_track")
-                    | Some("constructed_title")
-                    | Some("uncertain")
-            ) {
-                track.confidence = Some("low".to_string());
-                track.verification_note = v.correction.clone();
-                tracing::warn!(
-                    "Verification flagged pos {}: '{}' by '{}' as {:?} — {}",
-                    track.position,
-                    track.title,
-                    track.artist,
-                    v.flag,
-                    v.correction.as_deref().unwrap_or("no correction")
-                );
+            // Graduated confidence based on flag severity
+            match v.flag.as_deref() {
+                Some("no_such_track") | Some("constructed_title") | Some("wrong_artist") => {
+                    track.confidence = Some("low".to_string());
+                    track.verification_note = v.correction.clone();
+                    tracing::warn!(
+                        "Verification flagged pos {}: '{}' by '{}' as {:?} — {}",
+                        track.position,
+                        track.title,
+                        track.artist,
+                        v.flag,
+                        v.correction.as_deref().unwrap_or("no correction")
+                    );
+                }
+                Some("uncertain") | Some("plausible_deep_cut") => {
+                    if track.confidence.as_deref() == Some("high") {
+                        track.confidence = Some("medium".to_string());
+                    }
+                    track.verification_note = v
+                        .correction
+                        .clone()
+                        .or_else(|| Some("Unverified deep cut".to_string()));
+                    tracing::info!(
+                        "Verification soft flag pos {}: '{}' by '{}' as {:?}",
+                        track.position,
+                        track.title,
+                        track.artist,
+                        v.flag,
+                    );
+                }
+                _ => {}
             }
             // Propagate the flag to the response
             track.verification_flag = v.flag.clone();
@@ -2587,8 +2600,11 @@ mod tests {
     async fn test_verify_setlist_propagates_flag_and_note() {
         let tracks = vec![
             make_response_track(1, "Real Track", "Real Artist", Some("high")),
-            make_response_track(2, "Fake Track", "Wrong Artist", Some("medium")),
-            make_response_track(3, "Old Title", "Original Artist", Some("high")),
+            make_response_track(2, "Fake Track", "Wrong Artist", Some("high")),
+            make_response_track(3, "Deep Cut", "Real Artist", Some("high")),
+            make_response_track(4, "Another Cut", "Real Artist", Some("medium")),
+            make_response_track(5, "No Exist", "Some Artist", Some("medium")),
+            make_response_track(6, "Old Title", "Original Artist", Some("high")),
         ];
 
         let mock_response = serde_json::json!({
@@ -2605,12 +2621,36 @@ mod tests {
                     "position": 2,
                     "title": "Fake Track",
                     "artist": "Wrong Artist",
-                    "confidence": "low",
-                    "flag": "wrong_artist",
-                    "correction": "Artist name is incorrect"
+                    "confidence": null,
+                    "flag": "uncertain",
+                    "correction": null
                 },
                 {
                     "position": 3,
+                    "title": "Deep Cut",
+                    "artist": "Real Artist",
+                    "confidence": null,
+                    "flag": "plausible_deep_cut",
+                    "correction": null
+                },
+                {
+                    "position": 4,
+                    "title": "Another Cut",
+                    "artist": "Real Artist",
+                    "confidence": null,
+                    "flag": "plausible_deep_cut",
+                    "correction": null
+                },
+                {
+                    "position": 5,
+                    "title": "No Exist",
+                    "artist": "Some Artist",
+                    "confidence": "low",
+                    "flag": "no_such_track",
+                    "correction": "This track does not exist"
+                },
+                {
+                    "position": 6,
                     "title": "New Title",
                     "artist": "Original Artist",
                     "confidence": "medium",
@@ -2618,7 +2658,7 @@ mod tests {
                     "correction": null
                 }
             ],
-            "summary": "Two issues found"
+            "summary": "Several issues found"
         });
 
         let claude = MockClaude {
@@ -2626,29 +2666,58 @@ mod tests {
         };
 
         let result = verify_setlist(&claude, &tracks).await.unwrap();
-        assert_eq!(result.len(), 3);
+        assert_eq!(result.len(), 6);
 
         // Track 1: no flag, confidence unchanged
         assert_eq!(result[0].verification_flag, None);
         assert_eq!(result[0].verification_note, None);
         assert_eq!(result[0].confidence.as_deref(), Some("high"));
 
-        // Track 2: wrong_artist flag propagated, confidence downgraded, note set
-        assert_eq!(result[1].verification_flag.as_deref(), Some("wrong_artist"));
+        // Track 2: uncertain — high downgraded to medium
+        assert_eq!(result[1].verification_flag.as_deref(), Some("uncertain"));
+        assert_eq!(result[1].confidence.as_deref(), Some("medium"));
         assert_eq!(
             result[1].verification_note.as_deref(),
-            Some("Artist name is incorrect")
+            Some("Unverified deep cut")
         );
-        assert_eq!(result[1].confidence.as_deref(), Some("low"));
 
-        // Track 3: replaced — title updated, note describes original, flag set
-        assert_eq!(result[2].verification_flag.as_deref(), Some("replaced"));
-        assert_eq!(result[2].title, "New Title");
+        // Track 3: plausible_deep_cut — high downgraded to medium, note set
         assert_eq!(
-            result[2].verification_note.as_deref(),
-            Some("Replaced: was 'Old Title' by 'Original Artist'")
+            result[2].verification_flag.as_deref(),
+            Some("plausible_deep_cut")
         );
         assert_eq!(result[2].confidence.as_deref(), Some("medium"));
+        assert_eq!(
+            result[2].verification_note.as_deref(),
+            Some("Unverified deep cut")
+        );
+
+        // Track 4: plausible_deep_cut on medium — confidence stays medium
+        assert_eq!(
+            result[3].verification_flag.as_deref(),
+            Some("plausible_deep_cut")
+        );
+        assert_eq!(result[3].confidence.as_deref(), Some("medium"));
+
+        // Track 5: no_such_track — downgraded to low, note set
+        assert_eq!(
+            result[4].verification_flag.as_deref(),
+            Some("no_such_track")
+        );
+        assert_eq!(result[4].confidence.as_deref(), Some("low"));
+        assert_eq!(
+            result[4].verification_note.as_deref(),
+            Some("This track does not exist")
+        );
+
+        // Track 6: replaced — title updated, note describes original, flag set
+        assert_eq!(result[5].verification_flag.as_deref(), Some("replaced"));
+        assert_eq!(result[5].title, "New Title");
+        assert_eq!(
+            result[5].verification_note.as_deref(),
+            Some("Replaced: was 'Old Title' by 'Original Artist'")
+        );
+        assert_eq!(result[5].confidence.as_deref(), Some("medium"));
     }
 
     // DF-03: Daily generation limit

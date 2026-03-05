@@ -358,8 +358,10 @@ pub fn build_enhanced_system_prompt(
         }
     }
 
+    persona.push_str("\n\n## Artist Diversity\nAvoid repeating artists unless the user requests a specific artist's set. A 15-track set should have at least 12 unique artists.");
+
     if creative_mode {
-        persona.push_str("\n\n## Creative Mode\nBe creative and unexpected. Include surprising but compatible track combinations. Prioritize interesting transitions over safe choices.");
+        persona.push_str("\n\n## Creative Mode\nYou are in creative mode. Prioritize musical discovery:\n- Dig deep into back catalogs, side projects, aliases\n- Include B-sides, white labels, and compilation-only tracks\n- A setlist of obvious hits is a FAILURE in creative mode\n- Medium-confidence deep cuts are encouraged\n- Aim for at least 30% non-obvious selections");
     }
 
     persona.push_str(
@@ -733,8 +735,8 @@ mod tests {
     fn test_enhanced_system_prompt_creative_mode() {
         let blocks = build_enhanced_system_prompt("catalog", None, true);
         let RequestContentBlock::Text { ref text, .. } = blocks[1];
-        assert!(text.contains("Be creative and unexpected"));
-        assert!(text.contains("surprising but compatible"));
+        assert!(text.contains("Creative Mode"));
+        assert!(text.contains("FAILURE in creative mode"));
     }
 
     #[test]
