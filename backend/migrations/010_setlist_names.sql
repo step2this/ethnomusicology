@@ -1,0 +1,1 @@
+ALTER TABLE setlists ADD COLUMN name TEXT;

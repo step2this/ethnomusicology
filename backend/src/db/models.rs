@@ -111,12 +111,22 @@ pub struct SetlistConversationRow {
     pub created_at: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, sqlx::FromRow)]
+pub struct SetlistSummary {
+    pub id: String,
+    pub name: Option<String>,
+    pub prompt: String,
+    pub track_count: i32,
+    pub created_at: Option<chrono::NaiveDateTime>,
+}
+
 #[derive(Debug, Clone, sqlx::FromRow)]
 pub struct SetlistRow {
     pub id: String,
     pub user_id: String,
     pub prompt: String,
     pub model: String,
+    pub name: Option<String>,
     pub notes: Option<String>,
     pub harmonic_flow_score: Option<f64>,
     pub energy_profile: Option<String>,

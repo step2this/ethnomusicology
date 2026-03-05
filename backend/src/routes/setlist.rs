@@ -1,5 +1,5 @@
-use axum::extract::{Path, State};
-use axum::http::HeaderMap;
+use axum::extract::{Path, Query, State};
+use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
@@ -7,6 +7,8 @@ use sqlx::SqlitePool;
 use std::sync::Arc;
 
 use crate::api::claude::ClaudeClientTrait;
+use crate::db::models::SetlistSummary;
+use crate::db::setlists as db;
 use crate::services::camelot::EnergyProfile;
 use crate::services::setlist::{
     self, BpmRange, GenerateSetlistRequest, SetlistError, SetlistResponse,
@@ -41,6 +43,32 @@ pub struct GenerateRequest {
     pub bpm_range: Option<BpmRangeRequest>,
     #[serde(default)]
     pub verify: Option<bool>,
+    #[serde(default)]
+    pub name: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct ListQuery {
+    pub page: Option<i64>,
+    pub per_page: Option<i64>,
+}
+
+#[derive(Serialize)]
+pub struct ListSetlistsResponse {
+    pub setlists: Vec<SetlistSummary>,
+    pub total: i64,
+    pub page: i64,
+    pub per_page: i64,
+}
+
+#[derive(Deserialize)]
+pub struct RenameRequest {
+    pub name: String,
+}
+
+#[derive(Deserialize)]
+pub struct DuplicateRequest {
+    pub name: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -102,6 +130,7 @@ async fn generate_setlist_handler(
             max: r.max,
         }),
         verify: req.verify.unwrap_or(false),
+        name: req.name,
     };
 
     let response =
@@ -142,15 +171,92 @@ async fn get_setlist_handler(
     Ok(Json(response))
 }
 
+async fn list_setlists_handler(
+    State(state): State<Arc<SetlistRouteState>>,
+    headers: HeaderMap,
+    Query(query): Query<ListQuery>,
+) -> Result<Json<ListSetlistsResponse>, SetlistError> {
+    let user_id = headers
+        .get("X-User-Id")
+        .and_then(|v| v.to_str().ok())
+        .unwrap_or("dev-user");
+
+    let page = query.page.unwrap_or(1).max(1);
+    let per_page = query.per_page.unwrap_or(20).clamp(1, 100);
+    let offset = (page - 1) * per_page;
+
+    let (setlists, total) = tokio::try_join!(
+        db::list_setlists(&state.pool, user_id, per_page, offset),
+        db::count_setlists(&state.pool, user_id),
+    )
+    .map_err(|e| SetlistError::Database(e.to_string()))?;
+
+    Ok(Json(ListSetlistsResponse {
+        setlists,
+        total,
+        page,
+        per_page,
+    }))
+}
+
+async fn delete_setlist_handler(
+    State(state): State<Arc<SetlistRouteState>>,
+    Path(id): Path<String>,
+) -> Result<StatusCode, SetlistError> {
+    let deleted = db::delete_setlist(&state.pool, &id)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?;
+    if deleted {
+        Ok(StatusCode::NO_CONTENT)
+    } else {
+        Err(SetlistError::NotFound(format!("Setlist {id} not found")))
+    }
+}
+
+async fn rename_setlist_handler(
+    State(state): State<Arc<SetlistRouteState>>,
+    Path(id): Path<String>,
+    Json(req): Json<RenameRequest>,
+) -> Result<Json<SetlistResponse>, SetlistError> {
+    // Verify setlist exists
+    setlist::get_setlist(&state.pool, &id).await?;
+    db::update_setlist_name(&state.pool, &id, &req.name)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?;
+    let response = setlist::get_setlist(&state.pool, &id).await?;
+    Ok(Json(response))
+}
+
+async fn duplicate_setlist_handler(
+    State(state): State<Arc<SetlistRouteState>>,
+    Path(id): Path<String>,
+    body: Option<Json<DuplicateRequest>>,
+) -> Result<(StatusCode, Json<SetlistResponse>), SetlistError> {
+    let new_name = body.as_ref().and_then(|b| b.name.as_deref());
+    let new_id = db::duplicate_setlist(&state.pool, &id, new_name)
+        .await
+        .map_err(|e| SetlistError::Database(e.to_string()))?
+        .ok_or_else(|| SetlistError::NotFound(format!("Setlist {id} not found")))?;
+    let response = setlist::get_setlist(&state.pool, &new_id).await?;
+    Ok((StatusCode::CREATED, Json(response)))
+}
+
 // ---------------------------------------------------------------------------
 // Router
 // ---------------------------------------------------------------------------
 
 pub fn setlist_router(state: Arc<SetlistRouteState>) -> Router {
     Router::new()
+        .route("/setlists", get(list_setlists_handler))
         .route("/setlists/generate", post(generate_setlist_handler))
         .route("/setlists/{id}/arrange", post(arrange_setlist_handler))
-        .route("/setlists/{id}", get(get_setlist_handler))
+        .route("/setlists/{id}/duplicate", post(duplicate_setlist_handler))
+        .route(
+            "/setlists/{id}",
+            get(get_setlist_handler)
+                .delete(delete_setlist_handler)
+                .patch(rename_setlist_handler),
+        )
         .with_state(state)
 }
 
