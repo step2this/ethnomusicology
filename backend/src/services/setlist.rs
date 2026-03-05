@@ -374,12 +374,11 @@ pub async fn generate_setlist_from_request(
 
     // Build prompts using enhanced prompt builders
     let catalog_text = serialize_catalog(&catalog);
-    let energy_profile_str = req.energy_profile.as_ref().map(|p| p.to_string());
     let creative_mode = req.creative_mode.unwrap_or(false);
     let bpm_range_tuple = req.bpm_range.as_ref().map(|r| (r.min, r.max));
 
     let system_blocks =
-        build_enhanced_system_prompt(&catalog_text, energy_profile_str.as_deref(), creative_mode);
+        build_enhanced_system_prompt(&catalog_text, req.energy_profile.as_ref(), creative_mode);
     let user_text = format!("Create a setlist of {count} tracks based on this prompt: {prompt}");
     let user_blocks =
         build_enhanced_user_prompt(&user_text, req.seed_tracklist.as_deref(), bpm_range_tuple);

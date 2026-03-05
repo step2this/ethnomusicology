@@ -1,6 +1,8 @@
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
+use crate::services::camelot::EnergyProfile;
+
 // ---------------------------------------------------------------------------
 // Error
 // ---------------------------------------------------------------------------
@@ -320,7 +322,7 @@ const MUSIC_SKILL: &str = include_str!("../prompts/music_skill.md");
 /// Build the enhanced system prompt as structured content blocks with cache control.
 pub fn build_enhanced_system_prompt(
     catalog_text: &str,
-    energy_profile: Option<&str>,
+    energy_profile: Option<&EnergyProfile>,
     creative_mode: bool,
 ) -> Vec<RequestContentBlock> {
     let mut persona = String::from(
@@ -341,21 +343,18 @@ pub fn build_enhanced_system_prompt(
     if let Some(profile) = energy_profile {
         persona.push_str("\n\n## Energy Profile\n");
         match profile {
-            "warm-up" => persona.push_str(
+            EnergyProfile::WarmUp => persona.push_str(
                 "Start with low energy tracks (3-4), gradually building to medium-high (7). This is a warm-up set.",
             ),
-            "peak-time" => persona.push_str(
+            EnergyProfile::PeakTime => persona.push_str(
                 "Maintain high energy (7-9) throughout. This is a peak-time set.",
             ),
-            "journey" => persona.push_str(
+            EnergyProfile::Journey => persona.push_str(
                 "Start low (3), build to a peak (9) in the middle, then wind down (4). Take the audience on a journey.",
             ),
-            "steady" => persona.push_str(
+            EnergyProfile::Steady => persona.push_str(
                 "Maintain consistent medium energy (5-7). Keep the vibe steady and groovy.",
             ),
-            other => {
-                persona.push_str(&format!("Follow the '{}' energy profile.", other));
-            }
         }
     }
 
@@ -691,7 +690,8 @@ mod tests {
 
     #[test]
     fn test_enhanced_system_prompt_includes_energy_profile() {
-        let blocks = build_enhanced_system_prompt("track1\ntrack2", Some("warm-up"), false);
+        let blocks =
+            build_enhanced_system_prompt("track1\ntrack2", Some(&EnergyProfile::WarmUp), false);
         assert_eq!(blocks.len(), 3);
         let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(
@@ -703,21 +703,21 @@ mod tests {
 
     #[test]
     fn test_enhanced_system_prompt_peak_time_profile() {
-        let blocks = build_enhanced_system_prompt("catalog", Some("peak-time"), false);
+        let blocks = build_enhanced_system_prompt("catalog", Some(&EnergyProfile::PeakTime), false);
         let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("Maintain high energy (7-9)"));
     }
 
     #[test]
     fn test_enhanced_system_prompt_journey_profile() {
-        let blocks = build_enhanced_system_prompt("catalog", Some("journey"), false);
+        let blocks = build_enhanced_system_prompt("catalog", Some(&EnergyProfile::Journey), false);
         let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("Start low (3), build to a peak (9)"));
     }
 
     #[test]
     fn test_enhanced_system_prompt_steady_profile() {
-        let blocks = build_enhanced_system_prompt("catalog", Some("steady"), false);
+        let blocks = build_enhanced_system_prompt("catalog", Some(&EnergyProfile::Steady), false);
         let RequestContentBlock::Text { ref text, .. } = blocks[1];
         assert!(text.contains("consistent medium energy (5-7)"));
     }
@@ -771,7 +771,7 @@ mod tests {
 
     #[test]
     fn test_enhanced_system_prompt_cache_control_on_all_blocks() {
-        let blocks = build_enhanced_system_prompt("catalog", Some("warm-up"), true);
+        let blocks = build_enhanced_system_prompt("catalog", Some(&EnergyProfile::WarmUp), true);
         for block in &blocks {
             let RequestContentBlock::Text {
                 ref cache_control, ..
