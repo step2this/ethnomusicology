@@ -539,29 +539,30 @@ pub async fn generate_setlist_from_request(
     }
 
     // MusicBrainz grounding: verify tracks against real database (35M+ recordings)
-    // This is additive — upgrades confidence for verified tracks, doesn't penalize unverified ones
+    // Additive only — upgrades confidence for verified tracks, doesn't penalize unverified ones
+    // Cap at 20 tracks to limit latency (1 req/sec rate limit)
+    let mut mb_verified_positions: std::collections::HashSet<i32> = std::collections::HashSet::new();
     {
         let mb_client = reqwest::Client::builder()
             .user_agent("tarab-studio/0.1.0 (https://tarab.studio)")
             .build()
-            .unwrap_or_default();
-        for track in &mut track_responses {
+            .expect("Failed to build MusicBrainz HTTP client");
+        let mb_limit = track_responses.len().min(20);
+        for track in track_responses.iter_mut().take(mb_limit) {
             if let Some(mb_match) =
                 crate::services::musicbrainz::search_recording(&mb_client, &track.artist, &track.title)
                     .await
             {
-                // Track verified in MusicBrainz — upgrade confidence to high
-                if track.confidence.as_deref() != Some("high") {
-                    tracing::info!(
-                        "MusicBrainz verified pos {}: '{}' by '{}' (score: {:.0}, ISRC: {:?})",
-                        track.position,
-                        track.title,
-                        track.artist,
-                        mb_match.score,
-                        mb_match.isrc,
-                    );
-                    track.confidence = Some("high".to_string());
-                }
+                tracing::info!(
+                    "MusicBrainz verified pos {}: '{}' by '{}' (score: {:.0}, ISRC: {:?})",
+                    track.position,
+                    track.title,
+                    track.artist,
+                    mb_match.score,
+                    mb_match.isrc,
+                );
+                track.confidence = Some("high".to_string());
+                mb_verified_positions.insert(track.position);
             }
         }
     }
@@ -569,7 +570,15 @@ pub async fn generate_setlist_from_request(
     // Optional LLM verification pass (SP-007)
     if req.verify {
         match verify_setlist(claude, &track_responses).await {
-            Ok(verified) => {
+            Ok(mut verified) => {
+                // Protect MB-verified tracks from LLM downgrade
+                for track in &mut verified {
+                    if mb_verified_positions.contains(&track.position) {
+                        track.confidence = Some("high".to_string());
+                        track.verification_flag = None;
+                        track.verification_note = None;
+                    }
+                }
                 track_responses = verified;
             }
             Err(e) => {

@@ -76,14 +76,22 @@ pub async fn search_recording(
 ) -> Option<MusicBrainzMatch> {
     let _permit = mb_semaphore().acquire().await.ok()?;
 
-    let url = format!(
-        "https://musicbrainz.org/ws/2/recording?query=artist:\"{artist}\" AND recording:\"{title}\"&fmt=json&limit=5"
+    // Escape Lucene special chars in artist/title before building query
+    fn escape_lucene(s: &str) -> String {
+        s.replace('\\', "\\\\")
+            .replace('"', "\\\"")
+    }
+    let query = format!(
+        "artist:\"{}\" AND recording:\"{}\"",
+        escape_lucene(artist),
+        escape_lucene(title),
     );
 
     let resp = tokio::time::timeout(
         Duration::from_secs(5),
         client
-            .get(&url)
+            .get("https://musicbrainz.org/ws/2/recording")
+            .query(&[("query", &query), ("fmt", &"json".to_string()), ("limit", &"5".to_string())])
             .header(
                 reqwest::header::USER_AGENT,
                 "tarab-studio/0.1.0 (https://tarab.studio)",
@@ -93,6 +101,9 @@ pub async fn search_recording(
     .await
     .ok()?
     .ok()?;
+
+    // Rate limit: sleep 1s after each request to respect MusicBrainz's 1 req/sec policy
+    tokio::time::sleep(Duration::from_secs(1)).await;
 
     if !resp.status().is_success() {
         return None;
