@@ -55,6 +55,16 @@ Multi-store link panel per track in setlist UI.
 - Bandcamp, Traxsource, Juno Download search links
 - Apple affiliate registration at apple.com/itunes/affiliates
 
+## Phase 8: Saved Setlists & Crates (P0 — Core DJ Workflow)
+Persistent setlist management and the "crate" concept — a DJ's working library.
+- **Save setlists**: Named setlists persist across sessions with full metadata
+- **Setlist library**: Browse, search, duplicate, delete saved setlists
+- **Crates**: Combine 1+ setlists into a "crate" (like a DJ's milk crate of records)
+  - A crate = the 100-200 tracks always in your sets right now
+  - Merge tracks from multiple setlists, deduplicate, manage
+  - Crate as generation source: "build me a set from my crate"
+- **UI**: Setlist list view, crate management screen, drag-to-crate interaction
+
 ## Future: Beatport API Integration
 Rich DJ metadata (native BPM, key, genre, label, remixer) + preview audio.
 Requires application for API v4 access. Apply immediately — approval may take weeks.

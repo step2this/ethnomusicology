@@ -145,7 +145,21 @@ class SetlistNotifier extends Notifier<SetlistState> {
     if (msg.contains('INVALID_BPM_RANGE')) {
       return 'Invalid BPM range. Min must be 60-200 and less than max.';
     }
-    return 'Something went wrong. Please try again.';
+    if (msg.contains('GENERATION_LIMIT_EXCEEDED')) {
+      return 'Daily generation limit reached. Try again tomorrow.';
+    }
+    if (msg.contains('DioException') && msg.contains('timeout')) {
+      return 'Generation is taking longer than expected. The setlist may still be processing — try refreshing in a moment.';
+    }
+    if (msg.contains('DioException') && msg.contains('connection')) {
+      return 'Could not reach the server. Check your connection.';
+    }
+    // Dev-friendly: show the actual error type for unrecognized errors
+    if (msg.contains('DioException')) {
+      final type = RegExp(r'DioExceptionType\.(\w+)').firstMatch(msg);
+      return 'Network error${type != null ? ' (${type.group(1)})' : ''}. Please try again.';
+    }
+    return 'Something went wrong. Please try again. [$msg]';
   }
 }
 

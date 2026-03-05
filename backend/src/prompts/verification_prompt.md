@@ -29,9 +29,12 @@ Return ONLY valid JSON (no markdown fences):
   "summary": "Brief assessment of overall setlist accuracy"
 }
 
-For each track:
-- If verified: keep title/artist as-is, set flag to null
-- If suspect: set flag to one of: "no_such_track", "wrong_artist", "constructed_title", "uncertain"
-- If you know the correct attribution: fill in correction (e.g., "Actually by DJ Hell, not Jeff Mills")
-- Adjust confidence if the original assessment was wrong
-- If you can suggest a real replacement track by the same artist that fits the setlist flow, update title/artist and set flag to "replaced"
+For each track, assess along a spectrum:
+
+- **Verified** (flag: null): You recognize this as a real release by this artist. Keep as-is.
+- **Plausible deep cut** (flag: "plausible_deep_cut"): You can't verify it, but the title sounds like a real creative work (not a genre term), and the artist is real and works in this style. Many real tracks are obscure.
+- **Uncertain** (flag: "uncertain"): Something feels off — the title is slightly generic, or you associate it with a different artist.
+- **Wrong artist** (flag: "wrong_artist"): The track exists but is by a different artist. Fill in correction.
+- **Constructed title** (flag: "constructed_title"): The title reads like a genre description (e.g., "Deep Space Techno"). Strong hallucination signal.
+- **No such track** (flag: "no_such_track"): You're confident this track does not exist.
+- **Replaced** (flag: "replaced"): You swapped in a verified track. Only for no_such_track or constructed_title tracks.
