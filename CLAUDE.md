@@ -59,6 +59,10 @@ Backend:  cargo fmt --check && cargo clippy -- -D warnings && cargo test
 Frontend: flutter analyze && flutter test
 ```
 
+## Commit Discipline
+
+**Commit after every completed task**, not at the end of a sprint. This is crash recovery insurance — an OOM kill or session timeout should never lose more than one task's worth of work. ST-007 learned this the hard way when an OOM crash nearly lost an entire session. Each commit should be small, focused, and independently valid.
+
 ## Research Before Hacking
 
 When you encounter a technology or integration you haven't used before, **STOP and research best practices before writing code**. Red flags that you're hacking: writing debug scripts, adding elaborate workarounds, trying multiple config tweaks in sequence. Instead: search the web for established patterns, check official docs, and use proven solutions.

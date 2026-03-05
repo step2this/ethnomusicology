@@ -351,7 +351,7 @@ class _SetlistInputFormState extends ConsumerState<SetlistInputForm>
           bpmMax: _parseBpm(_bpmMaxController.text),
         );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       setState(() {
         _isImporting = false;
         _importError = e.toString();
