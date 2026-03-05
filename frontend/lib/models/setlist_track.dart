@@ -13,6 +13,8 @@ class SetlistTrack {
   final String? trackId;
   final String? spotifyUri;
   final String? confidence;
+  final String? verificationFlag;
+  final String? verificationNote;
 
   const SetlistTrack({
     required this.position,
@@ -29,6 +31,8 @@ class SetlistTrack {
     this.trackId,
     this.spotifyUri,
     this.confidence,
+    this.verificationFlag,
+    this.verificationNote,
   });
 
   factory SetlistTrack.fromJson(Map<String, dynamic> json) {
@@ -47,6 +51,8 @@ class SetlistTrack {
       trackId: json['track_id'] as String?,
       spotifyUri: json['spotify_uri'] as String?,
       confidence: json['confidence'] as String?,
+      verificationFlag: json['verification_flag'] as String?,
+      verificationNote: json['verification_note'] as String?,
     );
   }
 
@@ -55,6 +61,7 @@ class SetlistTrack {
   String get energyFormatted => energy != null ? '$energy' : '--';
 
   bool get isCatalogTrack => source == 'catalog';
+  bool get isFlagged => verificationFlag != null;
   bool get isLowConfidence => confidence == 'low';
   bool get hasTransitionScore => transitionScore != null;
 

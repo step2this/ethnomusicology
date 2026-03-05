@@ -60,7 +60,9 @@ class SetlistTrackTile extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
+            _confidenceDot(),
+            const SizedBox(width: 8),
 
             // Track info
             Expanded(
@@ -152,6 +154,15 @@ class SetlistTrackTile extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
+                  if (track.isFlagged && track.verificationNote != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      track.verificationNote!,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.amber.shade700,
+                      ),
+                    ),
+                  ],
                   if (previewStatus == PreviewSearchStatus.found &&
                       previewSource != null)
                     _sourceAttribution(context),
@@ -317,6 +328,29 @@ class SetlistTrackTile extends StatelessWidget {
             ),
             overflow: TextOverflow.ellipsis,
           ),
+    );
+  }
+
+  Widget _confidenceDot() {
+    final conf = track.confidence;
+    if (conf == null) return const SizedBox.shrink();
+
+    Color color;
+    switch (conf) {
+      case 'high':
+        color = Colors.green;
+      case 'medium':
+        color = Colors.amber;
+      case 'low':
+        color = Colors.orange;
+      default:
+        return const SizedBox.shrink();
+    }
+
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
     );
   }
 
