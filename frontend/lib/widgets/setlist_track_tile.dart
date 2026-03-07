@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/setlist_track.dart';
 import '../providers/deezer_provider.dart';
+import 'purchase_link_panel.dart';
 
 class SetlistTrackTile extends StatelessWidget {
   final SetlistTrack track;
@@ -184,6 +185,10 @@ class SetlistTrackTile extends StatelessWidget {
                         ),
                       ],
                     ],
+                  ),
+                  PurchaseLinkPanel(
+                    title: track.title,
+                    artist: track.artist,
                   ),
                   if (hasBpmWarning) ...[
                     const SizedBox(height: 4),
