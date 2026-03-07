@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../models/crate.dart';
+import '../models/purchase_link.dart';
 import '../models/refinement.dart';
 import '../models/setlist.dart';
 import '../models/track_list_response.dart';
@@ -181,6 +182,24 @@ class ApiClient {
 
   Future<void> removeCrateTrack(String crateId, String trackId) async {
     await _dio.delete('/crates/$crateId/tracks/$trackId');
+  }
+
+  // -------------------------------------------------------------------------
+  // Purchase Links
+  // -------------------------------------------------------------------------
+
+  Future<List<PurchaseLink>> getPurchaseLinks({
+    required String title,
+    required String artist,
+  }) async {
+    final response = await _dio.get('/purchase-links', queryParameters: {
+      'title': title,
+      'artist': artist,
+    });
+    final links = (response.data['links'] as List)
+        .map((e) => PurchaseLink.fromJson(e as Map<String, dynamic>))
+        .toList();
+    return links;
   }
 
   // -------------------------------------------------------------------------
