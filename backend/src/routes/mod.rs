@@ -5,6 +5,7 @@ pub mod crates;
 pub mod dev;
 pub mod enrich;
 pub mod import;
+pub mod purchase_links;
 pub mod refinement;
 pub mod setlist;
 pub mod tracks;

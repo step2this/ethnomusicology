@@ -5,6 +5,7 @@ pub mod enrichment;
 pub mod import;
 pub mod match_scoring;
 pub mod musicbrainz;
+pub mod purchase_links;
 pub mod quick_commands;
 pub mod refinement;
 pub mod setlist;

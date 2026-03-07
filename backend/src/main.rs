@@ -19,8 +19,10 @@ use ethnomusicology_backend::routes;
 use ethnomusicology_backend::routes::auth::{AuthState, TokenExchangeResult, TokenExchanger};
 use ethnomusicology_backend::routes::enrich::EnrichRouteState;
 use ethnomusicology_backend::routes::import::ImportState;
+use ethnomusicology_backend::routes::purchase_links::PurchaseLinkRouteState;
 use ethnomusicology_backend::routes::refinement::RefinementRouteState;
 use ethnomusicology_backend::routes::setlist::SetlistRouteState;
+use ethnomusicology_backend::services::purchase_links::AffiliateConfig;
 
 // ---------------------------------------------------------------------------
 // Real Spotify token exchanger
@@ -230,6 +232,11 @@ async fn main() -> anyhow::Result<()> {
         claude: claude_client.clone(),
     });
 
+    // --- Purchase links state ---
+    let purchase_link_state = Arc::new(PurchaseLinkRouteState {
+        affiliate_config: AffiliateConfig::from_env(),
+    });
+
     // --- Health readiness router (needs DB pool) ---
     let health_router = Router::new()
         .route("/api/health/ready", get(health_ready))
@@ -255,6 +262,10 @@ async fn main() -> anyhow::Result<()> {
             routes::crates::crate_routes(std::sync::Arc::new(routes::crates::CrateRouteState {
                 pool: pool.clone(),
             })),
+        )
+        .nest(
+            "/api",
+            routes::purchase_links::purchase_link_router(purchase_link_state),
         );
 
     // Dev routes (conditionally added when DEV_MODE=true)
