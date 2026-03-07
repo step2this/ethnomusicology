@@ -131,3 +131,97 @@ Five underground/obscure tracks tested against each store. Beatport and Bandcamp
 - Bandcamp edges out Beatport for underground — Omar S self-releases are on Bandcamp but not Beatport
 - re:ni "Ciste" and DJ Stingray "Molecular Enhancement" may be vinyl-only or extremely limited releases not on digital stores
 - Numeric/ambiguous titles ("002") are problematic for search matching
+
+## S3: Coverage Test — Varied Tracks
+
+Five tracks spanning classic, popular, and niche electronic music tested against each store. Same methodology as S2.
+
+### Track 6: Derrick May - Strings of Life
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | HIT | Multiple versions: Original Mix (Transmat, 92 BPM, Eb Minor), 2025 reissue (96 BPM, E Minor), FLAM*BOY*ANT MIX (128 BPM) |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | HIT | "Innovator - Soundtrack For The Tenth Planet" by Rhythim Is Rhythim / Derrick May, Network Records |
+
+### Track 7: Peggy Gou - Starry Night
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | HIT | Moment EP, Gudu Records, 123 BPM, B Major, $1.49. 5,789 downloads. |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | HIT | Moment EP (May 2019) plus multiple remixes (DJ Pantelis, Chris Watson white label) |
+
+### Track 8: DJ Rashad - Feelin
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | HIT | "Feelin'" on Lit City Trax (TEKLIFE Vol. 1, 2012), 80 BPM, F Minor. Also on Hyperdub (Double Cup). |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | HIT | Teklife Vol 1: Welcome to the Chi (June 2012). Tags: juke, jungle, Chicago, footwork. |
+
+### Track 9: Lena Willikens - Phantom Delia
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | HIT | Phantom Delia EP, Cómeme label, 157 BPM, Db Minor. Full EP (6 tracks) available. |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | HIT | Phantom Delia (Cómeme 028), 6 tracks, 25 minutes, January 2015. |
+
+### Track 10: Identified Patient - Body Clock
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | MISS | Artist found (Dekmantel, Pinkman releases) but "Body Clock" not in catalog. Likely vinyl-only or delisted. |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | MISS | No matching results at all. |
+
+### S3 Summary (Varied Tracks)
+
+| Track | Beatport | Bandcamp | Traxsource | Juno |
+|-------|----------|----------|------------|------|
+| Derrick May - Strings of Life | HIT | HIT | ? | ? |
+| Peggy Gou - Starry Night | HIT | HIT | ? | ? |
+| DJ Rashad - Feelin | HIT | HIT | ? | ? |
+| Lena Willikens - Phantom Delia | HIT | HIT | ? | ? |
+| Identified Patient - Body Clock | MISS | MISS | ? | ? |
+
+**Verified hit rates (varied)**: Beatport 4/5 (80%), Bandcamp 4/5 (80%)
+
+## Aggregate Coverage Matrix (10 Tracks)
+
+| Track | Beatport | Bandcamp | Traxsource | Juno |
+|-------|----------|----------|------------|------|
+| Objekt - Theme from Q | HIT | HIT | ? | ? |
+| Shackleton - Blood on My Hands (Villalobos) | HIT | HIT | ? | ? |
+| Omar S - 002 | MISS | HIT | ? | ? |
+| re:ni - Ciste | MISS | MISS | ? | ? |
+| DJ Stingray 313 - Molecular Enhancement | MISS | MISS | ? | ? |
+| Derrick May - Strings of Life | HIT | HIT | ? | ? |
+| Peggy Gou - Starry Night | HIT | HIT | ? | ? |
+| DJ Rashad - Feelin | HIT | HIT | ? | ? |
+| Lena Willikens - Phantom Delia | HIT | HIT | ? | ? |
+| Identified Patient - Body Clock | MISS | MISS | ? | ? |
+
+### Aggregate Hit Rates
+
+| Store | Hits | Total | Rate | Notes |
+|-------|------|-------|------|-------|
+| **Beatport** | 6 | 10 | **60%** | Strong on established releases; weak on very obscure/vinyl-only |
+| **Bandcamp** | 7 | 10 | **70%** | Best overall; self-releases (Omar S) give edge over Beatport |
+| Traxsource | ? | 10 | Unknown | Cannot verify server-side (403). URL template works in browser. |
+| Juno Download | ? | 10 | Unknown | Cannot verify server-side (403). URL template works in browser. |
+
+### Store Recommendation (Preliminary)
+
+1. **Bandcamp** (70% hit rate) — Best for independent/underground. Free search URLs. Strongest coverage overall.
+2. **Beatport** (60% hit rate) — Best DJ metadata (BPM, key). Standard industry store. Slightly weaker on self-released/obscure tracks.
+3. **Traxsource** (unverified) — Strong house/disco catalog reputation. Include as template URL.
+4. **Juno Download** (unverified) — Wide catalog, multi-format. Include as template URL.
+
+**Both verified stores exceed the 60% threshold from the hypothesis.** Traxsource and Juno should be included as template-only links (the user's browser handles the search). The "miss" tracks (re:ni, DJ Stingray, Identified Patient) are likely vinyl-only or extremely limited releases not available on any digital store — this is expected for the deepest underground tracks.
