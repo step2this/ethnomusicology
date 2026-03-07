@@ -25,8 +25,8 @@
 | UC-019 | Track attribution links | ✅ | Clickable title/artist → Google search, Spotify links for catalog tracks |
 | UC-019 | Waveform visualization | ⬜ | Deferred — post-MVP polish |
 | UC-020 | Google search links | ✅ | Implemented on track title/artist |
-| UC-020 | Multi-store purchase link panel | ⬜ | Phase 6: Beatport, Apple Music (affiliate), Bandcamp, Traxsource, Juno |
-| UC-020 | Apple Music affiliate links | ⬜ | Phase 6: register at apple.com/itunes/affiliates, add `at=` param to iTunes URLs |
+| UC-020 | Multi-store purchase link panel | ⬜ | Phase 7: Beatport, Traxsource, Juno Download (SP-009 spike in progress) |
+| UC-020 | Apple Music affiliate links | ⬜ | Phase 7: register at apple.com/itunes/affiliates, add `at=` param to iTunes URLs |
 | UC-023 | Multi-turn refinement | ✅ | ST-007 backend + frontend. PR #5 merged. |
 | UC-023 | Version history + undo | ✅ | ST-007 backend + frontend. PR #5 merged. |
 | UC-023 | >50% change guard | ✅ | ST-007 backend (change_warning field). PR #5 merged. |
@@ -36,9 +36,14 @@
 | ST-010 | verify_setlist() wired into generation | ✅ | Opt-in via `verify: true` flag in GenerateSetlistRequest |
 | ST-010 | Confidence badge UI | ✅ | ConfidenceBadge widget on track tiles (color-coded chip + tooltip) |
 
+| Phase 8 | Save setlist to library | ✅ | PR #14: setlist CRUD endpoints + frontend library screen |
+| Phase 8 | Create/manage crates | ✅ | PR #14: crate CRUD + add/remove setlists from crates |
+| Phase 8 | Spotify URI discovery | ✅ | PR #14: Client Credentials flow, spotify_uri in audio search response |
+| Phase 8 | Setlist delete/rename/duplicate | ✅ | PR #14: backend handlers + frontend actions |
+
 Status: ⬜ backlog, 🔄 doing, ✅ done
 
-## Test Counts (as of 2026-03-05)
-- Backend: 367 tests
+## Test Counts (as of 2026-03-07)
+- Backend: 394 tests
 - Frontend: 156 tests
-- Total: 523 tests
+- Total: 550 tests
