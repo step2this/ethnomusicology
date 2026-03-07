@@ -37,14 +37,15 @@
 
 ## Main Success Scenario
 1. User views a track in a setlist (fresh, saved, or crate)
-2. User expands/opens the purchase link panel for that track
-3. System constructs search URLs from track title + artist for each store:
+2. User taps the purchase link button — panel expands (collapsed by default to avoid visual clutter)
+3. Frontend calls `GET /api/purchase-links?title=X&artist=Y` on expand (lazy-loaded, not pre-fetched for all tracks)
+4. System constructs search URLs from track title + artist for each store:
    - Beatport: `https://www.beatport.com/search?q={encoded(artist + " " + title)}`
    - Bandcamp: `https://bandcamp.com/search?q={encoded(artist + " " + title)}`
    - Juno Download: `https://www.junodownload.com/search/?q%5Ball%5D%5B0%5D={encoded(artist + " " + title)}`
    - Traxsource: `https://www.traxsource.com/search?term={encoded(artist + " " + title)}`
-4. System displays store icons/buttons with store names, each linking to the search URL
-5. User taps a store link — opens in new browser tab
+5. System displays store icons/buttons with store names, each linking to the search URL
+6. User taps a store link — opens in new browser tab
 
 ## Extensions (What Can Go Wrong)
 
@@ -85,7 +86,7 @@
 
 ## Variations
 
-- **V1. Affiliate Tags**: Append Beatport and Juno affiliate parameters once registered. Implementation: config-driven affiliate tag appended to base URL.
+- **V1. Affiliate Tags**: Append Beatport and Juno affiliate parameters once registered. Implementation: environment variables in `/etc/ethnomusicology/env` (consistent with SoundCloud credentials), read at startup, appended server-side.
 - **V2. Bulk Purchase Links**: User selects entire setlist and gets consolidated list of purchase links grouped by store (post-MVP).
 - **V3. Store Preferences**: User can reorder or hide stores based on their preferences (post-MVP).
 
@@ -121,3 +122,29 @@
 - [ ] No API calls to external services — pure URL construction
 - [ ] Empty/null title or artist handled gracefully
 - [ ] Affiliate tag support is configurable (even if not yet registered)
+
+## Devil's Advocate Review (U2)
+
+**Reviewed**: 2026-03-07 | **Verdict**: PASS — no CRITICAL or HIGH issues
+
+### Findings
+
+| # | Severity | Finding | Resolution |
+|---|----------|---------|------------|
+| 1 | MEDIUM | Per-track API call pattern (`GET /api/purchase-links`) means N calls for N tracks. Could be slow if panel auto-expands. | **Fixed inline**: Clarified panel is collapsed by default, links lazy-loaded on expand. 1 call per user action is fine for pure computation (~1ms server-side). Batch endpoint is unnecessary complexity. |
+| 2 | MEDIUM | Affiliate tag storage mechanism was unspecified (postcondition 6 says "when registered" but not where/how). | **Fixed inline**: V1 now specifies env vars in `/etc/ethnomusicology/env`, consistent with SoundCloud credentials pattern. |
+| 3 | LOW | Juno Download and Traxsource returned 403 in SP-009 (bot protection). URLs may not work even in browser. | Accepted risk. Postcondition 1 already says "up to 4" stores. If stores block, we remove them in a future update. Store search pages are their responsibility. |
+| 4 | LOW | No analytics/tracking for store link clicks. Could inform store ordering and business decisions. | Post-MVP. Not needed for initial implementation. |
+| 5 | LOW | Multi-artist tracks ("Artist1 & Artist2") — full artist string goes into search query. | Works fine. Store search engines handle multi-word artist queries. No special parsing needed. |
+
+### Postcondition Testability Check
+
+| # | Postcondition | Testable? | How |
+|---|---------------|-----------|-----|
+| 1 | Purchase link panel with up to 4 stores | Yes | Widget test: render track, verify 4 store buttons |
+| 2 | Search-URL templates from title+artist | Yes | Unit test: assert URL format for known inputs |
+| 3 | Links open in new tab via url_launcher | Yes | Mock url_launcher, verify launchUrl called |
+| 4 | Computed on-demand, not persisted | Yes | No DB migration = no persistence. Endpoint is stateless. |
+| 5 | Visually separate from source attribution | Yes | Widget test: verify purchase panel is distinct widget, not inside attribution row |
+| 6 | Affiliate tags appended | Yes | Unit test: with/without env var, verify URL suffix |
+| 7 | Consistent store order | Yes | Unit test: assert array order in response |
