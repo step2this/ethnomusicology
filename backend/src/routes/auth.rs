@@ -5,7 +5,7 @@ use aes_gcm::aead::Aead;
 use aes_gcm::{Aes256Gcm, KeyInit, Nonce};
 use axum::extract::{Query, State};
 use axum::http::{HeaderMap, StatusCode};
-use axum::response::IntoResponse;
+use axum::response::{IntoResponse, Redirect};
 use axum::routing::get;
 use axum::{Json, Router};
 use chrono::{NaiveDateTime, Utc};
@@ -121,10 +121,6 @@ struct RedirectResponse {
     redirect_url: String,
 }
 
-#[derive(Serialize)]
-struct CallbackSuccessResponse {
-    success: bool,
-}
 
 #[derive(Serialize)]
 struct ErrorResponse {
@@ -311,7 +307,7 @@ async fn spotify_callback(
         )
     })?;
 
-    Ok(Json(CallbackSuccessResponse { success: true }))
+    Ok(Redirect::to("/?spotify=connected"))
 }
 
 // ---------------------------------------------------------------------------
@@ -561,9 +557,12 @@ mod tests {
             .await
             .unwrap();
 
-        assert_eq!(response.status(), StatusCode::OK);
-        let json = body_to_json(response.into_body()).await;
-        assert_eq!(json["success"], true);
+        // Should redirect to /?spotify=connected
+        assert_eq!(response.status(), StatusCode::SEE_OTHER);
+        assert_eq!(
+            response.headers().get("location").unwrap().to_str().unwrap(),
+            "/?spotify=connected"
+        );
 
         // Verify CSRF state was consumed (one-time use)
         let csrf = state.csrf_states.read().await;
