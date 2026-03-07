@@ -64,3 +64,70 @@ Constructing search URL templates for major DJ music stores (Beatport, Traxsourc
 | Bandcamp | `/search?q=` | Works | None | Independent/underground |
 
 **Key Finding**: Server-side verification is only possible for Beatport and Bandcamp. For Traxsource and Juno, we must use template URLs without confirming results exist. This is acceptable — the user clicks through to the store's search page and sees results (or not) in their browser. This is the standard pattern used by other music platforms.
+
+## S2: Coverage Test — Underground Tracks
+
+Five underground/obscure tracks tested against each store. Beatport and Bandcamp verified via server-side fetch. Traxsource and Juno cannot be verified (403) — marked TEMPLATE ONLY.
+
+### Track 1: Objekt - Theme from Q
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | HIT | Top result. Objekt #4, OBJEKT label. G Minor, 123 BPM, $1.49 |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | HIT | Objekt #4 album, released March 2017 |
+
+### Track 2: Shackleton - Blood on My Hands (Villalobos Remix)
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | HIT | "Ricardo Villalobos' Apocalypso Now Mix", Skull Disco (SKULL007), $1.49 |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | HIT | Soundboy Punishments album by Skull Disco, includes Villalobos remix |
+
+### Track 3: Omar S - 002
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | MISS | Omar S tracks found but not "002" specifically. Numeric titles hard to match. |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | HIT | "AOS (002) Anniversary Edition" by Omar S, Nov 2023, 7 tracks |
+
+### Track 4: re:ni - Ciste
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | MISS | re:ni tracks found (Timedance, Ilian Tape) but no "Ciste" in catalog |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | MISS | No matching results. Search returned unrelated French/Czech results. |
+
+### Track 5: DJ Stingray 313 - Molecular Enhancement
+
+| Store | Result | Notes |
+|-------|--------|-------|
+| Beatport | MISS | DJ Stingray 313 tracks found (Tresor, Micron Audio) but no "Molecular Enhancement" |
+| Traxsource | TEMPLATE ONLY | Cannot verify (403) |
+| Juno Download | TEMPLATE ONLY | Cannot verify (403) |
+| Bandcamp | MISS | No matching results at all |
+
+### S2 Summary (Underground Tracks)
+
+| Track | Beatport | Bandcamp | Traxsource | Juno |
+|-------|----------|----------|------------|------|
+| Objekt - Theme from Q | HIT | HIT | ? | ? |
+| Shackleton - Blood on My Hands (Villalobos) | HIT | HIT | ? | ? |
+| Omar S - 002 | MISS | HIT | ? | ? |
+| re:ni - Ciste | MISS | MISS | ? | ? |
+| DJ Stingray 313 - Molecular Enhancement | MISS | MISS | ? | ? |
+
+**Verified hit rates (underground)**: Beatport 2/5 (40%), Bandcamp 3/5 (60%)
+
+**Observations**:
+- Both stores excel at well-known underground releases (Objekt, Shackleton) but struggle with very obscure or numeric-titled tracks
+- Bandcamp edges out Beatport for underground — Omar S self-releases are on Bandcamp but not Beatport
+- re:ni "Ciste" and DJ Stingray "Molecular Enhancement" may be vinyl-only or extremely limited releases not on digital stores
+- Numeric/ambiguous titles ("002") are problematic for search matching
