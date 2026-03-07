@@ -34,7 +34,7 @@
 
 ## Phase 7: Task Decomposition
 
-- [ ] **D1: Task decomposition** — Break UC-020 into implementable tasks with dependencies. Key architectural decisions to encode:
+- [x] **D1: Task decomposition** — Break UC-020 into implementable tasks with dependencies. Key architectural decisions to encode:
   - Purchase links are computed ON-DEMAND from title+artist (not persisted) — works for fresh and saved setlists
   - Backend endpoint `GET /api/purchase-links?title=X&artist=Y` returns ordered store links with affiliate tags
   - Frontend: PurchaseLinkPanel widget ALONGSIDE existing source attribution icons (NOT replacing them)
