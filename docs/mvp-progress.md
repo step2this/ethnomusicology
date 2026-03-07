@@ -25,7 +25,7 @@
 | UC-019 | Track attribution links | ✅ | Clickable title/artist → Google search, Spotify links for catalog tracks |
 | UC-019 | Waveform visualization | ⬜ | Deferred — post-MVP polish |
 | UC-020 | Google search links | ✅ | Implemented on track title/artist |
-| UC-020 | Multi-store purchase link panel | ⬜ | Phase 7: Beatport, Traxsource, Juno Download (SP-009 spike in progress) |
+| UC-020 | Multi-store purchase link panel | 🔄 | Phase 7: Beatport, Bandcamp, Juno Download, Traxsource (SP-009 COMPLETE — Bandcamp 70%, Beatport 60% hit rate) |
 | UC-020 | Apple Music affiliate links | ⬜ | Phase 7: register at apple.com/itunes/affiliates, add `at=` param to iTunes URLs |
 | UC-023 | Multi-turn refinement | ✅ | ST-007 backend + frontend. PR #5 merged. |
 | UC-023 | Version history + undo | ✅ | ST-007 backend + frontend. PR #5 merged. |

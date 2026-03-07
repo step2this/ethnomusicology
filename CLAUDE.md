@@ -2,7 +2,7 @@
 
 ## Vision: DJ-First Music Platform
 
-LLM-powered substitute DJ that generates setlists from natural language prompts, sources music from Spotify + Beatport + SoundCloud, supports harmonic mixing (Camelot wheel), and provides crossfade preview playback with purchase links. Occasion-based features (Nikah, Eid, Mawlid) remain but are secondary to the DJ experience.
+LLM-powered substitute DJ that generates setlists from natural language prompts, sources music from Spotify + Beatport + SoundCloud, supports harmonic mixing (Camelot wheel), and provides sequential preview playback with purchase links. Occasion-based features (Nikah, Eid, Mawlid) remain but are secondary to the DJ experience.
 
 ## Workflow: The Forge
 
@@ -12,7 +12,12 @@ Use the Forge (`.claude/` directory) for all development:
 3. `/task-decompose` — Break into implementable tasks with dependency graph
 4. `design-crit` — Run for any UC with a frontend screen (Brief → Facet Plan → Crit Loops → Design Direction)
 5. **Devil's Advocate Review** — After every plan is drafted, run a devil's advocate review before implementation. Use a Plan agent to find weaknesses, gaps, missing pieces, parallelism risks, integration seams, scope creep, and testing gaps. Address all critical and high-severity findings before coding begins.
-6. Implement with agent teams — **lead MUST delegate to subagents, never implement solo** (see Agent Teams section)
+6. Implement with agent teams — **lead MUST delegate to subagents, never implement solo** (see Agent Teams section). Concretely:
+   - Create team via `TeamCreate` or spawn `Agent` subagents with `model: "sonnet"`
+   - Assign non-overlapping files per task decomposition's file ownership matrix
+   - Backend + frontend builders run in parallel (no shared files)
+   - Lead coordinates, reviews, wires integration files (main.rs, mod.rs, routes)
+   - **NEVER use external shell scripts** (e.g., `ralph-loop.sh`) for iteration — use Agent Teams or in-session Agent subagents for fresh context per task
 7. **Two-Pass Critic Review** — Two sequential critic passes before verification. Both are MANDATORY — no exceptions, including tech debt PRs.
    - **7a. Security & Architecture Critic** — Spawn a fresh-context critic agent. Reads the diff cold. Checks: auth bypass, injection risks, data leaks, missing ownership checks, plan-vs-code compliance, missed edge cases, dead code, unused imports, test gaps. Critic sends feedback with file:line references. Lead assigns fixes before proceeding.
    - **7b. Code Quality Review** — Spawn a second fresh-context critic agent focused on language-specific quality:
@@ -97,11 +102,15 @@ When you encounter a technology or integration you haven't used before, **STOP a
 ## Key Commands
 
 ```bash
-cd backend && cargo run                    # Start API server (port 3001)
-cd backend && cargo test                   # Run tests
-cd backend && cargo clippy -- -D warnings  # Lint
-cd frontend && flutter run -d chrome       # Start web app
-cd frontend && flutter analyze && flutter test  # Lint + test
+cd backend
+cargo run                    # Start API server (port 3001)
+cargo test                   # Run tests
+cargo clippy -- -D warnings  # Lint
+
+cd frontend
+flutter run -d chrome       # Start web app
+flutter analyze             # Lint
+flutter test                # Test
 ```
 
 ## Project Context

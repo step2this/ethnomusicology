@@ -44,15 +44,34 @@
 
 ## Phase 7: Design-Crit (MANDATORY)
 
-- [ ] **DC1: Design brief for purchase link panel** — Run design-crit brief for the purchase panel component. Key questions: expandable panel vs bottom sheet, store icon treatment, empty state (majority case for underground), visual separation from source attribution icons, how many stores is too many. Acceptance: design brief captured in `.design-crit/`.
+- [x] **DC1: Design brief for purchase link panel** — Run design-crit brief for the purchase panel component. Key questions: expandable panel vs bottom sheet, store icon treatment, empty state (majority case for underground), visual separation from source attribution icons, how many stores is too many. Acceptance: design brief captured in `.design-crit/`.
   - Files: `.design-crit/` (CREATE files as needed)
 
-- [ ] **DC2: Component design facet** — Crit the purchase panel component: interaction pattern, store ordering, icon sizing, mobile responsiveness. Lock the design. Acceptance: design direction locked with component specs.
+- [x] **DC2: Component design facet** — Crit the purchase panel component: interaction pattern, store ordering, icon sizing, mobile responsiveness. Lock the design. Acceptance: design direction locked with component specs. **LOCKED: Option A (Chip Strip)** — horizontal pill-shaped store chips, inline expansion below source attribution, +32px height. User decision.
   - Files: `.design-crit/` (EDIT/CREATE)
 
 ## Phase 7: Implementation
 
-(Tasks TBD after D1 task decomposition — the ralph loop will pick these up automatically once they're added to this file)
+- [ ] **T1+T2: Purchase link service + affiliate config** — Create `backend/src/services/purchase_links.rs` with `build_purchase_links()` function and `AffiliateConfig`. URL templates: Beatport `/search?q=`, Bandcamp `/search?q=`, Juno `/search/?q[all][0]=`, Traxsource `/search?term=`. Affiliate tags from env vars. Add `pub mod purchase_links;` to `services/mod.rs`. Acceptance: unit tests for full query, title-only, artist-only, empty, special chars, affiliate tags, store order. `cargo fmt --check && cargo clippy -- -D warnings && cargo test` all pass.
+  - Files: `backend/src/services/purchase_links.rs` (CREATE), `backend/src/services/mod.rs` (EDIT)
+
+- [ ] **T3: Purchase links route + wiring** — Create `backend/src/routes/purchase_links.rs` with `GET /api/purchase-links?title=X&artist=Y` handler. Wire into `main.rs`. Acceptance: endpoint returns 4 store links for valid query, empty links for no params. `cargo test` passes.
+  - Files: `backend/src/routes/purchase_links.rs` (CREATE), `backend/src/routes/mod.rs` (EDIT), `backend/src/main.rs` (EDIT)
+
+- [ ] **T4: Frontend ApiClient method + model** — Create `frontend/lib/models/purchase_link.dart` with `PurchaseLink` model. Add `getPurchaseLinks()` to `ApiClient`. Acceptance: compiles, `flutter analyze` passes.
+  - Files: `frontend/lib/models/purchase_link.dart` (CREATE), `frontend/lib/services/api_client.dart` (EDIT)
+
+- [ ] **T5: Backend integration tests** — Add comprehensive tests in `backend/src/services/purchase_links.rs` `#[cfg(test)]` module: full query, title-only, artist-only, both-empty, special chars, affiliate tags, no affiliate tags, store order. Acceptance: all tests pass, clippy clean.
+  - Files: `backend/src/services/purchase_links.rs` (EDIT)
+
+- [ ] **T6: PurchaseLinkPanel widget** — Create `frontend/lib/widgets/purchase_link_panel.dart`. Collapsed by default (shopping bag icon). On expand: calls API, shows loading, then horizontal row of store buttons. Tap opens URL via `url_launcher`. Empty state when no title/artist. Theme tokens only. Acceptance: renders collapsed, expands with links, `flutter analyze` passes.
+  - Files: `frontend/lib/widgets/purchase_link_panel.dart` (CREATE)
+
+- [ ] **T7: Wire PurchaseLinkPanel into SetlistTrackTile** — Import and add PurchaseLinkPanel below track info, visually separate from source attribution icons. Acceptance: panel visible on every track tile, existing playback/attribution unchanged, `flutter analyze` passes.
+  - Files: `frontend/lib/widgets/setlist_track_tile.dart` (EDIT)
+
+- [ ] **T8: Frontend widget tests** — Create `frontend/test/widgets/purchase_link_panel_test.dart`. Tests: renders collapsed, expands with store links, correct store order, URL launch on tap, empty state, API error handling. Acceptance: all tests pass, `flutter analyze` passes.
+  - Files: `frontend/test/widgets/purchase_link_panel_test.dart` (CREATE)
 
 ## Phase 7: Quality Gates
 

@@ -230,7 +230,7 @@ Five tracks spanning classic, popular, and niche electronic music tested against
 
 ### Beatport
 
-- **Program**: Active. Available via Brandreward affiliate network.
+- **Program**: Active. Available via PostAffiliatePro / Yeesshh networks (NOTE: original spike said "Brandreward" — not verified, corrected after spot-check).
 - **Commission**: 5-10% on sales
 - **Cookie duration**: 3 days
 - **Cost to join**: Free
@@ -268,7 +268,7 @@ Five tracks spanning classic, popular, and niche electronic music tested against
 
 | Store | Affiliate Available | Commission | Priority |
 |-------|-------------------|------------|----------|
-| Beatport | Yes (Brandreward) | 5-10% | HIGH — apply now |
+| Beatport | Yes (PostAffiliatePro/Yeesshh) | 5-10% | HIGH — apply now |
 | Juno Download | Yes (affiliate.juno.co.uk) | Tiered | MEDIUM — apply now |
 | Traxsource | Unclear | Unknown | LOW — investigate later |
 | Bandcamp | No | N/A | N/A — include for user value |

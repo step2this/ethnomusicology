@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Popover Tray — Purchase Panel Option B</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0F0D0B;
+    color: #F0ECE4;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 24px;
+  }
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8A8078;
+    margin-bottom: 8px;
+  }
+  .section { margin-bottom: 32px; }
+
+  /* Track row */
+  .track-row {
+    background: #1A1714;
+    border: 1px solid #2A2520;
+    border-radius: 6px;
+    padding: 0;
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .track-main {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 12px;
+    gap: 12px;
+  }
+  .track-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #8A8078;
+    width: 20px;
+    text-align: right;
+  }
+  .track-artist {
+    font-weight: 700;
+    font-size: 13px;
+    color: #F0ECE4;
+    white-space: nowrap;
+  }
+  .track-title {
+    font-weight: 400;
+    font-size: 13px;
+    color: #C0B8AC;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .track-bpm {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #C0B8AC;
+    width: 40px;
+    text-align: right;
+  }
+  .camelot-chip {
+    background: #2A4A3A;
+    color: #7AD4A0;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .energy-bar {
+    width: 5px;
+    height: 20px;
+    background: linear-gradient(to top, #5A9EC0, #E8963A);
+    border-radius: 2px;
+  }
+  .track-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid #2A2520;
+    background: transparent;
+    color: #8A8078;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .icon-btn:hover { border-color: #E8963A; color: #E8963A; }
+  .icon-btn.active { border-color: #E8963A; color: #E8963A; background: rgba(232, 150, 58, 0.1); }
+
+  .source-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px 0 44px;
+    height: 20px;
+  }
+  .source-pill {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .source-spotify { background: #1A2A1A; color: #1DB954; }
+  .source-deezer { background: #1A1A2A; color: #A194FF; }
+
+  /* PURCHASE PANEL — Popover Tray */
+  .popover-anchor { position: relative; display: inline-flex; }
+  .popover {
+    position: absolute;
+    top: 34px;
+    right: 0;
+    width: 200px;
+    background: #1E1A16;
+    border: 1px solid #2A2520;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    z-index: 10;
+    overflow: hidden;
+  }
+  .popover-header {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6A6258;
+    padding: 10px 12px 6px;
+    border-bottom: 1px solid #2A2520;
+  }
+  .store-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #C0B8AC;
+    transition: background 150ms, color 150ms;
+  }
+  .store-item:hover { background: rgba(232, 150, 58, 0.08); color: #E8963A; }
+  .store-item + .store-item { border-top: 1px solid #1A1714; }
+  .store-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: #141210;
+    border: 1px solid #2A2520;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 12px;
+    color: #8A8078;
+    flex-shrink: 0;
+  }
+  .store-item:hover .store-icon { border-color: #E8963A; color: #E8963A; }
+  .store-name {
+    flex: 1;
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .store-ext {
+    font-size: 11px;
+    color: #6A6258;
+  }
+  .store-item:hover .store-ext { color: #E8963A; }
+
+  /* Loading spinner */
+  .popover-loading {
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: #8A8078;
+    font-size: 11px;
+  }
+  .spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #2A2520;
+    border-top-color: #E8963A;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* State diagram */
+  .state-diagram {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .state-box {
+    background: #141210;
+    border: 1px solid #2A2520;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .state-box .state-name {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #E8963A;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+  .state-box .state-desc {
+    font-size: 11px;
+    color: #8A8078;
+  }
+
+  .annotation {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #E8963A;
+    opacity: 0.7;
+  }
+</style>
+</head>
+<body>
+
+<div class="section">
+  <div class="label">Option B: Popover Tray</div>
+  <p style="color: #8A8078; font-size: 12px; margin-bottom: 16px;">
+    Floating popover anchored to the shopping bag icon. No layout shift — overlays the track list.
+    Vertical store list with 28px icon squares + store names. Dismiss on click-outside or ESC.
+  </p>
+</div>
+
+<!-- COLLAPSED STATE -->
+<div class="section">
+  <div class="label">Collapsed State (default)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+  <p style="color: #6A6258; font-size: 11px; margin-top: 4px;">Zero additional height. Same track row as rest of app.</p>
+</div>
+
+<!-- LOADING STATE -->
+<div class="section">
+  <div class="label">Loading State (popover open, fetching)</div>
+  <div class="track-row" style="overflow: visible;">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="popover-anchor">
+          <div class="icon-btn active">&#128722;</div>
+          <div class="popover">
+            <div class="popover-header">Purchase</div>
+            <div class="popover-loading">
+              <div class="spinner"></div>
+              Loading stores...
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+</div>
+
+<!-- EXPANDED STATE -->
+<div class="section">
+  <div class="label">Expanded State (links loaded)</div>
+  <div class="track-row" style="overflow: visible;">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="popover-anchor">
+          <div class="icon-btn active">&#128722;</div>
+          <div class="popover">
+            <div class="popover-header">Purchase</div>
+            <a class="store-item" href="#">
+              <div class="store-icon">B</div>
+              <span class="store-name">Beatport</span>
+              <span class="store-ext">&#8599;</span>
+            </a>
+            <a class="store-item" href="#">
+              <div class="store-icon">B</div>
+              <span class="store-name">Bandcamp</span>
+              <span class="store-ext">&#8599;</span>
+            </a>
+            <a class="store-item" href="#">
+              <div class="store-icon">J</div>
+              <span class="store-name">Juno Download</span>
+              <span class="store-ext">&#8599;</span>
+            </a>
+            <a class="store-item" href="#">
+              <div class="store-icon">T</div>
+              <span class="store-name">Traxsource</span>
+              <span class="store-ext">&#8599;</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+</div>
+
+<!-- MULTI-TRACK CONTEXT -->
+<div class="section" style="margin-top: 48px;">
+  <div class="label">Multi-Track Context (1 open, 2 collapsed)</div>
+  <div class="track-row" style="overflow: visible;">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="popover-anchor">
+          <div class="icon-btn active">&#128722;</div>
+          <div class="popover">
+            <div class="popover-header">Purchase</div>
+            <a class="store-item" href="#"><div class="store-icon">B</div><span class="store-name">Beatport</span><span class="store-ext">&#8599;</span></a>
+            <a class="store-item" href="#"><div class="store-icon">B</div><span class="store-name">Bandcamp</span><span class="store-ext">&#8599;</span></a>
+            <a class="store-item" href="#"><div class="store-icon">J</div><span class="store-name">Juno Download</span><span class="store-ext">&#8599;</span></a>
+            <a class="store-item" href="#"><div class="store-icon">T</div><span class="store-name">Traxsource</span><span class="store-ext">&#8599;</span></a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">02</span>
+      <span class="track-artist">Peggy Gou</span>
+      <span class="track-title">Starry Night</span>
+      <span class="track-bpm">122</span>
+      <span class="camelot-chip">6B</span>
+      <div class="energy-bar" style="background: linear-gradient(to top, #5A9EC0 40%, #E8963A 100%);"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">03</span>
+      <span class="track-artist">DJ Rashad</span>
+      <span class="track-title">Feelin</span>
+      <span class="track-bpm">160</span>
+      <span class="camelot-chip">3A</span>
+      <div class="energy-bar" style="background: linear-gradient(to top, #E8963A 30%, #D05040 100%);"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+    </div>
+  </div>
+  <p style="color: #6A6258; font-size: 11px; margin-top: 8px;">Popover overlays adjacent rows — no layout shift at all.</p>
+</div>
+
+<!-- INTERACTION STATES -->
+<div class="section">
+  <div class="label">Interaction States — Store Item</div>
+  <div class="state-diagram">
+    <div class="state-box">
+      <div class="state-name">Default</div>
+      <div style="width: 180px; text-align: left;">
+        <a class="store-item" href="#" style="pointer-events:none; padding: 8px;">
+          <div class="store-icon">B</div>
+          <span class="store-name">Beatport</span>
+          <span class="store-ext">&#8599;</span>
+        </a>
+      </div>
+      <div class="state-desc">Muted text, flat icon square</div>
+    </div>
+    <div class="state-box">
+      <div class="state-name">Hover</div>
+      <div style="width: 180px; text-align: left;">
+        <a class="store-item" href="#" style="pointer-events:none; padding: 8px; background: rgba(232,150,58,0.08); color: #E8963A;">
+          <div class="store-icon" style="border-color:#E8963A; color:#E8963A;">B</div>
+          <span class="store-name" style="color:#E8963A;">Beatport</span>
+          <span class="store-ext" style="color:#E8963A;">&#8599;</span>
+        </a>
+      </div>
+      <div class="state-desc">Amber highlight row</div>
+    </div>
+    <div class="state-box">
+      <div class="state-name">Focus</div>
+      <div style="width: 180px; text-align: left;">
+        <a class="store-item" href="#" style="pointer-events:none; padding: 8px; outline: 2px solid #E8963A; outline-offset: -2px; border-radius: 4px;">
+          <div class="store-icon">B</div>
+          <span class="store-name">Beatport</span>
+          <span class="store-ext">&#8599;</span>
+        </a>
+      </div>
+      <div class="state-desc">Inset amber ring</div>
+    </div>
+  </div>
+</div>
+
+<!-- DIMENSIONS -->
+<div class="section">
+  <div class="label">Dimensions</div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 500px;">
+    <div style="font-size: 11px; color: #8A8078;">Popover width: <span class="annotation">200px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Store item height: <span class="annotation">48px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Store icon: <span class="annotation">28x28px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Popover shadow: <span class="annotation">0 8px 24px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Item padding: <span class="annotation">10px 12px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Total popover height: <span class="annotation">~228px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Trigger icon: <span class="annotation">28x28px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Touch target: <span class="annotation">48px per row</span></div>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inline Grid — Purchase Panel Option C</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0F0D0B;
+    color: #F0ECE4;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 24px;
+  }
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8A8078;
+    margin-bottom: 8px;
+  }
+  .section { margin-bottom: 32px; }
+
+  /* Track row */
+  .track-row {
+    background: #1A1714;
+    border: 1px solid #2A2520;
+    border-radius: 6px;
+    padding: 0;
+    margin-bottom: 4px;
+  }
+  .track-main {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 12px;
+    gap: 12px;
+  }
+  .track-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #8A8078;
+    width: 20px;
+    text-align: right;
+  }
+  .track-artist {
+    font-weight: 700;
+    font-size: 13px;
+    color: #F0ECE4;
+    white-space: nowrap;
+  }
+  .track-title {
+    font-weight: 400;
+    font-size: 13px;
+    color: #C0B8AC;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .track-bpm {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #C0B8AC;
+    width: 40px;
+    text-align: right;
+  }
+  .camelot-chip {
+    background: #2A4A3A;
+    color: #7AD4A0;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .energy-bar {
+    width: 5px;
+    height: 20px;
+    background: linear-gradient(to top, #5A9EC0, #E8963A);
+    border-radius: 2px;
+  }
+  .track-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid #2A2520;
+    background: transparent;
+    color: #8A8078;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .icon-btn:hover { border-color: #E8963A; color: #E8963A; }
+  .icon-btn.active { border-color: #E8963A; color: #E8963A; background: rgba(232, 150, 58, 0.1); }
+
+  .source-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px 0 44px;
+    height: 20px;
+  }
+  .source-pill {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .source-spotify { background: #1A2A1A; color: #1DB954; }
+  .source-deezer { background: #1A1A2A; color: #A194FF; }
+
+  /* PURCHASE PANEL — Inline Grid */
+  .purchase-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: #2A2520;
+    border-top: 1px solid #2A2520;
+  }
+  .store-cell {
+    background: #141210;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-decoration: none;
+    color: #C0B8AC;
+    transition: background 150ms, color 150ms;
+  }
+  .store-cell:hover { background: rgba(232, 150, 58, 0.08); color: #E8963A; }
+  .store-cell:first-child { border-radius: 0 0 0 6px; }
+  .store-cell:last-child { border-radius: 0 0 6px 0; }
+  .store-cell .cell-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: #1A1714;
+    border: 1px solid #2A2520;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 11px;
+    color: #8A8078;
+    flex-shrink: 0;
+  }
+  .store-cell:hover .cell-icon { border-color: #E8963A; color: #E8963A; }
+  .store-cell .cell-name {
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .store-cell .cell-ext {
+    font-size: 10px;
+    color: #6A6258;
+  }
+  .store-cell:hover .cell-ext { color: #E8963A; }
+
+  /* Loading */
+  .skeleton-cell {
+    background: #141210;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 8px;
+  }
+  .skeleton-bar {
+    width: 80px;
+    height: 16px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #1E1A16 25%, #2A2520 50%, #1E1A16 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* State diagram */
+  .state-diagram {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .state-box {
+    background: #141210;
+    border: 1px solid #2A2520;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .state-box .state-name {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #E8963A;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+  .state-box .state-desc {
+    font-size: 11px;
+    color: #8A8078;
+  }
+
+  .annotation {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #E8963A;
+    opacity: 0.7;
+  }
+  .dim-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 4px 0;
+  }
+</style>
+</head>
+<body>
+
+<div class="section">
+  <div class="label">Option C: Inline Grid</div>
+  <p style="color: #8A8078; font-size: 12px; margin-bottom: 16px;">
+    Full-width 4-column grid below track row. Each store gets an equal-width cell.
+    Largest layout shift (~44px) but best touch targets and visual clarity.
+    Dividers between cells. Trigger: chevron toggle in action area.
+  </p>
+</div>
+
+<!-- COLLAPSED STATE -->
+<div class="section">
+  <div class="label">Collapsed State (default)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn" title="Show purchase links">&#9662;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+  <div class="dim-line"><span class="annotation">60px total (same as other options collapsed)</span></div>
+</div>
+
+<!-- LOADING STATE -->
+<div class="section">
+  <div class="label">Loading State (expanding)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn active" style="transform: rotate(180deg);">&#9662;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+    <div class="purchase-grid">
+      <div class="skeleton-cell"><div class="skeleton-bar"></div></div>
+      <div class="skeleton-cell"><div class="skeleton-bar"></div></div>
+      <div class="skeleton-cell"><div class="skeleton-bar"></div></div>
+      <div class="skeleton-cell"><div class="skeleton-bar"></div></div>
+    </div>
+  </div>
+  <div class="dim-line"><span class="annotation">+44px grid row = 104px total</span></div>
+</div>
+
+<!-- EXPANDED STATE -->
+<div class="section">
+  <div class="label">Expanded State (links loaded)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn active" style="transform: rotate(180deg);">&#9662;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+    <div class="purchase-grid">
+      <a class="store-cell" href="#">
+        <div class="cell-icon">B</div>
+        <span class="cell-name">Beatport</span>
+        <span class="cell-ext">&#8599;</span>
+      </a>
+      <a class="store-cell" href="#">
+        <div class="cell-icon">B</div>
+        <span class="cell-name">Bandcamp</span>
+        <span class="cell-ext">&#8599;</span>
+      </a>
+      <a class="store-cell" href="#">
+        <div class="cell-icon">J</div>
+        <span class="cell-name">Juno</span>
+        <span class="cell-ext">&#8599;</span>
+      </a>
+      <a class="store-cell" href="#">
+        <div class="cell-icon">T</div>
+        <span class="cell-name">Traxsource</span>
+        <span class="cell-ext">&#8599;</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- MULTI-TRACK CONTEXT -->
+<div class="section">
+  <div class="label">Multi-Track Context (1 expanded, 2 collapsed)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn active" style="transform: rotate(180deg);">&#9662;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+    <div class="purchase-grid">
+      <a class="store-cell" href="#"><div class="cell-icon">B</div><span class="cell-name">Beatport</span><span class="cell-ext">&#8599;</span></a>
+      <a class="store-cell" href="#"><div class="cell-icon">B</div><span class="cell-name">Bandcamp</span><span class="cell-ext">&#8599;</span></a>
+      <a class="store-cell" href="#"><div class="cell-icon">J</div><span class="cell-name">Juno</span><span class="cell-ext">&#8599;</span></a>
+      <a class="store-cell" href="#"><div class="cell-icon">T</div><span class="cell-name">Traxsource</span><span class="cell-ext">&#8599;</span></a>
+    </div>
+  </div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">02</span>
+      <span class="track-artist">Peggy Gou</span>
+      <span class="track-title">Starry Night</span>
+      <span class="track-bpm">122</span>
+      <span class="camelot-chip">6B</span>
+      <div class="energy-bar" style="background: linear-gradient(to top, #5A9EC0 40%, #E8963A 100%);"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn">&#9662;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">03</span>
+      <span class="track-artist">DJ Rashad</span>
+      <span class="track-title">Feelin</span>
+      <span class="track-bpm">160</span>
+      <span class="camelot-chip">3A</span>
+      <div class="energy-bar" style="background: linear-gradient(to top, #E8963A 30%, #D05040 100%);"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn">&#9662;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+    </div>
+  </div>
+  <p style="color: #6A6258; font-size: 11px; margin-top: 8px;">Grid adds ~44px per expanded track. Most visual weight of any option.</p>
+</div>
+
+<!-- INTERACTION STATES -->
+<div class="section">
+  <div class="label">Interaction States — Store Cell</div>
+  <div class="state-diagram">
+    <div class="state-box">
+      <div class="state-name">Default</div>
+      <div style="width: 150px;">
+        <a class="store-cell" href="#" style="pointer-events:none; padding: 8px; border-radius: 4px;">
+          <div class="cell-icon">B</div>
+          <span class="cell-name">Beatport</span>
+          <span class="cell-ext">&#8599;</span>
+        </a>
+      </div>
+      <div class="state-desc">Flat, muted, no border</div>
+    </div>
+    <div class="state-box">
+      <div class="state-name">Hover</div>
+      <div style="width: 150px;">
+        <a class="store-cell" href="#" style="pointer-events:none; padding: 8px; background: rgba(232,150,58,0.08); color: #E8963A; border-radius: 4px;">
+          <div class="cell-icon" style="border-color:#E8963A; color:#E8963A;">B</div>
+          <span class="cell-name" style="color: #E8963A;">Beatport</span>
+          <span class="cell-ext" style="color: #E8963A;">&#8599;</span>
+        </a>
+      </div>
+      <div class="state-desc">Amber tint fill</div>
+    </div>
+    <div class="state-box">
+      <div class="state-name">Focus</div>
+      <div style="width: 150px;">
+        <a class="store-cell" href="#" style="pointer-events:none; padding: 8px; outline: 2px solid #E8963A; outline-offset: -2px; border-radius: 4px;">
+          <div class="cell-icon">B</div>
+          <span class="cell-name">Beatport</span>
+          <span class="cell-ext">&#8599;</span>
+        </a>
+      </div>
+      <div class="state-desc">Inset amber ring</div>
+    </div>
+  </div>
+</div>
+
+<!-- DIMENSIONS -->
+<div class="section">
+  <div class="label">Dimensions</div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 500px;">
+    <div style="font-size: 11px; color: #8A8078;">Grid cell height: <span class="annotation">44px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Grid gap: <span class="annotation">1px (divider)</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Cell icon: <span class="annotation">24x24px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Cell padding: <span class="annotation">10px 8px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Columns: <span class="annotation">4 x 1fr</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Total expanded height: <span class="annotation">~44px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Trigger: <span class="annotation">28x28px chevron</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Touch target: <span class="annotation">full cell (~150px x 44px)</span></div>
+  </div>
+</div>
+
+</body>
+</html>

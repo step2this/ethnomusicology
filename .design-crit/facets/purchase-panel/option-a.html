@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chip Strip — Purchase Panel Option A</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0F0D0B;
+    color: #F0ECE4;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 24px;
+  }
+  .label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8A8078;
+    margin-bottom: 8px;
+  }
+  .section { margin-bottom: 32px; }
+
+  /* Track row simulation */
+  .track-row {
+    background: #1A1714;
+    border: 1px solid #2A2520;
+    border-radius: 6px;
+    padding: 0;
+    margin-bottom: 4px;
+  }
+  .track-main {
+    display: flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 12px;
+    gap: 12px;
+  }
+  .track-num {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #8A8078;
+    width: 20px;
+    text-align: right;
+  }
+  .track-artist {
+    font-weight: 700;
+    font-size: 13px;
+    color: #F0ECE4;
+    white-space: nowrap;
+  }
+  .track-title {
+    font-weight: 400;
+    font-size: 13px;
+    color: #C0B8AC;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .track-bpm {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    color: #C0B8AC;
+    width: 40px;
+    text-align: right;
+  }
+  .camelot-chip {
+    background: #2A4A3A;
+    color: #7AD4A0;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .energy-bar {
+    width: 5px;
+    height: 20px;
+    background: linear-gradient(to top, #5A9EC0, #E8963A);
+    border-radius: 2px;
+  }
+  .track-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid #2A2520;
+    background: transparent;
+    color: #8A8078;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .icon-btn:hover { border-color: #E8963A; color: #E8963A; }
+  .icon-btn.active { border-color: #E8963A; color: #E8963A; background: rgba(232, 150, 58, 0.1); }
+
+  /* Source attribution row (existing) */
+  .source-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 12px 0 44px;
+    height: 20px;
+  }
+  .source-pill {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.04em;
+  }
+  .source-spotify { background: #1A2A1A; color: #1DB954; }
+  .source-deezer { background: #1A1A2A; color: #A194FF; }
+
+  /* PURCHASE PANEL — Chip Strip */
+  .purchase-strip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px 8px 44px;
+    border-top: 1px solid #1E1A16;
+  }
+  .purchase-strip .strip-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #6A6258;
+    letter-spacing: 0.04em;
+    margin-right: 4px;
+  }
+  .store-chip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    border: 1px solid #2A2520;
+    background: #141210;
+    color: #C0B8AC;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    transition: border-color 150ms, color 150ms;
+  }
+  .store-chip:hover { border-color: #E8963A; color: #E8963A; }
+  .store-chip .letter {
+    font-size: 9px;
+    font-weight: 700;
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2A2520;
+    color: #C0B8AC;
+  }
+  .store-chip:hover .letter { background: rgba(232, 150, 58, 0.2); color: #E8963A; }
+  .store-chip .ext {
+    font-size: 10px;
+    color: #6A6258;
+  }
+
+  /* Loading state */
+  .skeleton-chip {
+    width: 80px;
+    height: 24px;
+    border-radius: 12px;
+    background: linear-gradient(90deg, #1E1A16 25%, #2A2520 50%, #1E1A16 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+  }
+  @keyframes shimmer { to { background-position: -200% 0; } }
+
+  /* State diagram */
+  .state-diagram {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .state-box {
+    background: #141210;
+    border: 1px solid #2A2520;
+    border-radius: 6px;
+    padding: 12px;
+    text-align: center;
+    min-width: 140px;
+  }
+  .state-box .state-name {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #E8963A;
+    margin-bottom: 8px;
+    letter-spacing: 0.04em;
+  }
+  .state-box .state-desc {
+    font-size: 11px;
+    color: #8A8078;
+  }
+
+  /* Dimension annotations */
+  .annotation {
+    font-size: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    color: #E8963A;
+    opacity: 0.7;
+  }
+  .dim-line {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 4px 0;
+  }
+  .dim-line::before, .dim-line::after {
+    content: '';
+    flex: 0 0 8px;
+    height: 1px;
+    background: #E8963A;
+    opacity: 0.4;
+  }
+</style>
+</head>
+<body>
+
+<div class="section">
+  <div class="label">Option A: Chip Strip</div>
+  <p style="color: #8A8078; font-size: 12px; margin-bottom: 16px;">
+    Horizontal row of store pills below track metadata. Trigger: shopping bag icon in action area.
+    Inline expansion pushes content down ~32px. First-letter avatars + store names.
+  </p>
+</div>
+
+<!-- COLLAPSED STATE -->
+<div class="section">
+  <div class="label">Collapsed State (default)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn" title="Play preview">&#9654;</div>
+        <div class="icon-btn" title="Purchase links">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+  <div class="dim-line"><span class="annotation">40px main row + 20px source row = 60px total</span></div>
+</div>
+
+<!-- LOADING STATE -->
+<div class="section">
+  <div class="label">Loading State (after tap)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn active">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+    <div class="purchase-strip">
+      <span class="strip-label">Buy</span>
+      <div class="skeleton-chip"></div>
+      <div class="skeleton-chip"></div>
+      <div class="skeleton-chip"></div>
+      <div class="skeleton-chip"></div>
+    </div>
+  </div>
+  <div class="dim-line"><span class="annotation">+32px purchase strip = 92px total</span></div>
+</div>
+
+<!-- EXPANDED STATE -->
+<div class="section">
+  <div class="label">Expanded State (links loaded)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn active">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+    <div class="purchase-strip">
+      <span class="strip-label">Buy</span>
+      <a class="store-chip" href="#">
+        <span class="letter">B</span>Beatport<span class="ext">&#8599;</span>
+      </a>
+      <a class="store-chip" href="#">
+        <span class="letter">B</span>Bandcamp<span class="ext">&#8599;</span>
+      </a>
+      <a class="store-chip" href="#">
+        <span class="letter">J</span>Juno<span class="ext">&#8599;</span>
+      </a>
+      <a class="store-chip" href="#">
+        <span class="letter">T</span>Traxsource<span class="ext">&#8599;</span>
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- MULTI-TRACK CONTEXT -->
+<div class="section">
+  <div class="label">Multi-Track Context (1 expanded, 2 collapsed)</div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">01</span>
+      <span class="track-artist">Derrick May</span>
+      <span class="track-title">Strings of Life</span>
+      <span class="track-bpm">126</span>
+      <span class="camelot-chip">8A</span>
+      <div class="energy-bar"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn active">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+    <div class="purchase-strip">
+      <span class="strip-label">Buy</span>
+      <a class="store-chip" href="#"><span class="letter">B</span>Beatport<span class="ext">&#8599;</span></a>
+      <a class="store-chip" href="#"><span class="letter">B</span>Bandcamp<span class="ext">&#8599;</span></a>
+      <a class="store-chip" href="#"><span class="letter">J</span>Juno<span class="ext">&#8599;</span></a>
+      <a class="store-chip" href="#"><span class="letter">T</span>Traxsource<span class="ext">&#8599;</span></a>
+    </div>
+  </div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">02</span>
+      <span class="track-artist">Peggy Gou</span>
+      <span class="track-title">Starry Night</span>
+      <span class="track-bpm">122</span>
+      <span class="camelot-chip">6B</span>
+      <div class="energy-bar" style="background: linear-gradient(to top, #5A9EC0 40%, #E8963A 100%);"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+      <span class="source-pill source-deezer">Deezer</span>
+    </div>
+  </div>
+  <div class="track-row">
+    <div class="track-main">
+      <span class="track-num">03</span>
+      <span class="track-artist">DJ Rashad</span>
+      <span class="track-title">Feelin</span>
+      <span class="track-bpm">160</span>
+      <span class="camelot-chip">3A</span>
+      <div class="energy-bar" style="background: linear-gradient(to top, #E8963A 30%, #D05040 100%);"></div>
+      <div class="track-actions">
+        <div class="icon-btn">&#9654;</div>
+        <div class="icon-btn">&#128722;</div>
+      </div>
+    </div>
+    <div class="source-row">
+      <span class="source-pill source-spotify">Spotify</span>
+    </div>
+  </div>
+</div>
+
+<!-- INTERACTION STATES -->
+<div class="section">
+  <div class="label">Interaction States — Store Chip</div>
+  <div class="state-diagram">
+    <div class="state-box">
+      <div class="state-name">Default</div>
+      <a class="store-chip" href="#" style="pointer-events:none;">
+        <span class="letter">B</span>Beatport<span class="ext">&#8599;</span>
+      </a>
+      <div class="state-desc" style="margin-top:8px">Subtle border, muted text</div>
+    </div>
+    <div class="state-box">
+      <div class="state-name">Hover</div>
+      <a class="store-chip" href="#" style="pointer-events:none; border-color: #E8963A; color: #E8963A;">
+        <span class="letter" style="background: rgba(232,150,58,0.2); color: #E8963A;">B</span>Beatport<span class="ext" style="color:#E8963A;">&#8599;</span>
+      </a>
+      <div class="state-desc" style="margin-top:8px">Amber border + text</div>
+    </div>
+    <div class="state-box">
+      <div class="state-name">Focus</div>
+      <a class="store-chip" href="#" style="pointer-events:none; outline: 2px solid #E8963A; outline-offset: 2px;">
+        <span class="letter">B</span>Beatport<span class="ext">&#8599;</span>
+      </a>
+      <div class="state-desc" style="margin-top:8px">2px amber focus ring</div>
+    </div>
+    <div class="state-box">
+      <div class="state-name">Active</div>
+      <a class="store-chip" href="#" style="pointer-events:none; background: rgba(232,150,58,0.15); border-color: #E8963A; color: #E8963A;">
+        <span class="letter" style="background: rgba(232,150,58,0.3); color: #E8963A;">B</span>Beatport<span class="ext" style="color:#E8963A;">&#8599;</span>
+      </a>
+      <div class="state-desc" style="margin-top:8px">Filled amber bg</div>
+    </div>
+  </div>
+</div>
+
+<!-- DIMENSIONS -->
+<div class="section">
+  <div class="label">Dimensions</div>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; max-width: 500px;">
+    <div style="font-size: 11px; color: #8A8078;">Store chip height: <span class="annotation">24px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Store chip padding: <span class="annotation">3px 10px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Letter avatar: <span class="annotation">16x16px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Strip padding: <span class="annotation">6px 12px 8px 44px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Chip gap: <span class="annotation">6px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Total expanded height: <span class="annotation">~32px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Trigger icon: <span class="annotation">28x28px</span></div>
+    <div style="font-size: 11px; color: #8A8078;">Touch target (chip): <span class="annotation">24px h (mobile concern)</span></div>
+  </div>
+</div>
+
+</body>
+</html>

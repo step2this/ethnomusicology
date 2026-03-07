@@ -1,7 +1,7 @@
 {
   "project": {
-    "name": "Ethnomusicology — Purchase Link Panel",
-    "description": "Expandable panel on track tiles showing search links to DJ stores (Beatport, Bandcamp, Juno Download, Traxsource) for purchasing tracks",
+    "name": "Ethnomusicology — Import & Catalog",
+    "description": "DJ-first music platform: LLM-powered setlist generation, harmonic mixing, multi-source preview playback",
     "platform": "web",
     "tech_stack": ["Flutter", "Dart", "Riverpod", "GoRouter", "Material 3"]
   },
@@ -159,8 +159,25 @@
       "rounds_completed": 1
     }
   ],
-  "current_facet": null,
-  "current_round": null,
+  "purchase_panel_facet": {
+    "id": "purchase-panel",
+    "skill": "crit-component-design",
+    "name": "Purchase Panel Component",
+    "lens": "compositional",
+    "rationale": "Expandable panel on track tiles showing search links to DJ stores — new component for UC-020",
+    "depends_on": ["component-design"],
+    "status": "locked",
+    "enabled": true,
+    "locked_option": "option-a",
+    "locked_summary": "Chip Strip: horizontal row of pill-shaped store chips expanding inline below source attribution row. +32px expansion. Compact, matches existing chip vocabulary (Camelot key chips, source pills).",
+    "decided_by": "user",
+    "decision_rationale": "User preference for inline chip strip. Most compact expansion, consistent with existing design vocabulary.",
+    "rounds_completed": 1,
+    "current_round": 1,
+    "options": ["option-a", "option-b", "option-c"]
+  },
+  "current_facet": "purchase-panel",
+  "current_round": 1,
   "direction_status": "complete",
   "direction_generated": "2026-03-01",
   "deliverables": [
