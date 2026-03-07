@@ -1,103 +1,123 @@
 # Use Case: UC-020 Generate Purchase Links for Tracks
 
 ## Classification
-- **Goal Level**: 🐟 Subfunction
+- **Goal Level**: Subfunction
 - **Scope**: System (black box)
 - **Priority**: P1 Important
-- **Complexity**: 🟢 Low
+- **Complexity**: Low
 
 ## Actors
-- **Primary Actor**: App User (authenticated, DJ)
-- **Supporting Actors**:
-  - Database (track metadata with platform IDs)
+- **Primary Actor**: App User (DJ)
+- **Supporting Actors**: None (pure URL construction, no external API calls)
 - **Stakeholders & Interests**:
-  - DJ User: Wants one-tap access to buy/stream tracks — especially suggestions from UC-016 that aren't in their catalog yet
-  - Business: Purchase links drive user value and potential future affiliate revenue
+  - DJ User: Wants one-tap access to buy tracks from DJ stores — especially LLM suggestions not in their catalog
+  - Business: Purchase links drive user value and future affiliate revenue (Beatport, Juno)
 
 ## Conditions
 - **Preconditions** (must be true before starting):
-  1. Track exists in database with at least one platform identifier (beatport_id, soundcloud_urn, spotify_uri) OR track is an LLM suggestion with title + artist
+  1. Track has title and artist fields (from catalog, LLM generation, or saved setlist)
 
 - **Success Postconditions** (true when done right):
-  1. Each track displays clickable links to its source platforms (Beatport, SoundCloud, Spotify)
-  2. Links open in a new browser tab to the correct track/release page
-  3. LLM-suggested tracks (not in catalog) have search-based links constructed from title + artist
-  4. Links are generated at display time (not stored) — always fresh URLs
+  1. Each track displays a purchase link panel with links to up to 4 DJ stores (Beatport, Bandcamp, Juno Download, Traxsource)
+  2. Links are search-URL templates constructed from title + artist — no platform IDs required
+  3. Links open in a new browser tab via `url_launcher`
+  4. Links are computed on-demand at display time (not persisted) — works for fresh and saved setlists
+  5. Purchase link panel is visually SEPARATE from source attribution icons (Spotify, SoundCloud, Deezer)
+  6. Affiliate tags are appended to Beatport and Juno URLs (when registered)
+  7. Store order is consistent: Beatport > Bandcamp > Juno Download > Traxsource
 
 - **Failure Postconditions** (true when it fails gracefully):
-  1. If a track has no platform identifiers, show "Search on Beatport" with a search query link
-  2. Dead links (platform removed the track) are handled by the destination platform, not us
+  1. If title or artist is empty/null, purchase panel shows "No purchase links available"
+  2. Dead links (store removed the track or no results) are handled by the destination store, not us
 
 - **Invariants** (must remain true throughout):
-  1. Links are direct URL construction — no API calls needed
+  1. Links are pure URL construction — no API calls, no server-side verification
   2. Links open externally via `url_launcher` (not in-app webview)
+  3. Source attribution icons (existing Spotify/SoundCloud/Deezer links) are unchanged
 
 ## Main Success Scenario
-1. User views a track in their catalog or a setlist
-2. System checks the track's platform identifiers (beatport_id, soundcloud_urn, spotify_uri)
-3. For each available identifier, system constructs a direct URL:
-   - Beatport: `https://www.beatport.com/track/{slug}/{beatport_id}`
-   - SoundCloud: `https://soundcloud.com/{permalink}` (stored as permalink_url)
-   - Spotify: `https://open.spotify.com/track/{spotify_id}` (extracted from URI)
-4. System displays platform icons/buttons next to the track, each linking to the respective platform
-5. User taps a platform icon — link opens in a new browser tab via `url_launcher`
+1. User views a track in a setlist (fresh, saved, or crate)
+2. User expands/opens the purchase link panel for that track
+3. System constructs search URLs from track title + artist for each store:
+   - Beatport: `https://www.beatport.com/search?q={encoded(artist + " " + title)}`
+   - Bandcamp: `https://bandcamp.com/search?q={encoded(artist + " " + title)}`
+   - Juno Download: `https://www.junodownload.com/search/?q%5Ball%5D%5B0%5D={encoded(artist + " " + title)}`
+   - Traxsource: `https://www.traxsource.com/search?term={encoded(artist + " " + title)}`
+4. System displays store icons/buttons with store names, each linking to the search URL
+5. User taps a store link — opens in new browser tab
 
 ## Extensions (What Can Go Wrong)
 
-- **2a. Track has no platform identifiers (manually added or data gap)**:
-  1. System generates search-based fallback links:
-     - Beatport: `https://www.beatport.com/search?q={url_encode(artist + " " + title)}`
-     - SoundCloud: `https://soundcloud.com/search?q={url_encode(artist + " " + title)}`
-     - Spotify: `https://open.spotify.com/search/{url_encode(artist + " " + title)}`
-  2. Links labeled "Search on [Platform]" instead of direct links
+- **2a. Track has empty/null title or artist**:
+  1. If title is present but artist is missing (or vice versa), construct URLs with available field only
+  2. If both are empty, show "No purchase links available" message
 
-- **2b. Track is an LLM suggestion (from UC-016, not in catalog)**:
-  1. System constructs search-based links using title + artist from LLM response
-  2. If LLM provided `find_on` field (e.g., "beatport"), that platform is shown first
-  3. All three platform search links shown as options
+- **3a. Special characters in title/artist**:
+  1. URL-encode all query parameters (handles &, +, /, etc.)
+  2. Parenthetical remix info (e.g., "(Villalobos Remix)") included in search query — helps find correct version
 
-- **3a. Beatport track slug is unknown (only ID stored)**:
-  1. Construct a search URL instead: `https://www.beatport.com/search?q={url_encode(title + " " + artist)}`
-  2. Note: Beatport track URLs follow the pattern `https://www.beatport.com/track/{slug}/{beatport_id}`. The `slug` must be stored during import (UC-013) from the API's `slug` field. If slug is missing at display time, fall back to the search URL above.
-
-- **5a. `url_launcher` fails (platform not supported)**:
+- **5a. `url_launcher` fails**:
   1. Copy link to clipboard as fallback
   2. Show toast: "Link copied — open in your browser"
 
+- **5b. Track is very underground / vinyl-only**:
+  1. Store search page may return no results — this is expected (SP-009: 30% miss rate even on Beatport/Bandcamp)
+  2. No special handling needed — user sees the store's "no results" page
+  3. This is the standard pattern used by other music platforms
+
+## Design Notes (from SP-009)
+
+### Source Attribution vs Purchase Links — DIFFERENT concerns
+- **Source attribution icons** (existing): Show where we found the track (Spotify logo, SoundCloud logo, Deezer preview indicator). These use platform IDs/URIs. Already implemented.
+- **Purchase link panel** (this UC): Show where to BUY the track. Uses search URLs to DJ stores. New feature.
+- These MUST be visually distinct — different section, different interaction pattern.
+
+### Store Coverage (SP-009 findings)
+- Beatport: 60% hit rate, best DJ metadata (BPM/key in results), affiliate available
+- Bandcamp: 70% hit rate, best for underground/independent, no affiliate but highest user value
+- Juno Download: Unverified (403 server-side), wide catalog, affiliate available
+- Traxsource: Unverified (403 server-side), strong house/disco reputation
+
+### Empty State Design
+- Underground tracks (re:ni, DJ Stingray, etc.) may not be on ANY digital store
+- The purchase panel always shows all 4 store links — the store's search page handles "not found"
+- No server-side hit verification — just provide the search links
+
 ## Variations
 
-- **V1. Bulk Purchase Links**: User selects multiple tracks (or entire setlist) and gets a consolidated list of purchase links, grouped by platform.
-- **V2. Price Display**: If Beatport API provides pricing, show price alongside link (future enhancement, requires API call).
-- **V3. "Buy This Setlist"**: Aggregate all suggestion tracks from a setlist into a shopping list with links.
+- **V1. Affiliate Tags**: Append Beatport and Juno affiliate parameters once registered. Implementation: config-driven affiliate tag appended to base URL.
+- **V2. Bulk Purchase Links**: User selects entire setlist and gets consolidated list of purchase links grouped by store (post-MVP).
+- **V3. Store Preferences**: User can reorder or hide stores based on their preferences (post-MVP).
 
 ## Agent Execution Notes
-- **Verification Command**: `cd backend && cargo test --test purchase_links && cd ../frontend && flutter test test/purchase_links_test.dart`
-- **Test File**: `backend/tests/purchase_links.rs`, `frontend/test/purchase_links_test.dart`
-- **Depends On**: UC-001 (Spotify URIs), UC-013 (Beatport IDs), UC-014 (SoundCloud URNs/permalinks), UC-016 (suggestion tracks)
+- **Verification Command**: `cd backend && cargo test` then `cd frontend && flutter test`
+- **Depends On**: SP-009 (store viability spike — COMPLETE)
 - **Blocks**: None (leaf feature)
-- **Estimated Complexity**: S (~800 tokens implementation budget)
-- **Agent Assignment**:
-  - Teammate:Backend — URL construction utility (pure function, no API calls), expose via track metadata endpoint
-  - Teammate:Frontend — Platform icon buttons, url_launcher integration, search fallback for suggestions
+- **Estimated Complexity**: S-M
 
 ### Key Implementation Details
-- **URL templates** (pure string construction):
+- **Backend endpoint**: `GET /api/purchase-links?title=X&artist=Y` returns ordered list of store links
+  - Pure URL construction, no external API calls
+  - Response: `{ "links": [{ "store": "beatport", "name": "Beatport", "url": "https://...", "icon": "beatport" }, ...] }`
+  - Affiliate tags appended server-side (configurable, not hardcoded in frontend)
+- **Frontend**: `PurchaseLinkPanel` widget — expandable section below track info, separate from source attribution icons
+- **URL templates** (validated in SP-009):
   ```
-  beatport:    https://www.beatport.com/track/{beatport_slug}/{beatport_id}
-  soundcloud:  {permalink_url}  (stored directly)
-  spotify:     https://open.spotify.com/track/{id}  (extracted from spotify:track:{id})
-  search:      https://www.beatport.com/search?q={encoded_query}
+  beatport:     https://www.beatport.com/search?q={encoded_query}
+  bandcamp:     https://bandcamp.com/search?q={encoded_query}
+  juno:         https://www.junodownload.com/search/?q%5Ball%5D%5B0%5D={encoded_query}
+  traxsource:   https://www.traxsource.com/search?term={encoded_query}
   ```
-- **Frontend**: `url_launcher` package (already used in UC-001), `launchUrl()` with `LaunchMode.externalApplication`
-- **No migration needed** — uses existing platform ID columns (UC-013 migration must include `beatport_slug` column)
-- **No API calls** — pure URL construction from stored metadata
-- **Beatport slug**: UC-013 import must store the Beatport API's `slug` field alongside `beatport_id` to enable direct track URLs
+- **No migration needed** — URLs computed from title + artist at request time
+- **No platform IDs needed** — works for all tracks (catalog, LLM suggestions, saved setlists)
 
 ## Acceptance Criteria (for grading)
-- [ ] Catalog tracks with platform IDs generate correct direct links
-- [ ] LLM suggestion tracks generate search-based links
+- [ ] Purchase link panel displays for tracks in setlists
+- [ ] All 4 stores (Beatport, Bandcamp, Juno Download, Traxsource) have working search URLs
+- [ ] URLs are correctly encoded (special characters, remix info in parens)
 - [ ] Links open in external browser via url_launcher
-- [ ] All three platforms (Beatport, SoundCloud, Spotify) supported
-- [ ] Tracks with no identifiers fall back to search links
-- [ ] URL encoding handles special characters in track/artist names
-- [ ] No API calls required for link generation
+- [ ] Purchase panel is visually separate from source attribution icons
+- [ ] Backend endpoint returns ordered store links from title + artist
+- [ ] No API calls to external services — pure URL construction
+- [ ] Empty/null title or artist handled gracefully
+- [ ] Affiliate tag support is configurable (even if not yet registered)
