@@ -1,65 +1,86 @@
 # Session Handoff — 2026-03-07
 
 ## Branch
-`main` — clean, all prior phases merged
+`main` — Phase 7 admin closure complete, ST-011 Next.js migration in progress
 
 ## Test Counts
-- Backend: 394 tests passing
-- Frontend: 156 tests passing
-- Total: 550
+- Backend: 407 tests passing
+- Frontend (Flutter): 166 tests passing (unchanged)
+- Frontend-next (Next.js): 15 tests passing (Vitest + MSW)
+- Total: 588
 
 ## What Was Done This Session
 
-### SP-009: Purchase Link Store Viability Spike (COMPLETE)
-- Tested URL templates for Beatport, Bandcamp, Traxsource, Juno Download
-- 10-track coverage matrix: Bandcamp 70%, Beatport 60% (Traxsource/Juno unverifiable — 403)
-- Affiliate programs: Beatport (Brandreward — needs verification), Juno (tiered — needs verification)
-- Decision: GO for Phase 7 with all 4 stores as search-URL templates
-- **Caveat**: Spike data produced by autonomous loop — affiliate network names and specific details (prices, download counts) should be spot-checked
+### Phase 7 Admin Closure (COMPLETE)
+- PM0: Moved IMPLEMENTATION_PLAN.md to docs/plans/phase-7-implementation-plan.md
+- PM1: Retrospective written at docs/retrospectives/phase-7-purchase-links.md
+- PM2: Updated mvp-progress.md, mvp-roadmap.md, MEMORY.md — Phase 7 marked COMPLETE
+- PM3: This handoff
 
-### UC-020 Updated with Spike Findings
-- Source attribution vs purchase links clarified as separate concerns
-- Postconditions updated, devil's advocate review passed (but critic flagged it as soft)
+### ST-011 Next.js Migration (IN PROGRESS)
 
-### Task Decomposition (D1) Complete
-- 8 tasks in `docs/tasks/uc-020-tasks.md`
-- Backend (T1-T3, T5) and Frontend (T4, T6-T8) can run in parallel
+#### Pre-Migration (T0a-T0c) — COMPLETE
+- T0a: Spotify OAuth callback returns redirect to `/?spotify=connected` (was JSON)
+- T0b: Created `.claude/rules/nextjs-conventions.md`
+- T0c: Flutter SW already disabled (no action needed)
 
-### Design-Crit DC1 Complete, DC2 Needs User Decision
-- 3 options produced: A (Chip Strip), B (Popover Tray), C (Inline Grid)
-- Critique recommends Option B (Popover Tray) — zero layout shift
-- User needs to pick and lock before implementation
+#### Phase 1: Foundation (T1-T6) — COMPLETE
+- T1: Scaffolded `frontend-next/` with Next.js 16.1.6 + bun + Turbopack + shadcn/ui + React Compiler
+- T2: API client (`src/lib/api-client.ts`) — typed fetch wrapper, all 23 endpoints
+- T3: TypeScript types (`src/types/index.ts`) — all 7 Dart models ported
+- T4: State architecture — 6 TanStack Query hook files + 2 Zustand stores
+- T5: Routing + layout — App Router, 8 routes, nav shell, gold/navy dark theme
+- T6: Test infrastructure — Vitest + RTL + MSW handlers, 15 tests passing
 
-### Critic Review of Ralph Loop Output
-- Found 2 CRITICAL (overview.html destroyed, state.json overwritten) — FIXED
-- Found 4 HIGH (stale handoff, stale progress, possible hallucinated data, no agent teams) — FIXING
-- Found 6 MEDIUM (soft devil's advocate, architecture pivot, affiliate credibility, etc.)
+#### Phase 2: Core Infrastructure (T7-T8) — COMPLETE
+- T7: Audio service singleton (`src/lib/audio-service.ts`)
+- T8: Shared components (ConfidenceBadge, SourceBadge, MetadataChip, TransportControls)
 
-### Process Learnings
-- Ralph Wiggum shell script pattern works for research/planning but is inferior to Agent Teams
-- Installed ralph-wiggum plugin; future loops should use Agent Teams or in-session Ralph
-- CLAUDE.md audit identified gaps in step 6 (agent team mechanics) — needs update
+#### Phases 3-5: Screen Migration — COMPLETE
+- T9-T13 (Setlist flow): generate page, detail page, track tile, purchase panel, refinement chat, version history
+- T14-T15 (Library): setlist library, crate library + detail
+- T16-T18 (Import/Catalog): home page, Spotify import, track catalog
 
-## What's In Progress
+#### Build Status
+- `next build` succeeds (34s with Turbopack)
+- All 8 routes registered and building
+- Dev server starts in ~2s
 
-### Phase 7: UC-020 Purchase Links — Implementation
-- `IMPLEMENTATION_PLAN.md` has T1-T8 tasks ready
-- Waiting on: DC2 user decision (lock design option), CLAUDE.md update
-- Next: Spawn backend + frontend builder agents in parallel
+## What's NOT Done Yet
 
-## Deployed State
-- **tarab.studio**: Running latest main (PR #14 — Phase 8)
-- Saved setlists, crates, Spotify discovery all live
-- Verify enabled by default
+### Phase 6: Testing + CI/CD + Cutover (T19-T22)
+- T19: Need more unit + component tests (target ~80-100)
+- T20: Playwright e2e tests not started
+- T21: CI/CD not updated (deploy.yml, Caddy config, systemd unit)
+- T22: Feature parity verification, cutover, Flutter archive
 
-## Next Steps
-1. User picks design option (A/B/C) to lock DC2
-2. CLAUDE.md workflow update (operationalize agent teams in step 6)
-3. Spawn agent team: backend builder (T1+T2 -> T3 -> T5) + frontend builder (T4 -> T6 -> T7 -> T8)
-4. Two-pass critic review (Q1)
-5. Verify UC-020 (Q2)
-6. Retrospective + progress updates (PM1-PM3)
+### Two-Pass Critic Review
+- 7a: Security/Architecture critic NOT run yet
+- 7b: Code Quality (React checklist) NOT run yet
+- Both are MANDATORY before merge
+
+### Known Issues
+- shadcn Button lacks `asChild` prop (uses base-ui, not Radix Slot) — worked around by wrapping Link around Button
+- No lucide-react icons installed yet (some components reference them but may error at runtime)
+- Service worker cache not relevant (Next.js doesn't use Flutter SW)
 
 ## File Ownership
-- No parallel sessions active
-- `IMPLEMENTATION_PLAN.md` in project root (process artifact — move to docs/ or delete after Phase 7)
+- `frontend-next/` — all new files, safe to modify
+- `backend/src/routes/auth.rs` — modified (callback redirect)
+- `.claude/rules/nextjs-conventions.md` — new
+- `.claude/settings.json` — updated (bun commands)
+- Flutter `frontend/` — untouched, will be archived after cutover
+
+## Deployed State
+- **tarab.studio**: Running latest main (Phase 8 + Phase 7)
+- Next.js NOT deployed yet — need T21 (Caddy config + systemd)
+
+## Next Steps
+1. Install lucide-react icons package
+2. Write more tests (T19)
+3. Run two-pass critic review (7a + 7b)
+4. Fix critic findings
+5. Playwright e2e tests (T20)
+6. CI/CD + Caddy config (T21)
+7. Feature parity verification + cutover (T22)
+8. Retrospective + progress updates

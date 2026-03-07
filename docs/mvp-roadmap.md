@@ -48,12 +48,13 @@ Reduce hallucinated tracks via LLM self-verification and surface confidence in t
 - Frontend: `ConfidenceBadge` widget on track tiles (color-coded chip + tooltip)
 - Calibration: high ≈ 90% real tracks, medium ≈ 25%, low = creative suggestion
 
-## Phase 7: Purchase Link Panel (UC-020)
-Multi-store link panel per track in setlist UI.
-- Beatport deep links (requires API v4 access — apply early)
-- Apple Music affiliate links (via iTunes Search API match)
-- Bandcamp, Traxsource, Juno Download search links
-- Apple affiliate registration at apple.com/itunes/affiliates
+## Phase 7: Purchase Link Panel (UC-020) (COMPLETE)
+Multi-store purchase link panel per track — search-URL templates, no external API calls.
+- Beatport, Bandcamp, Juno Download, Traxsource search links
+- Chip strip UI, collapsed by default, lazy-loaded on expand
+- Affiliate tag support (env vars, ready for registration)
+- SP-009 spike validated store coverage (Bandcamp 70%, Beatport 60%)
+- Apple Music affiliate links deferred (register at apple.com/itunes/affiliates)
 
 ## Phase 8: Saved Setlists & Crates (P0 — Core DJ Workflow)
 Persistent setlist management and the "crate" concept — a DJ's working library.

@@ -25,7 +25,7 @@
 | UC-019 | Track attribution links | ✅ | Clickable title/artist → Google search, Spotify links for catalog tracks |
 | UC-019 | Waveform visualization | ⬜ | Deferred — post-MVP polish |
 | UC-020 | Google search links | ✅ | Implemented on track title/artist |
-| UC-020 | Multi-store purchase link panel | 🔄 | Phase 7: Beatport, Bandcamp, Juno Download, Traxsource (SP-009 COMPLETE — Bandcamp 70%, Beatport 60% hit rate) |
+| UC-020 | Multi-store purchase link panel | ✅ | Phase 7: Beatport, Bandcamp, Juno Download, Traxsource. SP-009 spike + UC-020 implementation COMPLETE. |
 | UC-020 | Apple Music affiliate links | ⬜ | Phase 7: register at apple.com/itunes/affiliates, add `at=` param to iTunes URLs |
 | UC-023 | Multi-turn refinement | ✅ | ST-007 backend + frontend. PR #5 merged. |
 | UC-023 | Version history + undo | ✅ | ST-007 backend + frontend. PR #5 merged. |
@@ -41,9 +41,12 @@
 | Phase 8 | Spotify URI discovery | ✅ | PR #14: Client Credentials flow, spotify_uri in audio search response |
 | Phase 8 | Setlist delete/rename/duplicate | ✅ | PR #14: backend handlers + frontend actions |
 
+| Phase 7 | Purchase link panel (4 stores) | ✅ | UC-020: Beatport, Bandcamp, Juno Download, Traxsource search URLs, affiliate tag support |
+| Phase 7 | Purchase link panel on track tiles | ✅ | Chip strip design, collapsed by default, lazy-loaded on expand |
+
 Status: ⬜ backlog, 🔄 doing, ✅ done
 
 ## Test Counts (as of 2026-03-07)
-- Backend: 394 tests
-- Frontend: 156 tests
-- Total: 550 tests
+- Backend: 407 tests
+- Frontend: 166 tests
+- Total: 573 tests
