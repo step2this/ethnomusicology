@@ -103,7 +103,7 @@ class _SetlistLibraryScreenState extends ConsumerState<SetlistLibraryScreen> {
               ],
             ),
             onTap: () =>
-                context.go('${AppRoutes.setlistView}/${s.id}'),
+                context.go('/setlists/${s.id}'),
           ),
         );
       },

@@ -127,7 +127,7 @@ class ApiClient {
 
   Future<List<SetlistSummary>> listSetlists() async {
     final response = await _dio.get('/setlists');
-    final list = response.data as List<dynamic>;
+    final list = (response.data['setlists'] as List<dynamic>?) ?? [];
     return list
         .map((e) => SetlistSummary.fromJson(e as Map<String, dynamic>))
         .toList();
@@ -156,7 +156,7 @@ class ApiClient {
 
   Future<List<Crate>> listCrates() async {
     final response = await _dio.get('/crates');
-    final list = response.data as List<dynamic>;
+    final list = (response.data['crates'] as List<dynamic>?) ?? [];
     return list
         .map((e) => Crate.fromJson(e as Map<String, dynamic>))
         .toList();
