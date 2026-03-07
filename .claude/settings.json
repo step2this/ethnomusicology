@@ -7,6 +7,8 @@
       "Bash(rustfmt *)",
       "Bash(flutter *)",
       "Bash(dart *)",
+      "Bash(~/.bun/bin/bun *)",
+      "Bash(~/.bun/bin/bunx *)",
       "Bash(python *)",
       "Bash(python3 *)",
       "Bash(pip *)",
@@ -71,6 +73,7 @@
   },
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true,
-    "design-crit@metedata-design-tools": true
+    "design-crit@metedata-design-tools": true,
+    "ralph-wiggum@claude-code-plugins": true
   }
 }
