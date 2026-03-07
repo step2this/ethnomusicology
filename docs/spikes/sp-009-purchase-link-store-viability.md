@@ -8,7 +8,7 @@ Constructing search URL templates for major DJ music stores (Beatport, Traxsourc
 
 - **Maximum Hours**: 4h
 - **Start Date**: 2026-03-07
-- **Status**: In Progress
+- **Status**: COMPLETE
 
 ## Questions to Answer
 
@@ -225,3 +225,87 @@ Five tracks spanning classic, popular, and niche electronic music tested against
 4. **Juno Download** (unverified) — Wide catalog, multi-format. Include as template URL.
 
 **Both verified stores exceed the 60% threshold from the hypothesis.** Traxsource and Juno should be included as template-only links (the user's browser handles the search). The "miss" tracks (re:ni, DJ Stingray, Identified Patient) are likely vinyl-only or extremely limited releases not available on any digital store — this is expected for the deepest underground tracks.
+
+## S4: Affiliate Program Assessment
+
+### Beatport
+
+- **Program**: Active. Available via Brandreward affiliate network.
+- **Commission**: 5-10% on sales
+- **Cookie duration**: 3 days
+- **Cost to join**: Free
+- **Verdict**: AVAILABLE. Easy to integrate — append affiliate tag to search URLs.
+
+### Bandcamp
+
+- **Program**: No official public affiliate program.
+- **Commission**: N/A
+- **Verdict**: NO AFFILIATE. Include as search link anyway — Bandcamp has the best underground coverage (70% hit rate) and directly supports artists. No revenue share for us, but high user value.
+
+### Traxsource
+
+- **Program**: Exists but details are sparse. Appears to offer commissions for driving purchases.
+- **Commission**: Unknown (not publicly documented)
+- **Verdict**: POSSIBLY AVAILABLE. Worth investigating post-MVP if volume justifies it. Include as template URL regardless.
+
+### Juno Download / Juno Records
+
+- **Program**: Active at affiliate.juno.co.uk. Tiered commission model.
+- **Commission**: Tiered — increases with referral volume. Bonus £5 signup + £5 after first 50 clicks.
+- **Cookie**: Tracking cookie on click-through
+- **Extras**: 1% bonus on sales from referred affiliates, free downloads, discounts at higher tiers
+- **Verdict**: AVAILABLE. Easy to join, accepts wide variety of sites.
+
+### Apple Music / iTunes (via Performance Partners)
+
+- **Program**: Apple Services Performance Partners (performance-partners.apple.com)
+- **Commission**: 2.5% on iTunes Music sales, 7% on movies/TV/books. 100% of first month on Apple Music subscriptions.
+- **Cookie duration**: 30 days
+- **Caveat**: Apple "currently only accepts a limited number of partners who can drive significant volume." Approval is selective.
+- **Verdict**: DEFER. We already have iTunes as an audio preview source (ST-008). Adding affiliate links to iTunes search is low effort, but program approval requires demonstrated volume. Apply after launch when we have traffic numbers.
+
+### Affiliate Summary
+
+| Store | Affiliate Available | Commission | Priority |
+|-------|-------------------|------------|----------|
+| Beatport | Yes (Brandreward) | 5-10% | HIGH — apply now |
+| Juno Download | Yes (affiliate.juno.co.uk) | Tiered | MEDIUM — apply now |
+| Traxsource | Unclear | Unknown | LOW — investigate later |
+| Bandcamp | No | N/A | N/A — include for user value |
+| Apple/iTunes | Yes but selective | 2.5% music | DEFER — apply post-launch |
+
+## Decision
+
+### Hypothesis Result: CONFIRMED
+
+Both Beatport (60%) and Bandcamp (70%) exceed the 60% hit rate threshold. The purchase link feature is viable.
+
+### Store Priority (Ordered)
+
+1. **Beatport** — Industry standard DJ store, best metadata (BPM/key in results), 60% hit rate, affiliate program available. Primary purchase destination for DJs.
+2. **Bandcamp** — Best coverage (70%), strongest for underground/independent. No affiliate but highest user value. Artists get paid directly.
+3. **Juno Download** — Wide catalog, multi-format downloads, affiliate program available. Template URL only (can't verify server-side).
+4. **Traxsource** — Strong house/disco reputation. Template URL only. Include for genre coverage.
+
+### Architecture Decision
+
+- **Search URL templates only** — no server-side verification needed. The user clicks through to the store's search page in their browser.
+- **On-demand computation** — construct URLs from track title + artist at display time. No persistence needed.
+- **Affiliate tags** — append to Beatport and Juno URLs once registered. Bandcamp and Traxsource get plain search URLs.
+- **Empty state** — expected for very underground tracks. Design must handle gracefully (the majority case for deep underground).
+
+### Go/No-Go
+
+- **Purchase links feature**: GO — implement in Phase 7
+- **Beatport affiliate registration**: GO — apply via Brandreward (free, immediate)
+- **Juno affiliate registration**: GO — apply at affiliate.juno.co.uk (free, easy approval)
+- **Apple affiliate registration**: NO-GO for now — selective approval, apply post-launch with traffic data
+- **Traxsource affiliate**: NO-GO for now — unclear program, investigate later
+
+## Feeds Into
+
+- **UC-020**: Purchase link panel implementation (Phase 7)
+- **Stores to include**: Beatport, Bandcamp, Juno Download, Traxsource (4 stores)
+- **Affiliate integration**: Beatport + Juno initially, Apple + Traxsource post-launch
+
+## Status: COMPLETE
