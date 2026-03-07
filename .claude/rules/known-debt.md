@@ -50,3 +50,6 @@ paths:
 | MusicBrainz client per-request | Diversity critic | Low | `reqwest::Client` created per generation request instead of shared via AppState. Wastes connection pool. |
 | MusicBrainz circuit breaker missing | Diversity critic | Medium | No circuit breaker — if MusicBrainz is down, each track query waits 5s timeout. 15 tracks = 75s added latency. SoundCloud has a circuit breaker, MB should too. |
 | MusicBrainz search_recording untested | Diversity critic | Medium | No unit test for the core `search_recording` function. Only struct/deser tests exist. Needs mock HTTP test. |
+| Purchase links endpoint unauthenticated | Phase 7 critic 7a #2 | Low | `/api/purchase-links` has no auth — inconsistent with other endpoints. Acceptable: pure computation, no side effects, no user data. Add auth/rate-limiting if affiliate IDs registered and abuse observed. |
+| Affiliate IDs visible in purchase link URLs | Phase 7 critic 7a #3 | Low | `a_aid`/`aff` params returned in JSON response. Inherent to URL-template architecture — IDs would be visible in browser URL bar anyway. Monitor for affiliate fraud post-registration. |
+| No route-level integration test for purchase links | Phase 7 critic 7a #7, 7b #6 | Low | Unit tests cover `build_purchase_links` thoroughly (13 tests). No axum oneshot test for the HTTP handler. Low priority — handler is 3 lines. |

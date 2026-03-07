@@ -18,25 +18,25 @@ final _sampleLinks = {
       'store': 'beatport',
       'name': 'Beatport',
       'url': 'https://beatport.com/search?q=Test',
-      'icon': '🎧',
+      'icon': 'beatport',
     },
     {
       'store': 'bandcamp',
       'name': 'Bandcamp',
       'url': 'https://bandcamp.com/search?q=Test',
-      'icon': '🎵',
+      'icon': 'bandcamp',
     },
     {
       'store': 'juno',
       'name': 'Juno Download',
       'url': 'https://juno.co.uk/search?q=Test',
-      'icon': '💿',
+      'icon': 'juno',
     },
     {
       'store': 'traxsource',
       'name': 'Traxsource',
       'url': 'https://traxsource.com/search?q=Test',
-      'icon': '🎶',
+      'icon': 'traxsource',
     },
   ],
 };
@@ -194,6 +194,45 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('No purchase links'), findsOneWidget);
+    });
+
+    testWidgets('shows panel with title only (no artist)', (tester) async {
+      final (:client, :interceptor) = createMockApiClient();
+      interceptor.responseOverride = _sampleLinks;
+
+      await tester.pumpWidget(_buildPanel(
+        interceptor: interceptor,
+        client: client,
+        title: 'Strings of Life',
+        artist: '',
+      ));
+
+      // Buy button should be visible (title-only is valid)
+      expect(find.text('Buy'), findsOneWidget);
+
+      // Expand and verify links load
+      await tester.tap(find.text('Buy'));
+      await tester.pumpAndSettle();
+      expect(find.text('Beatport'), findsOneWidget);
+    });
+
+    testWidgets('shows panel with artist only (no title)', (tester) async {
+      final (:client, :interceptor) = createMockApiClient();
+      interceptor.responseOverride = _sampleLinks;
+
+      await tester.pumpWidget(_buildPanel(
+        interceptor: interceptor,
+        client: client,
+        title: '',
+        artist: 'Derrick May',
+      ));
+
+      // Buy button should be visible (artist-only is valid)
+      expect(find.text('Buy'), findsOneWidget);
+
+      await tester.tap(find.text('Buy'));
+      await tester.pumpAndSettle();
+      expect(find.text('Beatport'), findsOneWidget);
     });
 
     testWidgets('collapses on second tap', (tester) async {

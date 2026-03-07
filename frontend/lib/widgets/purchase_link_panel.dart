@@ -26,7 +26,7 @@ class _PurchaseLinkPanelState extends ConsumerState<PurchaseLinkPanel> {
   List<PurchaseLink>? _links;
   String? _error;
 
-  bool get _hasTrackInfo => widget.title.isNotEmpty && widget.artist.isNotEmpty;
+  bool get _hasTrackInfo => widget.title.isNotEmpty || widget.artist.isNotEmpty;
 
   Future<void> _fetchLinks() async {
     if (!_hasTrackInfo) return;
@@ -179,9 +179,17 @@ class _PurchaseLinkPanelState extends ConsumerState<PurchaseLinkPanel> {
     );
   }
 
+  static const _storeIcons = {
+    'beatport': '🎧',
+    'bandcamp': '🎵',
+    'juno': '💿',
+    'traxsource': '🎶',
+  };
+
   Widget _buildChip(ThemeData theme, PurchaseLink link) {
+    final icon = _storeIcons[link.icon] ?? '🔗';
     return ActionChip(
-      avatar: Text(link.icon, style: const TextStyle(fontSize: 14)),
+      avatar: Text(icon, style: const TextStyle(fontSize: 14)),
       label: Text(link.name),
       labelStyle: theme.textTheme.labelSmall,
       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
