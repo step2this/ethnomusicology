@@ -1,7 +1,7 @@
 {
   "project": {
-    "name": "Ethnomusicology — Import & Catalog",
-    "description": "Multi-source import screen and DJ metadata catalog for an LLM-powered DJ setlist platform",
+    "name": "Ethnomusicology — Purchase Link Panel",
+    "description": "Expandable panel on track tiles showing search links to DJ stores (Beatport, Bandcamp, Juno Download, Traxsource) for purchasing tracks",
     "platform": "web",
     "tech_stack": ["Flutter", "Dart", "Riverpod", "GoRouter", "Material 3"]
   },

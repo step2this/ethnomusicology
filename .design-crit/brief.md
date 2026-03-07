@@ -1,51 +1,59 @@
-# Design Brief: Ethnomusicology — Import & Catalog
+# Design Brief: Purchase Link Panel (UC-020)
 
-> Multi-source import screen and DJ metadata catalog for an LLM-powered DJ setlist platform.
+> An expandable panel on each track tile that shows search links to DJ stores (Beatport, Bandcamp, Juno Download, Traxsource), enabling DJs to buy tracks discovered through LLM-generated setlists.
 
 ## Target Users and Context of Use
-DJs who build sets from digital catalogs. Laptop at a desk (primary), occasionally tablet. They think in BPM, key, and energy — not artist/title. Sessions involve importing tracks from a source, then browsing their enriched catalog to build sets. Desktop-first, used during set prep (not live performance). Usage frequency: a few times per week during active gig prep.
+DJs at a laptop during set prep. They've just generated or reviewed a setlist and want to buy tracks -- especially LLM suggestions not in their catalog. The purchase action is secondary to browsing/listening but critical for converting discovery into acquisition. Desktop-first, occasionally tablet.
 
 ## Core Interaction Loop
-Select source → paste URL → import tracks → browse catalog with DJ metadata (BPM, Camelot key, genre, label, source). For this scope: **source tab → URL → import → enriched track list**.
+See track in setlist -> want to buy it -> expand purchase panel -> tap store link -> store opens in new tab with search results. One-tap-per-store, collapsed by default to avoid clutter.
 
 ## Differentiator
-Multi-source import with DJ-grade metadata visible at a glance. Beatport imports arrive with native BPM/key — no analysis needed. Camelot key color-coding gives instant harmonic compatibility awareness. The catalog view is designed for DJs (Rekordbox-influenced), not casual listeners.
+Multi-store search links from a single panel. Most DJ tools link to one store (usually their own). This gives DJs choice across Beatport, Bandcamp, Juno Download, and Traxsource -- covering different catalog strengths (Beatport for mainstream electronic, Bandcamp for underground/independent).
 
 ## Platform and Constraints
 - **Platform:** Web (Flutter Web, Chrome primary)
-- **Tech stack:** Flutter/Dart, Riverpod state management, GoRouter navigation, Material 3
-- **Device targets:** Desktop-first, responsive to tablet. No mobile-first requirement.
-- **Hard constraints:** Arabic/RTL text support (Noto Sans Arabic in design system). No streaming audio on these screens.
+- **Tech stack:** Flutter/Dart, Riverpod, Material 3, url_launcher
+- **Device targets:** Desktop-first, responsive to tablet
+- **Hard constraints:** Links are pure URL construction (no external API calls). Panel must be visually SEPARATE from existing source attribution icons (Spotify/SoundCloud/Deezer). Underground tracks may not be on any store -- the "empty result" is the store's search page, not our UI problem.
 
 ## Scope
 ### In v1
-- Tabbed import screen: Spotify | Beatport | SoundCloud (disabled/coming soon)
-- Beatport tab: URL input, validation, import flow (no OAuth — app-level credentials)
-- Spotify tab: existing OAuth + URL flow (preserve current behavior)
-- Import progress indicator and summary (reuse existing patterns)
-- Track catalog with enriched tiles: album art, title, artist, BPM, Camelot key (color-coded chip), genre, source badge
-- Camelot key color-coding using wheel-position tinting
+- Expandable purchase panel on each track tile (collapsed by default)
+- 4 store links: Beatport, Bandcamp, Juno Download, Traxsource (fixed order)
+- Lazy-loaded on expand (calls `GET /api/purchase-links?title=X&artist=Y`)
+- Store icon/button treatment per store
+- url_launcher to open in external browser tab
+- Clipboard fallback if url_launcher fails
+- Empty state when both title and artist are missing
 
 ### Out of v1
-- Setlist generation UI (UC-016, future sprint)
-- Crossfade preview player (UC-019)
-- Catalog search, sort, and filter controls
-- Dense table view toggle (future enhancement)
-- Mobile layout optimization
-- SoundCloud import (UC-014, implemented later but tab placeholder shown)
+- Hit verification (checking if a store actually has the track)
+- Store preference reordering
+- Bulk purchase links for entire setlist
+- Affiliate tag registration (infrastructure ready, no active affiliates yet)
+- Custom store icons/logos (use Material icons or text initially)
 
 ## Existing Design Language
-Comprehensive design system at `.claude/skills/design-system.md`:
-- Material 3 via `ColorScheme.fromSeed`, Navy #1A237E primary, Gold #F9A825 secondary
-- Noto Sans (body) + Noto Sans Arabic + Playfair Display (headings)
-- 4dp spacing grid with defined tokens (xs=4, sm=8, md=16, lg=24, xl=32)
-- Elevation: Material 3 tonal elevation (5 levels)
-- Border radius tokens: xs=4, sm=8, md=12, lg=16, xl=24
-- Existing components: TrackTile (basic ListTile), ConnectionCard, ImportProgress, ImportSummary
-- Motion specs defined (micro=100ms, fast=150ms, standard=300ms, emphasis=500ms)
+Full design system from previous crit cycle (locked):
+- **Color:** Ember Crate palette -- amber (#E8963A) primary, copper (#C06030) secondary, warm blacks (#0F0D0B)
+- **Typography:** Inter Tight + JetBrains Mono, 7-level scale
+- **Spacing:** 4px base unit, 40px track rows, Studio density
+- **Elevation:** Wire Lift -- flat table, shadows only on floating elements
+- **Components:** Existing track tile with metadata chips, source attribution row, preview status dots, confidence indicators
 
 ## Accessibility Requirements
-Unknown — will audit in accessibility area. Material 3 defaults provide baseline. Arabic text rendering supported via Noto Sans Arabic font choice. Touch targets follow 48dp Material minimum.
+Keyboard accessible (Enter/Space to expand, Tab through store links). Store links must have descriptive labels for screen readers. Touch targets follow 48dp Material minimum. Will inherit locked accessibility decisions from previous crit.
+
+---
+
+## Design Questions to Resolve
+
+| # | Question | Design Impact |
+|---|----------|---------------|
+| 1 | **Expandable inline panel vs bottom sheet?** UC specifies collapsed-by-default expandable panel. Should it expand inline (pushing content down) or slide up as a bottom sheet? Inline keeps context; bottom sheet avoids layout shift. | Layout, animation, mobile behavior |
+| 2 | **Store icon treatment** -- Material icons (shopping_cart, storefront), first-letter avatars ("B", "J"), or simple text buttons? No official store logos available as Flutter icons. | Component design, visual density |
+| 3 | **Trigger button placement** -- Where does the "Buy" button sit in the existing track tile? Options: end of metadata chip row, in the action area (near play button), or as a new row below metadata. | Hierarchy, scannability |
 
 ---
 
@@ -53,6 +61,8 @@ Unknown — will audit in accessibility area. Material 3 defaults provide baseli
 
 | Decision | Choice | Rationale |
 |----------|--------|-----------|
-| Source selector | Tabs on single screen | Keeps flow together, easy switching. Beatport tab skips OAuth card. |
-| Catalog density | Enriched tiles | Album art + DJ metadata chips. More visual than a table, fits the design system's TrackTile pattern. |
-| Camelot key treatment | Colored chips | Chip with tinted background by wheel position. Immediate visual harmonic awareness. |
+| Interaction pattern | Collapsed-by-default expandable panel | Avoids visual clutter. DJs only expand when they want to buy. Lazy-loads API call on expand (1ms server-side). |
+| Store count | 4 stores, fixed order | Beatport > Bandcamp > Juno Download > Traxsource. Covers mainstream electronic + underground. More would add clutter for diminishing returns. |
+| Visual separation | Separate section from source attribution | Source attribution (Spotify/SoundCloud/Deezer) shows WHERE we found the track. Purchase links show WHERE to BUY. Different concerns, different UI sections. |
+| Empty state | Store search page handles "not found" | Underground tracks may not be on any store. We always show all 4 links -- the store's search page handles empty results. No client-side "not found" needed. |
+| Link opening | url_launcher + clipboard fallback | External browser tab via url_launcher. If it fails, copy URL to clipboard and show SnackBar. |
