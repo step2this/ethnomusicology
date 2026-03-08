@@ -121,7 +121,6 @@ struct RedirectResponse {
     redirect_url: String,
 }
 
-
 #[derive(Serialize)]
 struct ErrorResponse {
     error: String,
@@ -560,7 +559,12 @@ mod tests {
         // Should redirect to /?spotify=connected
         assert_eq!(response.status(), StatusCode::SEE_OTHER);
         assert_eq!(
-            response.headers().get("location").unwrap().to_str().unwrap(),
+            response
+                .headers()
+                .get("location")
+                .unwrap()
+                .to_str()
+                .unwrap(),
             "/?spotify=connected"
         );
 

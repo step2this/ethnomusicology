@@ -46,7 +46,8 @@
 
 Status: ⬜ backlog, 🔄 doing, ✅ done
 
-## Test Counts (as of 2026-03-07)
+## Test Counts (as of 2026-03-08)
 - Backend: 407 tests
-- Frontend: 166 tests
-- Total: 573 tests
+- Frontend (Next.js vitest): 100 tests
+- Frontend (Playwright e2e): 38 tests
+- Total: 545 tests
