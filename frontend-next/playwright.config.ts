@@ -18,6 +18,6 @@ export default defineConfig({
     command: 'bun --bun next dev',
     port: 3000,
     reuseExistingServer: !process.env.CI,
-    timeout: 30000,
+    timeout: 60000,
   },
 });

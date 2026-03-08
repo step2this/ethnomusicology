@@ -53,9 +53,9 @@ jobs:
             backend/target/release/ethnomusicology-backend \
             ubuntu@$EC2_HOST:/opt/ethnomusicology/ethnomusicology-backend-$TIMESTAMP
 
-          # Package and upload Next.js frontend build
+          # Package and upload Next.js frontend build (exclude build cache)
           cd frontend-next
-          tar czf ../frontend-build.tar.gz .next package.json next.config.ts node_modules/
+          tar czf ../frontend-build.tar.gz --exclude='.next/cache' .next package.json next.config.ts node_modules/
           cd ..
           $SCP frontend-build.tar.gz ubuntu@$EC2_HOST:/tmp/
           $SSH "mkdir -p /opt/ethnomusicology/frontend-$TIMESTAMP && tar xzf /tmp/frontend-build.tar.gz -C /opt/ethnomusicology/frontend-$TIMESTAMP/ && rm /tmp/frontend-build.tar.gz"
