@@ -25,7 +25,9 @@ export default function CrateLibraryPage() {
     e.preventDefault();
     const trimmed = newName.trim();
     if (trimmed) {
-      createMutation.mutate(trimmed);
+      createMutation.mutate(trimmed, {
+        onError: () => alert('Failed to create crate.'),
+      });
       setNewName('');
     }
   }
@@ -33,7 +35,9 @@ export default function CrateLibraryPage() {
   function handleDelete(e: React.MouseEvent, id: string, name: string) {
     e.stopPropagation();
     if (window.confirm(`Delete "${name}"? This cannot be undone.`)) {
-      deleteMutation.mutate(id);
+      deleteMutation.mutate(id, {
+        onError: () => alert('Failed to delete crate.'),
+      });
     }
   }
 
@@ -85,7 +89,10 @@ export default function CrateLibraryPage() {
           {crates.map((c) => (
             <div
               key={c.id}
+              role="button"
+              tabIndex={0}
               onClick={() => router.push(`/crates/${c.id}`)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/crates/${c.id}`); } }}
               className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50 cursor-pointer"
             >
               <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">

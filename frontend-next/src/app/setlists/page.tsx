@@ -36,13 +36,17 @@ function SetlistItem({ setlist }: { setlist: SetlistSummary }) {
   function handleDelete(e: React.MouseEvent) {
     e.stopPropagation();
     if (window.confirm(`Delete "${displayName}"? This cannot be undone.`)) {
-      deleteMutation.mutate(setlist.id);
+      deleteMutation.mutate(setlist.id, {
+        onError: () => alert('Failed to delete setlist.'),
+      });
     }
   }
 
   function handleDuplicate(e: React.MouseEvent) {
     e.stopPropagation();
-    duplicateMutation.mutate(setlist.id);
+    duplicateMutation.mutate(setlist.id, {
+      onError: () => alert('Failed to duplicate setlist.'),
+    });
   }
 
   function handleRename(e: React.MouseEvent) {
@@ -56,7 +60,10 @@ function SetlistItem({ setlist }: { setlist: SetlistSummary }) {
     e.stopPropagation();
     const trimmed = editName.trim();
     if (trimmed) {
-      updateMutation.mutate({ id: setlist.id, name: trimmed });
+      updateMutation.mutate(
+        { id: setlist.id, name: trimmed },
+        { onError: () => alert('Failed to rename setlist.') },
+      );
     }
     setIsEditing(false);
   }
@@ -70,7 +77,10 @@ function SetlistItem({ setlist }: { setlist: SetlistSummary }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => router.push(`/setlists/${setlist.id}`)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); router.push(`/setlists/${setlist.id}`); } }}
       className="flex items-center gap-4 rounded-lg border border-border bg-card p-4 transition-colors hover:bg-muted/50 cursor-pointer"
     >
       <div className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">

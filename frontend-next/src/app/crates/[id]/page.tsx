@@ -20,7 +20,10 @@ function TrackRow({
   function handleRemove(e: React.MouseEvent) {
     e.stopPropagation();
     if (window.confirm(`Remove "${track.title}" from this crate?`)) {
-      removeMutation.mutate({ crateId, trackId: track.id });
+      removeMutation.mutate(
+        { crateId, trackId: track.id },
+        { onError: () => alert('Failed to remove track.') },
+      );
     }
   }
 

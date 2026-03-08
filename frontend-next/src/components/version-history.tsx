@@ -92,10 +92,13 @@ export function VersionHistory({ setlistId }: { setlistId: string }) {
                         variant="ghost"
                         size="xs"
                         onClick={() =>
-                          revertMutation.mutate({
-                            setlistId,
-                            versionNumber: version.version_number,
-                          })
+                          revertMutation.mutate(
+                            {
+                              setlistId,
+                              versionNumber: version.version_number,
+                            },
+                            { onError: () => alert('Failed to revert.') },
+                          )
                         }
                         disabled={revertMutation.isPending}
                       >
