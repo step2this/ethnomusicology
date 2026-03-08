@@ -18,7 +18,6 @@ export function SetlistTrackTile({
 }) {
   const { status, currentTrackIndex, pause } = usePlaybackStore();
   const isThisPlaying = currentTrackIndex === index && status === 'playing';
-  const isThisPaused = currentTrackIndex === index && status === 'paused';
 
   const searchUrl = `https://www.google.com/search?q=${encodeURIComponent(
     `"${track.title}" "${track.artist}"`,

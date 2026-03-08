@@ -18,7 +18,9 @@ export default function SpotifyImportPage() {
   function handleConnect() {
     authUrl.mutate('default-user', {
       onSuccess: (url) => {
-        window.location.href = url;
+        if (url.startsWith('https://accounts.spotify.com/')) {
+          window.location.href = url;
+        }
       },
     });
   }

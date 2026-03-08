@@ -180,7 +180,7 @@ export default function GenerateSetlistPage() {
             max={20}
             value={trackCount}
             onChange={(e) => setTrackCountLocal(Number(e.target.value))}
-            className="mt-1 w-full accent-[#D4AF37]"
+            className="mt-1 w-full accent-primary"
           />
         </div>
 
@@ -191,7 +191,7 @@ export default function GenerateSetlistPage() {
               type="checkbox"
               checked={creativeMode}
               onChange={(e) => setCreativeMode(e.target.checked)}
-              className="rounded accent-[#D4AF37]"
+              className="rounded accent-primary"
             />
             Creative mode — unexpected but compatible combinations
           </label>
@@ -200,7 +200,7 @@ export default function GenerateSetlistPage() {
               type="checkbox"
               checked={verify}
               onChange={(e) => setVerify(e.target.checked)}
-              className="rounded accent-[#D4AF37]"
+              className="rounded accent-primary"
             />
             Verify tracks — double-check with MusicBrainz (~15s)
           </label>

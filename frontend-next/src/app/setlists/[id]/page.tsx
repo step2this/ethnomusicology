@@ -65,13 +65,21 @@ export default function SetlistDetailPage() {
 
   const handleDelete = async () => {
     if (!confirm('Delete this setlist?')) return;
-    await deleteMutation.mutateAsync(id);
-    router.push('/setlists');
+    try {
+      await deleteMutation.mutateAsync(id);
+      router.push('/setlists');
+    } catch {
+      alert('Failed to delete setlist.');
+    }
   };
 
   const handleDuplicate = async () => {
-    const dup = await duplicateMutation.mutateAsync(id);
-    router.push(`/setlists/${dup.id}`);
+    try {
+      const dup = await duplicateMutation.mutateAsync(id);
+      router.push(`/setlists/${dup.id}`);
+    } catch {
+      alert('Failed to duplicate setlist.');
+    }
   };
 
   const handleSaveName = async () => {

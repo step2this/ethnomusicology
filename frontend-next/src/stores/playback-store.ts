@@ -61,9 +61,11 @@ export const usePlaybackStore = create<PlaybackState>((set, get) => {
       const { previewUrls, volume } = get();
       const url = previewUrls.get(index);
       if (!url) return;
+      set({ currentTrackIndex: index, status: 'loading' });
       audioService.setVolume(volume);
-      audioService.play(url);
-      set({ currentTrackIndex: index });
+      audioService.play(url).catch(() => {
+        set({ status: 'error' });
+      });
     },
 
     pause: () => {

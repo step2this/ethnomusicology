@@ -47,7 +47,7 @@ async function request<T>(
       ...fetchOptions,
       signal: controller.signal,
       headers: {
-        'Content-Type': 'application/json',
+        ...(fetchOptions.body ? { 'Content-Type': 'application/json' } : {}),
         ...fetchOptions.headers,
       },
     });

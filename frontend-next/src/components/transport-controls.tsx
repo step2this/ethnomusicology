@@ -28,12 +28,12 @@ export function TransportControls({
   };
 
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[#1B2A4A] bg-[#1B2A4A]/50 px-4 py-2">
+    <div className="flex items-center gap-3 rounded-lg border border-secondary bg-secondary/50 px-4 py-2">
       {/* Track info */}
       <div className="mr-2 min-w-0 flex-1">
         {currentTrack ? (
           <div className="truncate">
-            <span className="text-sm font-medium text-[#D4AF37]">
+            <span className="text-sm font-medium text-primary">
               {currentTrack.title}
             </span>
             <span className="text-sm text-muted-foreground">
@@ -58,7 +58,7 @@ export function TransportControls({
 
         <button
           onClick={handlePlayPause}
-          className="rounded-full bg-[#D4AF37] p-2 text-[#1B2A4A] hover:bg-[#D4AF37]/80"
+          className="rounded-full bg-primary p-2 text-primary-foreground hover:bg-primary/80"
           aria-label={playing ? 'Pause' : 'Play'}
         >
           {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -93,7 +93,7 @@ export function TransportControls({
           step={0.05}
           value={volume}
           onChange={(e) => setVolume(parseFloat(e.target.value))}
-          className="h-1 w-20 cursor-pointer accent-[#D4AF37]"
+          className="h-1 w-20 cursor-pointer accent-primary"
           aria-label="Volume"
         />
       </div>
