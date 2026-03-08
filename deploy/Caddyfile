@@ -1,0 +1,29 @@
+{
+    log {
+        output file /var/log/caddy/access.log
+    }
+}
+
+tarab.studio {
+    log {
+        output file /var/log/caddy/salamic.log
+    }
+
+    @notCallback not path /api/auth/spotify/callback
+    basicauth @notCallback {
+        reviewer $2a$14$OPF3JJWaP2ACqSn64kzG9upnp7Vcex/fYO8AUKUtRoy7Mef4jMwpK
+    }
+
+    handle /api/* {
+        reverse_proxy 127.0.0.1:3001 {
+            transport http {
+                read_timeout 120s
+                write_timeout 120s
+            }
+        }
+    }
+
+    handle {
+        reverse_proxy 127.0.0.1:3000
+    }
+}
