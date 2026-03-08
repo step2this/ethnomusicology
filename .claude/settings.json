@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /home/ubuntu/ethnomusicology/backend && cargo fmt --check 2>&1 && cargo clippy -- -D warnings 2>&1 && cargo test 2>&1 && cd /home/ubuntu/ethnomusicology/frontend && flutter analyze 2>&1 && flutter test 2>&1",
+            "command": "cd /home/ubuntu/ethnomusicology/backend && cargo fmt --check 2>&1 && cargo clippy -- -D warnings 2>&1 && cargo test 2>&1 && cd /home/ubuntu/ethnomusicology/frontend-next && ~/.bun/bin/bunx vitest run 2>&1",
             "timeout": 300000
           }
         ]

@@ -55,7 +55,10 @@
 - T22: Feature parity verification, cutover, Flutter archive
 
 ### Two-Pass Critic Review
-- 7a: Security/Architecture critic NOT run yet
+- 7a: Security/Architecture critic — COMPLETED (Haiku) on 2026-03-08
+  - **IMPORTANT**: Should have used Opus, not Haiku. CLAUDE.md is explicit: "NEVER use haiku for critic reviews"
+  - Findings: 2 CRITICAL (hardcoded colors), 2 HIGH (hardcoded user ID, missing error feedback), 3 MEDIUM, all security clear
+  - Review was comprehensive this time, but future critic passes MUST use Opus for depth
 - 7b: Code Quality (React checklist) NOT run yet
 - Both are MANDATORY before merge
 
@@ -63,6 +66,7 @@
 - shadcn Button lacks `asChild` prop (uses base-ui, not Radix Slot) — worked around by wrapping Link around Button
 - No lucide-react icons installed yet (some components reference them but may error at runtime)
 - Service worker cache not relevant (Next.js doesn't use Flutter SW)
+- **CRITIC MODEL RULE VIOLATION**: 7a critic review was run with Haiku. Per CLAUDE.md, ALL critic/devil's-advocate reviews MUST use Opus. Enforce this for 7b and future STs.
 
 ## File Ownership
 - `frontend-next/` — all new files, safe to modify

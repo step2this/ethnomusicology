@@ -69,13 +69,14 @@ After 7a findings are resolved:
 1. Spawn a **second fresh-context Critic Agent** focused on language quality (use opus model)
 2. Critic reads the same diff
 3. **Rust checklist**: unwrap() in request handlers (must use ?), error propagation patterns, transaction correctness, clippy idiom violations, dead derives, missing error variants
-4. **Flutter checklist**:
-   - ROUTING: Every new screen class MUST appear in `lib/config/routes.dart` — unreachable screens are CRITICAL bugs (Phase 8 retro: `SetlistDetailScreen` was unrouted and would have shipped as a dead feature)
-   - Error handling on all delete/mutate operations (show SnackBar or dialog on failure)
-   - Loading state indicators on async actions (CircularProgressIndicator or disabled button)
-   - Theme tokens (`Theme.of(context).colorScheme.*`) not hardcoded Color() values
-   - ConsumerWidget vs StatelessWidget: use ConsumerWidget only when reading providers
-   - Provider access: `ref.watch` in build, `ref.read(notifier)` for actions
+4. **Next.js/React checklist**:
+   - ROUTING: Every new page MUST have a `page.tsx` in the App Router — unreachable pages are CRITICAL bugs
+   - Error handling on all mutations (onError callback or try/catch with user feedback)
+   - Loading state indicators on async actions (Loader2 spinner or disabled button)
+   - Theme tokens (`text-primary`, `bg-card`, etc.) not hardcoded hex values
+   - Keyboard accessibility: clickable divs need `role="button"`, `tabIndex`, `onKeyDown`
+   - TanStack Query for server state, Zustand for client state — never mix
+   - No hardcoded `#D4AF37` or `#1B2A4A` — use CSS custom property tokens
 5. Critic sends feedback with file:line references
 6. Lead assigns fixes before proceeding to `/verify-uc`
 
@@ -84,7 +85,7 @@ After 7a findings are resolved:
 Both must pass before any commit (enforced by `.claude/settings.json` pre-commit hook):
 ```
 Backend:  cargo fmt --check && cargo clippy -- -D warnings && cargo test
-Frontend: flutter analyze && flutter test
+Frontend: cd frontend-next && bunx vitest run
 ```
 
 ## Commit Discipline
@@ -107,10 +108,10 @@ cargo run                    # Start API server (port 3001)
 cargo test                   # Run tests
 cargo clippy -- -D warnings  # Lint
 
-cd frontend
-flutter run -d chrome       # Start web app
-flutter analyze             # Lint
-flutter test                # Test
+cd frontend-next
+bun --bun next dev          # Start dev server (port 3000)
+bunx vitest run             # Run tests
+bun --bun next build        # Production build
 ```
 
 ## Project Context
