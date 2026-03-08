@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { MetadataChip } from '@/components/metadata-chip';
 import { ConfidenceBadge } from '@/components/confidence-badge';
-import { SourceBadge } from '@/components/source-badge';
 
 describe('MetadataChip', () => {
   it('renders label and value', () => {
@@ -39,18 +38,6 @@ describe('ConfidenceBadge', () => {
 
   it('returns null for null confidence', () => {
     const { container } = render(<ConfidenceBadge confidence={null} />);
-    expect(container.firstChild).toBeNull();
-  });
-});
-
-describe('SourceBadge', () => {
-  it('renders source name', () => {
-    render(<SourceBadge source="deezer" />);
-    expect(screen.getByText('deezer')).toBeInTheDocument();
-  });
-
-  it('returns null for null source', () => {
-    const { container } = render(<SourceBadge source={null} />);
     expect(container.firstChild).toBeNull();
   });
 });

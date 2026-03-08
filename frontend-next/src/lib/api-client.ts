@@ -8,6 +8,7 @@ import type {
   PreviewSearchResult,
   RefinementResponse,
   HistoryResponse,
+  ImportStatusResponse,
   ApiError,
 } from '@/types';
 
@@ -109,7 +110,7 @@ export async function importSpotifyPlaylist(
 
 export async function getImportStatus(
   importId: string,
-): Promise<Record<string, unknown>> {
+): Promise<ImportStatusResponse> {
   return request(`/import/${importId}`);
 }
 

@@ -49,7 +49,10 @@ class AudioService {
 
   resume(): void {
     if (this.audio && this.currentUrl) {
-      this.audio.play();
+      this.audio.play().catch(() => {
+        this.playing = false;
+        this.emit();
+      });
       this.playing = true;
       this.emit();
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Loader2,
@@ -22,42 +22,23 @@ import {
   useUpdateSetlist,
 } from '@/hooks/use-setlist';
 import { usePlaybackStore } from '@/stores/playback-store';
-import { searchPreview } from '@/lib/api-client';
+import { usePrefetchPreviews } from '@/hooks/use-prefetch-previews';
 
 export default function SetlistDetailPage() {
-  const params = useParams();
+  const params = useParams<{ id: string }>();
   const router = useRouter();
-  const id = params.id as string;
+  const id = params.id;
 
   const { data: setlist, isLoading, error } = useSetlist(id);
   const deleteMutation = useDeleteSetlist();
   const duplicateMutation = useDuplicateSetlist();
   const updateMutation = useUpdateSetlist();
-  const { setPreviewUrl, setTrackCount, playIndex, reset: resetPlayback } = usePlaybackStore();
+  const { playIndex, reset: resetPlayback } = usePlaybackStore();
 
   const [isEditingName, setIsEditingName] = useState(false);
   const [editName, setEditName] = useState('');
 
-  // Prefetch previews
-  const prefetchPreviews = useCallback(
-    (tracks: typeof setlist extends undefined ? never : NonNullable<typeof setlist>['tracks']) => {
-      setTrackCount(tracks.length);
-      tracks.forEach((track, i) => {
-        searchPreview(track.title, track.artist).then((result) => {
-          if (result.preview_url) {
-            setPreviewUrl(i, result.preview_url);
-          }
-        });
-      });
-    },
-    [setPreviewUrl, setTrackCount],
-  );
-
-  useEffect(() => {
-    if (setlist) {
-      prefetchPreviews(setlist.tracks);
-    }
-  }, [setlist, prefetchPreviews]);
+  usePrefetchPreviews(setlist?.tracks);
 
   useEffect(() => {
     return () => resetPlayback();

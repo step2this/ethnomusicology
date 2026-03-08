@@ -147,6 +147,14 @@ export interface PreviewSearchResult {
 }
 
 // API error
+export interface ImportStatusResponse {
+  import_id: string;
+  status: string;
+  total_tracks: number | null;
+  processed_tracks: number | null;
+  error: string | null;
+}
+
 export interface ApiError {
   error: {
     code: string;

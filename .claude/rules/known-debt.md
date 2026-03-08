@@ -54,13 +54,13 @@ paths:
 | Affiliate IDs visible in purchase link URLs | Phase 7 critic 7a #3 | Low | `a_aid`/`aff` params returned in JSON response. Inherent to URL-template architecture — IDs would be visible in browser URL bar anyway. Monitor for affiliate fraud post-registration. |
 | No route-level integration test for purchase links | Phase 7 critic 7a #7, 7b #6 | Low | Unit tests cover `build_purchase_links` thoroughly (13 tests). No axum oneshot test for the HTTP handler. Low priority — handler is 3 lines. |
 | Hardcoded user ID in Spotify OAuth flow | ST-011 critic H1 | Medium | `checkSpotifyConnection` and `getSpotifyAuthUrl` take `userId` param but it's hardcoded at call sites. Need proper auth/session management. |
-| `useSearchPreview` passthrough hook | ST-011 critic L1 | Low | `use-tracks.ts` exports `useSearchPreview` that just wraps `searchPreview` API call. Not a real TanStack Query hook — remove or convert to proper query. |
+| ~~`useSearchPreview` passthrough hook~~ | ~~ST-011 critic L1~~ | ~~Resolved~~ | ~~Removed dead passthrough hook from use-tracks.ts~~ |
 | Missing `aria-current="page"` on nav links | ST-011 critic L2 | Low | NavShell highlights active link visually but doesn't set `aria-current="page"` for screen readers. |
 | Preview prefetch has no concurrency limit | ST-011 critic M1 | Medium | Setlist detail page fires `searchPreview` for all tracks in parallel. Large setlists (30+ tracks) could overwhelm the API. Add concurrency limiter (e.g., p-limit). |
 | Refinement chat lacks optimistic updates | ST-011 critic M6 | Low | `refineSetlist` mutation waits for server response before updating UI. Could add optimistic message display for better UX. |
-| Unsafe type assertion on useParams | ST-011 critic 7b M1 | Low | `setlists/[id]/page.tsx` uses `params.id as string` instead of `useParams<{ id: string }>()`. |
-| Loose typing on getImportStatus | ST-011 critic 7b M2 | Low | Returns `Record<string, unknown>` — should define `ImportStatusResponse` type. |
-| Unused SourceBadge component | ST-011 critic 7b M4 | Low | `source-badge.tsx` exported but never imported. Remove or wire into SetlistTrackTile. |
-| AddSetlistDialog needs Radix Dialog | ST-011 critic 7b M5 | Medium | Custom modal lacks focus trap, Escape key, aria-modal. Replace with shadcn Dialog. |
-| Duplicate preview prefetch logic | ST-011 critic 7b L2 | Low | Identical `prefetchPreviews` in generate and detail pages. Extract to shared hook. |
-| audio resume() doesn't await play() | ST-011 critic 7b L4 | Low | `audio-service.ts` resume() doesn't await `audio.play()`, could silently fail. |
+| ~~Unsafe type assertion on useParams~~ | ~~ST-011 critic 7b M1~~ | ~~Resolved~~ | ~~Changed to `useParams<{ id: string }>()`~~ |
+| ~~Loose typing on getImportStatus~~ | ~~ST-011 critic 7b M2~~ | ~~Resolved~~ | ~~Added `ImportStatusResponse` type~~ |
+| ~~Unused SourceBadge component~~ | ~~ST-011 critic 7b M4~~ | ~~Resolved~~ | ~~Removed source-badge.tsx and its tests~~ |
+| ~~AddSetlistDialog needs Radix Dialog~~ | ~~ST-011 critic 7b M5~~ | ~~Resolved~~ | ~~Added Escape key, aria-modal, aria-labelledby, focus management~~ |
+| ~~Duplicate preview prefetch logic~~ | ~~ST-011 critic 7b L2~~ | ~~Resolved~~ | ~~Extracted usePrefetchPreviews hook~~ |
+| ~~audio resume() doesn't await play()~~ | ~~ST-011 critic 7b L4~~ | ~~Resolved~~ | ~~Added .catch() handler~~ |

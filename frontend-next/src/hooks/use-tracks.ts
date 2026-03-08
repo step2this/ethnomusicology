@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { listTracks, searchPreview } from '@/lib/api-client';
-import type { TrackListResponse, PreviewSearchResult } from '@/types';
+import { listTracks } from '@/lib/api-client';
+import type { TrackListResponse } from '@/types';
 
 export const trackKeys = {
   all: ['tracks'] as const,
@@ -18,11 +18,4 @@ export function useTracks(options?: {
     queryKey: trackKeys.list(options),
     queryFn: () => listTracks(options),
   });
-}
-
-export function useSearchPreview(): (
-  title: string,
-  artist: string,
-) => Promise<PreviewSearchResult> {
-  return searchPreview;
 }

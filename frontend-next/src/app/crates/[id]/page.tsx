@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Trash2, Plus, Loader2, Inbox, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -77,13 +77,32 @@ function AddSetlistDialog({
     );
   }
 
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    dialogRef.current?.focus();
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="add-setlist-title"
+    >
       <div
-        className="mx-4 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg"
+        ref={dialogRef}
+        tabIndex={-1}
+        className="mx-4 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-lg outline-none"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 className="mb-4 text-lg font-semibold text-foreground">
+        <h2 id="add-setlist-title" className="mb-4 text-lg font-semibold text-foreground">
           Add Setlist to Crate
         </h2>
         {isLoading ? (

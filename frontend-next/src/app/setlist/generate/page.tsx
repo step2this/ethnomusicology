@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Loader2,
@@ -15,7 +15,7 @@ import { TransportControls } from '@/components/transport-controls';
 import { useGenerateSetlist, useArrangeSetlist, useUpdateSetlist } from '@/hooks/use-setlist';
 import { useGenerationStore } from '@/stores/generation-store';
 import { usePlaybackStore } from '@/stores/playback-store';
-import { searchPreview } from '@/lib/api-client';
+import { usePrefetchPreviews } from '@/hooks/use-prefetch-previews';
 import type { Setlist } from '@/types';
 
 const energyProfiles = [
@@ -31,7 +31,7 @@ export default function GenerateSetlistPage() {
   const arrangeMutation = useArrangeSetlist();
   const updateMutation = useUpdateSetlist();
   const { isGenerating, isArranging, error, setGenerating, setArranging, setError, reset: resetGeneration } = useGenerationStore();
-  const { setPreviewUrl, setTrackCount, playIndex, reset: resetPlayback } = usePlaybackStore();
+  const { playIndex, reset: resetPlayback } = usePlaybackStore();
 
   const [prompt, setPrompt] = useState('');
   const [trackCount, setTrackCountLocal] = useState(12);
@@ -43,20 +43,7 @@ export default function GenerateSetlistPage() {
   const [setlist, setSetlist] = useState<Setlist | null>(null);
   const [saveName, setSaveName] = useState('');
 
-  // Prefetch previews when setlist arrives
-  const prefetchPreviews = useCallback(
-    (sl: Setlist) => {
-      setTrackCount(sl.tracks.length);
-      sl.tracks.forEach((track, i) => {
-        searchPreview(track.title, track.artist).then((result) => {
-          if (result.preview_url) {
-            setPreviewUrl(i, result.preview_url);
-          }
-        });
-      });
-    },
-    [setPreviewUrl, setTrackCount],
-  );
+  usePrefetchPreviews(setlist?.tracks);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -84,7 +71,6 @@ export default function GenerateSetlistPage() {
         verify: verify || undefined,
       });
       setSetlist(result);
-      prefetchPreviews(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Generation failed');
     } finally {
@@ -102,7 +88,6 @@ export default function GenerateSetlistPage() {
       });
       setSetlist(result);
       resetPlayback();
-      prefetchPreviews(result);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Arrange failed');
     } finally {
