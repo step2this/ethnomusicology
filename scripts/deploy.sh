@@ -25,13 +25,22 @@ if [ -d "$NEW_FRONTEND" ]; then
   mv -Tf "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
 fi
 
-# Restart service (Caddy picks up new frontend via symlink, no restart needed)
+# Restart services
 sudo systemctl restart ethnomusicology
+
+# Restart frontend service if installed
+if systemctl is-active ethnomusicology-frontend > /dev/null 2>&1 || systemctl is-enabled ethnomusicology-frontend > /dev/null 2>&1; then
+  sudo systemctl restart ethnomusicology-frontend
+fi
 
 # Health check (60 second timeout with exponential backoff)
 DELAY=1
 for i in $(seq 1 10); do
   if curl -sf http://localhost:3001/api/health > /dev/null 2>&1; then
+    # Check frontend is responding
+    if ! curl -sf http://localhost:3000 > /dev/null 2>&1; then
+      echo "WARNING: Frontend health check failed" >&2
+    fi
     echo "Deploy successful: $NEW_BINARY"
     # Keep last 3 binaries + frontends, remove older ones
     ls -t "$DEPLOY_DIR"/ethnomusicology-backend-[0-9]* 2>/dev/null | tail -n +4 | xargs -r rm -f
@@ -53,5 +62,8 @@ if [ -n "$PREVIOUS_FRONTEND" ] && [ -d "$PREVIOUS_FRONTEND" ]; then
   mv -Tf "${CURRENT_FRONTEND_LINK}.tmp" "$CURRENT_FRONTEND_LINK"
 fi
 sudo systemctl restart ethnomusicology
+if systemctl is-active ethnomusicology-frontend > /dev/null 2>&1 || systemctl is-enabled ethnomusicology-frontend > /dev/null 2>&1; then
+  sudo systemctl restart ethnomusicology-frontend
+fi
 echo "Rollback complete. Previous binary + frontend restored."
 exit 1

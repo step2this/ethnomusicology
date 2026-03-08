@@ -13,10 +13,7 @@ jobs:
       - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
+      - uses: oven-sh/setup-bun@v2
 
       # Rust cache for faster builds
       - uses: actions/cache@v4
@@ -32,12 +29,11 @@ jobs:
         working-directory: backend
         run: cargo build --release
 
-      - name: Build frontend (web)
-        working-directory: frontend
+      - name: Build frontend (Next.js)
+        working-directory: frontend-next
         run: |
-          flutter clean
-          flutter pub get
-          flutter build web --release
+          bun install --frozen-lockfile
+          bun --bun next build
 
       - name: Deploy to EC2
         env:
@@ -57,11 +53,12 @@ jobs:
             backend/target/release/ethnomusicology-backend \
             ubuntu@$EC2_HOST:/opt/ethnomusicology/ethnomusicology-backend-$TIMESTAMP
 
-          # Upload frontend to timestamped directory (atomic swap)
-          $SSH "mkdir -p /opt/ethnomusicology/frontend-$TIMESTAMP"
-          $SCP -r \
-            frontend/build/web/* \
-            ubuntu@$EC2_HOST:/opt/ethnomusicology/frontend-$TIMESTAMP/
+          # Package and upload Next.js frontend build
+          cd frontend-next
+          tar czf ../frontend-build.tar.gz .next package.json next.config.ts node_modules/
+          cd ..
+          $SCP frontend-build.tar.gz ubuntu@$EC2_HOST:/tmp/
+          $SSH "mkdir -p /opt/ethnomusicology/frontend-$TIMESTAMP && tar xzf /tmp/frontend-build.tar.gz -C /opt/ethnomusicology/frontend-$TIMESTAMP/ && rm /tmp/frontend-build.tar.gz"
 
           # Run deploy script (handles symlink swap, restart, health check, rollback)
           $SSH "TIMESTAMP=$TIMESTAMP /opt/ethnomusicology/scripts/deploy.sh"
