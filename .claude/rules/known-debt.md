@@ -58,3 +58,9 @@ paths:
 | Missing `aria-current="page"` on nav links | ST-011 critic L2 | Low | NavShell highlights active link visually but doesn't set `aria-current="page"` for screen readers. |
 | Preview prefetch has no concurrency limit | ST-011 critic M1 | Medium | Setlist detail page fires `searchPreview` for all tracks in parallel. Large setlists (30+ tracks) could overwhelm the API. Add concurrency limiter (e.g., p-limit). |
 | Refinement chat lacks optimistic updates | ST-011 critic M6 | Low | `refineSetlist` mutation waits for server response before updating UI. Could add optimistic message display for better UX. |
+| Unsafe type assertion on useParams | ST-011 critic 7b M1 | Low | `setlists/[id]/page.tsx` uses `params.id as string` instead of `useParams<{ id: string }>()`. |
+| Loose typing on getImportStatus | ST-011 critic 7b M2 | Low | Returns `Record<string, unknown>` — should define `ImportStatusResponse` type. |
+| Unused SourceBadge component | ST-011 critic 7b M4 | Low | `source-badge.tsx` exported but never imported. Remove or wire into SetlistTrackTile. |
+| AddSetlistDialog needs Radix Dialog | ST-011 critic 7b M5 | Medium | Custom modal lacks focus trap, Escape key, aria-modal. Replace with shadcn Dialog. |
+| Duplicate preview prefetch logic | ST-011 critic 7b L2 | Low | Identical `prefetchPreviews` in generate and detail pages. Extract to shared hook. |
+| audio resume() doesn't await play() | ST-011 critic 7b L4 | Low | `audio-service.ts` resume() doesn't await `audio.play()`, could silently fail. |
