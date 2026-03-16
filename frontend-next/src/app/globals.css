@@ -42,6 +42,14 @@
   --color-status-warning: var(--status-warning);
   --color-status-error: var(--status-error);
   --color-status-info: var(--status-info);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-content: var(--surface-content);
+  --color-surface-overlay: var(--surface-overlay);
+  --color-border-default: var(--border-default);
+  --color-border-hover: var(--border-hover);
+  --color-border-accent: var(--border-accent);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-disabled: var(--text-disabled);
   --radius-sm: 3px;
   --radius-md: 6px;
   --radius-lg: var(--radius);
@@ -51,13 +59,6 @@
   --radius-4xl: calc(var(--radius) * 3);
   --radius-none: 0;
   --radius-full: 9999px;
-  --sp-xs: 4px;
-  --sp-sm: 8px;
-  --sp-md: 12px;
-  --sp-lg: 16px;
-  --sp-xl: 24px;
-  --sp-2xl: 32px;
-  --sp-3xl: 48px;
 }
 
 :root {
@@ -98,7 +99,7 @@
 .dark {
   /* Ember Crate — warm amber/copper on warm blacks
      Extension tokens below (surface-*, border-*, text-secondary, energy-*, camelot-*,
-     status-*, sp-*) are intentionally dark-only. The app always runs in dark mode
+     status-*) are intentionally dark-only. The app always runs in dark mode
      (className="dark" is hardcoded on <html> in layout.tsx), so there is no need
      to duplicate these into :root. */
   --background: #0F0D0B;

@@ -16,7 +16,11 @@ function getContrastColor(hex: string): string {
   return luminance > 0.5 ? '#0F0D0B' : '#F0ECE4';
 }
 
-// Fallback colors for when CSS variables aren't available (e.g., in tests)
+// Fallback colors for when CSS variables aren't available (e.g., in tests).
+// IMPORTANT: getContrastColor() is computed from these fallback hex values, not the
+// runtime CSS var (which can't be read at render time without getComputedStyle).
+// The CSS vars defined in globals.css (.dark block) MUST stay close to these fallback
+// values for the contrast text color to remain correct.
 const FALLBACK_COLORS: Record<string, string> = {
   '1A': '#C04A6E', '1B': '#D06080', '2A': '#C07A4A', '2B': '#D09060',
   '3A': '#C0A84A', '3B': '#D0B860', '4A': '#9BC04A', '4B': '#C04A6E',
@@ -35,9 +39,11 @@ export function CamelotChip({ camelotCode }: { camelotCode: string | null | unde
   const isKnown = CAMELOT_KEYS.includes(normalized);
 
   if (!isKnown) {
+    // Display normalized (uppercased) for consistency, truncated to 4 chars to prevent layout breakage
+    const display = normalized.length > 4 ? normalized.slice(0, 4) : normalized;
     return (
       <span className="inline-flex items-center rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-        {camelotCode}
+        {display}
       </span>
     );
   }

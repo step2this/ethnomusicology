@@ -22,18 +22,21 @@ describe('ConfidenceBadge', () => {
     const badge = screen.getByText('High');
     expect(badge).toBeInTheDocument();
     expect(badge).toHaveAttribute('title', 'High confidence: likely a real track');
+    expect(badge.className).toContain('status-success');
   });
 
   it('renders medium confidence in amber', () => {
     render(<ConfidenceBadge confidence="medium" />);
     const badge = screen.getByText('Medium');
     expect(badge).toBeInTheDocument();
+    expect(badge.className).toContain('status-warning');
   });
 
   it('renders low confidence in red', () => {
     render(<ConfidenceBadge confidence="low" />);
     const badge = screen.getByText('Low');
     expect(badge).toBeInTheDocument();
+    expect(badge.className).toContain('status-error');
   });
 
   it('returns null for null confidence', () => {

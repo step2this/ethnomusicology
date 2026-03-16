@@ -15,11 +15,16 @@ describe('CamelotChip', () => {
     expect(screen.getByText('11B')).toBeInTheDocument();
   });
 
-  it('renders unknown key with muted style', () => {
-    render(<CamelotChip camelotCode="Z9" />);
+  it('renders unknown key with muted style (normalized to uppercase)', () => {
+    render(<CamelotChip camelotCode="z9" />);
     const chip = screen.getByText('Z9');
     expect(chip).toBeInTheDocument();
     expect(chip.className).toContain('text-muted-foreground');
+  });
+
+  it('truncates unknown key longer than 4 chars', () => {
+    render(<CamelotChip camelotCode="ABCDEF" />);
+    expect(screen.getByText('ABCD')).toBeInTheDocument();
   });
 
   it('renders dash for null input', () => {

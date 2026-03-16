@@ -20,6 +20,15 @@ const COLUMNS: { key: SortField; label: string; sortable: boolean }[] = [
   { key: 'date_added', label: 'Date Added', sortable: true },
 ];
 
+function SortIcon({ field, sort, order }: { field: SortField; sort: SortField; order: SortOrder }) {
+  if (sort !== field) return <ArrowUpDown className="size-3 text-muted-foreground/50" />;
+  return order === 'asc' ? (
+    <ArrowUp className="size-3 text-primary" />
+  ) : (
+    <ArrowDown className="size-3 text-primary" />
+  );
+}
+
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return '-';
   const date = new Date(dateStr);
@@ -58,15 +67,6 @@ export default function TracksPage() {
     },
     [sort],
   );
-
-  function SortIcon({ field }: { field: SortField }) {
-    if (sort !== field) return <ArrowUpDown className="size-3 text-muted-foreground/50" />;
-    return order === 'asc' ? (
-      <ArrowUp className="size-3 text-primary" />
-    ) : (
-      <ArrowDown className="size-3 text-primary" />
-    );
-  }
 
   // Loading state
   if (isLoading && !data) {
@@ -124,10 +124,10 @@ export default function TracksPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-md border border-[var(--border-default)]">
+      <div className="overflow-x-auto rounded-md border border-border-default">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-[var(--border-default)] bg-[var(--surface-content)]">
+            <tr className="border-b border-border-default bg-surface-content">
               {COLUMNS.map((col) => (
                 <th
                   key={col.key}
@@ -139,7 +139,7 @@ export default function TracksPage() {
                       className="inline-flex items-center gap-1.5 hover:text-foreground"
                     >
                       {col.label}
-                      <SortIcon field={col.key} />
+                      <SortIcon field={col.key} sort={sort} order={order} />
                     </button>
                   ) : (
                     col.label
@@ -152,15 +152,15 @@ export default function TracksPage() {
             {tracks.map((track) => (
               <tr
                 key={track.id}
-                className="border-b border-[var(--border-default)] last:border-0 hover:bg-[var(--surface-raised)]/50"
+                className="border-b border-border-default last:border-0 hover:bg-surface-raised/50"
               >
                 <td className="max-w-[250px] truncate px-4 py-3 font-medium text-foreground">
                   {track.title}
                 </td>
-                <td className="max-w-[200px] truncate px-4 py-3 text-[var(--text-secondary)]">
+                <td className="max-w-[200px] truncate px-4 py-3 text-text-secondary">
                   {track.artist}
                 </td>
-                <td className="px-4 py-3 font-mono text-[var(--text-secondary)] tabular-nums">
+                <td className="px-4 py-3 font-mono text-text-secondary tabular-nums">
                   {track.bpm != null ? Math.round(track.bpm) : '-'}
                 </td>
                 <td className="px-4 py-3">
@@ -169,7 +169,7 @@ export default function TracksPage() {
                 <td className="px-4 py-3">
                   <EnergyBar energy={track.energy} />
                 </td>
-                <td className="px-4 py-3 text-[var(--text-secondary)]">
+                <td className="px-4 py-3 text-text-secondary">
                   {formatDate(track.date_added)}
                 </td>
               </tr>
