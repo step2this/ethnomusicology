@@ -121,7 +121,7 @@ pub async fn get_track_by_spotify_uri(
     .await
 }
 
-/// Get tracks that need enrichment (needs_enrichment = 1, no enrichment_error).
+/// Get tracks that need enrichment (needs_enrichment = TRUE, no enrichment_error).
 pub async fn get_unenriched_tracks(
     pool: &PgPool,
     limit: usize,
@@ -195,7 +195,7 @@ pub async fn get_daily_enrichment_count(pool: &PgPool, user_id: &str) -> Result<
 }
 
 /// Reset errored tracks so they can be re-enriched.
-/// Clears enrichment_error and sets needs_enrichment = 1 for all tracks
+/// Clears enrichment_error and sets needs_enrichment = TRUE for all tracks
 /// where enrichment_error IS NOT NULL.
 /// Returns the number of tracks reset.
 pub async fn retry_errored_tracks(pool: &PgPool) -> Result<u64, sqlx::Error> {

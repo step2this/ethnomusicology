@@ -418,7 +418,7 @@ mod tests {
         let json: serde_json::Value = serde_json::from_slice(&body).unwrap();
         assert_eq!(json["reset"], 2);
 
-        // Verify tracks now have needs_enrichment = 1 and error cleared
+        // Verify tracks now have needs_enrichment = TRUE and error cleared
         let (needs, error): (bool, Option<String>) = sqlx::query_as(
             "SELECT needs_enrichment, enrichment_error FROM tracks WHERE id = 't-err-1'",
         )
