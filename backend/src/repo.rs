@@ -7,18 +7,18 @@ use crate::services::import::{
 };
 
 /// Production implementation of ImportRepository backed by Postgres.
-pub struct SqliteImportRepository {
+pub struct PgImportRepository {
     pool: PgPool,
 }
 
-impl SqliteImportRepository {
+impl PgImportRepository {
     pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }
 
 #[async_trait::async_trait]
-impl ImportRepository for SqliteImportRepository {
+impl ImportRepository for PgImportRepository {
     async fn create_import(
         &self,
         user_id: &str,

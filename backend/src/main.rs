@@ -14,7 +14,7 @@ use tracing_subscriber::EnvFilter;
 use ethnomusicology_backend::api::claude::ClaudeClient;
 use ethnomusicology_backend::api::spotify::SpotifyClient;
 use ethnomusicology_backend::config::AppConfig;
-use ethnomusicology_backend::repo::SqliteImportRepository;
+use ethnomusicology_backend::repo::PgImportRepository;
 use ethnomusicology_backend::routes;
 use ethnomusicology_backend::routes::auth::{AuthState, TokenExchangeResult, TokenExchanger};
 use ethnomusicology_backend::routes::enrich::EnrichRouteState;
@@ -207,7 +207,7 @@ async fn main() -> anyhow::Result<()> {
 
     let import_state = Arc::new(ImportState {
         spotify: spotify_client,
-        repo: Arc::new(SqliteImportRepository::new(pool.clone())),
+        repo: Arc::new(PgImportRepository::new(pool.clone())),
         pool: pool.clone(),
         encryption_key,
         claude: claude_client.clone(),
