@@ -62,7 +62,7 @@ export function SetlistTrackTile({
         <p className="truncate text-sm text-muted-foreground">{track.artist}</p>
 
         {track.verification_notes && (
-          <p className="mt-0.5 text-xs text-amber-400">{track.verification_notes}</p>
+          <p className="mt-0.5 text-xs text-[var(--status-warning)]">{track.verification_notes}</p>
         )}
 
         {/* Metadata chips */}
@@ -77,7 +77,7 @@ export function SetlistTrackTile({
 
         {/* BPM warning */}
         {track.bpm_warning && (
-          <div className="mt-1 flex items-center gap-1 text-xs text-amber-400">
+          <div className="mt-1 flex items-center gap-1 text-xs text-[var(--status-warning)]">
             <AlertTriangle className="h-3.5 w-3.5" />
             <span>{track.bpm_warning}</span>
           </div>

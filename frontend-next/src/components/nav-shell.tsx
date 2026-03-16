@@ -17,9 +17,9 @@ export function NavShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background">
-      <nav className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
+      <nav className="border-b border-[var(--border-default)] bg-[var(--surface-content)] sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-14">
+          <div className="flex items-center justify-between h-12">
             <Link
               href="/"
               className="text-lg font-bold text-primary tracking-tight"
@@ -50,7 +50,7 @@ export function NavShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </nav>
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="flex-1">
         {children}
       </main>
     </div>

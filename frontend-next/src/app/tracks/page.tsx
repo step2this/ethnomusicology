@@ -5,6 +5,8 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Download, Library, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useTracks } from '@/hooks/use-tracks';
+import { CamelotChip } from '@/components/camelot-chip';
+import { EnergyBar } from '@/components/energy-bar';
 
 type SortField = 'title' | 'artist' | 'bpm' | 'key' | 'energy' | 'date_added';
 type SortOrder = 'asc' | 'desc';
@@ -122,10 +124,10 @@ export default function TracksPage() {
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-md border border-[var(--border-default)]">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
+            <tr className="border-b border-[var(--border-default)] bg-[var(--surface-content)]">
               {COLUMNS.map((col) => (
                 <th
                   key={col.key}
@@ -150,24 +152,24 @@ export default function TracksPage() {
             {tracks.map((track) => (
               <tr
                 key={track.id}
-                className="border-b border-border last:border-0 hover:bg-muted/30"
+                className="border-b border-[var(--border-default)] last:border-0 hover:bg-[var(--surface-raised)]/50"
               >
                 <td className="max-w-[250px] truncate px-4 py-3 font-medium text-foreground">
                   {track.title}
                 </td>
-                <td className="max-w-[200px] truncate px-4 py-3 text-muted-foreground">
+                <td className="max-w-[200px] truncate px-4 py-3 text-[var(--text-secondary)]">
                   {track.artist}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground tabular-nums">
+                <td className="px-4 py-3 font-mono text-[var(--text-secondary)] tabular-nums">
                   {track.bpm != null ? Math.round(track.bpm) : '-'}
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
-                  {track.key ?? '-'}
+                <td className="px-4 py-3">
+                  <CamelotChip camelotCode={track.key} />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground tabular-nums">
-                  {track.energy != null ? `${Math.round(track.energy * 100)}%` : '-'}
+                <td className="px-4 py-3">
+                  <EnergyBar energy={track.energy} />
                 </td>
-                <td className="px-4 py-3 text-muted-foreground">
+                <td className="px-4 py-3 text-[var(--text-secondary)]">
                   {formatDate(track.date_added)}
                 </td>
               </tr>

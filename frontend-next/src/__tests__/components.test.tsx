@@ -21,7 +21,7 @@ describe('ConfidenceBadge', () => {
     render(<ConfidenceBadge confidence="high" />);
     const badge = screen.getByText('High');
     expect(badge).toBeInTheDocument();
-    expect(badge.className).toContain('green');
+    expect(badge).toHaveAttribute('title', 'High confidence: likely a real track');
   });
 
   it('renders medium confidence in amber', () => {

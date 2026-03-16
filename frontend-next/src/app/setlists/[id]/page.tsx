@@ -75,7 +75,7 @@ export default function SetlistDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
+      <div className="flex items-center justify-center px-4 py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -83,8 +83,8 @@ export default function SetlistDetailPage() {
 
   if (error || !setlist) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-4">
-        <AlertCircle className="h-12 w-12 text-red-400" />
+      <div className="flex flex-col items-center justify-center px-4 py-20 gap-4">
+        <AlertCircle className="h-12 w-12 text-[var(--status-error)]" />
         <p className="text-muted-foreground">
           {error instanceof Error ? error.message : 'Setlist not found'}
         </p>
@@ -96,7 +96,7 @@ export default function SetlistDetailPage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">

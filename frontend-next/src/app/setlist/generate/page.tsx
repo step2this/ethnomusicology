@@ -112,7 +112,7 @@ export default function GenerateSetlistPage() {
   // --- Form view ---
   if (!setlist) {
     return (
-      <div className="mx-auto max-w-2xl space-y-6">
+      <div className="mx-auto max-w-2xl px-4 py-6 space-y-6">
         <h1 className="text-2xl font-bold text-foreground">Generate Setlist</h1>
 
         {/* Prompt */}
@@ -221,7 +221,7 @@ export default function GenerateSetlistPage() {
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-red-700/50 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+          <div className="flex items-center gap-2 rounded-lg border border-[var(--status-error)]/30 bg-[var(--status-error)]/20 px-4 py-3 text-sm text-[var(--status-error)]">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -252,7 +252,7 @@ export default function GenerateSetlistPage() {
 
   // --- Result view ---
   return (
-    <div className="space-y-4">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-4">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">
@@ -313,7 +313,7 @@ export default function GenerateSetlistPage() {
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-red-700/50 bg-red-900/30 px-4 py-3 text-sm text-red-300">
+        <div className="flex items-center gap-2 rounded-lg border border-[var(--status-error)]/30 bg-[var(--status-error)]/20 px-4 py-3 text-sm text-[var(--status-error)]">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>
