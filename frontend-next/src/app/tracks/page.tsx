@@ -89,7 +89,7 @@ export default function TracksPage() {
     );
   }
 
-  const tracks = data?.tracks ?? [];
+  const tracks = data?.data ?? [];
   const totalPages = data?.total_pages ?? 1;
   const total = data?.total ?? 0;
 

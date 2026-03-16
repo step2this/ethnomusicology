@@ -33,7 +33,7 @@ const baseTrack: SetlistTrack = {
   artist: 'Derrick May',
   bpm: 126,
   key: 'Am',
-  camelot_code: '8A',
+  camelot: '8A',
   energy: 0.75,
   transition_score: null,
   energy_score: null,
@@ -73,12 +73,12 @@ describe('SetlistTrackTile', () => {
     expect(screen.getByText('126')).toBeInTheDocument();
   });
 
-  it('shows Key metadata chip with camelot code', () => {
+  it('shows Camelot chip with camelot code', () => {
     render(
       <SetlistTrackTile track={baseTrack} index={0} onPlay={vi.fn()} />,
       { wrapper: createWrapper() },
     );
-    expect(screen.getByText('Key:')).toBeInTheDocument();
+    // CamelotChip renders the code as text content
     expect(screen.getByText('8A')).toBeInTheDocument();
   });
 
@@ -166,13 +166,13 @@ describe('SetlistTrackTile', () => {
     expect(screen.getByText('Track confirmed on Discogs')).toBeInTheDocument();
   });
 
-  it('shows energy metadata chip', () => {
+  it('shows energy bar', () => {
     render(
       <SetlistTrackTile track={baseTrack} index={0} onPlay={vi.fn()} />,
       { wrapper: createWrapper() },
     );
-    expect(screen.getByText('Energy:')).toBeInTheDocument();
-    expect(screen.getByText('0.75')).toBeInTheDocument();
+    // EnergyBar renders as an accessible img with aria-label
+    expect(screen.getByRole('img', { name: /energy/i })).toBeInTheDocument();
   });
 
   it('shows flow chip when transition_score is present', () => {

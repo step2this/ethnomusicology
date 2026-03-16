@@ -4,6 +4,8 @@ import { Play, Pause, AlertTriangle, ExternalLink } from 'lucide-react';
 import type { SetlistTrack } from '@/types';
 import { usePlaybackStore } from '@/stores/playback-store';
 import { MetadataChip } from '@/components/metadata-chip';
+import { CamelotChip } from '@/components/camelot-chip';
+import { EnergyBar } from '@/components/energy-bar';
 import { ConfidenceBadge } from '@/components/confidence-badge';
 import { PurchaseLinkPanel } from '@/components/purchase-link-panel';
 
@@ -68,8 +70,8 @@ export function SetlistTrackTile({
         {/* Metadata chips */}
         <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
           <MetadataChip label="BPM" value={track.bpm} />
-          <MetadataChip label="Key" value={track.camelot_code ?? track.key} />
-          <MetadataChip label="Energy" value={track.energy} />
+          <CamelotChip camelotCode={track.camelot ?? track.key} />
+          <EnergyBar energy={track.energy} />
           {track.transition_score != null && (
             <MetadataChip label="Flow" value={track.transition_score} />
           )}

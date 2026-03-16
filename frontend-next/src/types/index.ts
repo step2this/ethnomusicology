@@ -21,17 +21,21 @@ export interface SetlistTrack {
   artist: string;
   bpm: number | null;
   key: string | null;
-  camelot_code: string | null;
+  camelot: string | null;
   energy: number | null;
   transition_score: number | null;
+  transition_note: string | null;
   energy_score: number | null;
   is_catalog: boolean;
   catalog_track_id: string | null;
+  source: string | null;
+  track_id: string | null;
   spotify_id: string | null;
   spotify_uri: string | null;
   bpm_warning: string | null;
   confidence: string | null;
   verification_notes: string | null;
+  verification_note: string | null;
 }
 
 export interface ScoreBreakdown {
@@ -66,8 +70,9 @@ export interface SetlistSummary {
 }
 
 export interface TrackListResponse {
-  tracks: Track[];
+  data: Track[];
   page: number;
+  per_page: number;
   total_pages: number;
   total: number;
 }
