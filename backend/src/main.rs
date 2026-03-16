@@ -293,14 +293,13 @@ async fn main() -> anyhow::Result<()> {
             let origins = if cfg.dev_mode {
                 AllowOrigin::any()
             } else {
-                AllowOrigin::list([
-                    "https://tarab.studio"
-                        .parse::<axum::http::HeaderValue>()
-                        .unwrap(),
-                    "http://localhost:3000"
-                        .parse::<axum::http::HeaderValue>()
-                        .unwrap(),
-                ])
+                AllowOrigin::predicate(|origin, _| {
+                    let origin = origin.as_bytes();
+                    origin == b"https://tarab.studio"
+                        || origin == b"http://localhost:3000"
+                        || origin.ends_with(b".vercel.app")
+                            && origin.starts_with(b"https://")
+                })
             };
             CorsLayer::new()
                 .allow_origin(origins)

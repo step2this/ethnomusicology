@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+const apiUrl = process.env.API_URL || 'http://localhost:3001';
+
 const nextConfig: NextConfig = {
   reactCompiler: true,
   turbopack: {
@@ -9,7 +11,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: '/api/:path*',
-        destination: 'http://localhost:3001/api/:path*',
+        destination: `${apiUrl}/api/:path*`,
       },
     ];
   },
