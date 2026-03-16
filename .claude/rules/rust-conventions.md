@@ -16,7 +16,7 @@ globs: backend/**
 - Error codes: SCREAMING_SNAKE_CASE (e.g., `TURN_LIMIT_EXCEEDED`, `NOT_FOUND`, `LLM_ERROR`)
 
 ## Database Patterns
-- SQLite via `sqlx` with `sqlx::migrate!()` for migrations
+- Postgres via `sqlx` (PgPool) with `sqlx::migrate!()` for migrations
 - Migrations in `backend/migrations/` numbered sequentially
 - `create_test_pool()` in `db/mod.rs` for unit tests, separate `create_test_pool()` in `tests/*.rs` for integration tests — both must include ALL migrations
 

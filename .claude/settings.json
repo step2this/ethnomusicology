@@ -64,7 +64,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cd /home/ubuntu/ethnomusicology/backend && cargo fmt --check 2>&1 && cargo clippy -- -D warnings 2>&1 && cargo test 2>&1 && cd /home/ubuntu/ethnomusicology/frontend-next && ~/.bun/bin/bunx vitest run 2>&1",
+            "command": "cd /home/ubuntu/ethnomusicology/backend && cargo fmt --check 2>&1 && cargo clippy -- -D warnings 2>&1 && DATABASE_URL='postgresql://neondb_owner:npg_sCe1P0xyVXKc@ep-dawn-butterfly-am21mjsj-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require' RUST_TEST_THREADS=4 cargo test 2>&1 && cd /home/ubuntu/ethnomusicology/frontend-next && ~/.bun/bin/bunx vitest run 2>&1",
             "timeout": 300000
           }
         ]

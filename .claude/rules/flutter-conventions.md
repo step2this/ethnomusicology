@@ -3,6 +3,8 @@ description: Flutter/Dart conventions for the ethnomusicology frontend
 globs: frontend/**
 ---
 
+> **ARCHIVED**: Flutter frontend (`frontend/`) is deprecated as of ST-011 (Mar 2026). Next.js is the primary frontend. See `nextjs-conventions.md` for current patterns.
+
 # Flutter Conventions
 
 ## Riverpod 2.x Patterns

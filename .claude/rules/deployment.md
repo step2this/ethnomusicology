@@ -10,9 +10,9 @@ paths:
 ## Infrastructure
 
 - **Host**: EC2 instance (Ubuntu), elastic IP → Route53 → `tarab.studio`
-- **TLS / reverse proxy**: Caddy (HTTPS termination, serves Flutter web from symlink)
+- **TLS / reverse proxy**: Caddy (HTTPS termination, reverse proxies to Next.js on port 3000)
 - **API**: Axum binary running as a systemd service on port 3001 (bound to 127.0.0.1)
-- **Database**: SQLite at `/opt/ethnomusicology/data/ethnomusicology.db`
+- **Database**: Neon Postgres (connection string in `/etc/ethnomusicology/env` as `DATABASE_URL`)
 - **Migrations**: `sqlx::migrate!()` applied on startup — never run manual SQL migrations
 
 ## Directory Layout (on EC2)
@@ -74,7 +74,7 @@ Required variables:
 DEV_MODE=false
 BIND_ADDRESS=127.0.0.1
 PORT=3001
-DATABASE_URL=sqlite:/opt/ethnomusicology/data/ethnomusicology.db?mode=rwc
+DATABASE_URL=postgres://user:password@ep-xxxx.us-east-2.aws.neon.tech/ethnomusicology?sslmode=require
 SPOTIFY_CLIENT_ID=
 SPOTIFY_CLIENT_SECRET=
 SPOTIFY_REDIRECT_URI=https://tarab.studio/api/auth/spotify/callback
@@ -96,17 +96,17 @@ GitHub Actions SCP's the binary and frontend to timestamped paths, then calls th
 5. On success: prune old binaries/frontends (keep last 3)
 6. On failure: restore previous binary and frontend symlinks, restart, exit 1
 
-Caddy serves the Flutter web via the `frontend-current` symlink — no Caddy restart needed on frontend updates.
+Caddy reverse proxies to Next.js on port 3000 — no Caddy restart needed on frontend updates.
 
 ## CI/CD (`.github/workflows/deploy.yml`)
 
 Triggers on push to `main`.
 
 Steps:
-1. Checkout + install Rust toolchain (stable) + Flutter (stable, cached)
+1. Checkout + install Rust toolchain (stable) + bun
 2. Cache Rust build artifacts (`backend/target`, `~/.cargo`)
 3. `cargo build --release` (working-directory: `backend/`)
-4. `flutter clean && flutter pub get && flutter build web --release` (working-directory: `frontend/`)
+4. `bun install && bun --bun next build` (working-directory: `frontend-next/`)
 5. SCP binary to `/opt/ethnomusicology/ethnomusicology-backend-<timestamp>`
 6. SCP frontend build to `/opt/ethnomusicology/frontend-<timestamp>/`
 7. SSH: `TIMESTAMP=$TIMESTAMP /opt/ethnomusicology/scripts/deploy.sh`
@@ -117,9 +117,8 @@ Required GitHub Secrets: `EC2_SSH_KEY`, `EC2_HOST`
 
 Runs via cron every 6 hours.
 
-- Uses `sqlite3 VACUUM INTO` for a clean, compacted backup (safe during live writes)
-- Runs `PRAGMA integrity_check` to verify backup before upload
-- Uploads to S3: `s3://ethnomusicology-backups/<YYYY/MM/DD>/ethnomusicology-backup-<timestamp>.db`
+- Uses `pg_dump` with the Neon Postgres connection string for a consistent backup
+- Uploads to S3: `s3://ethnomusicology-backups/<YYYY/MM/DD>/ethnomusicology-backup-<timestamp>.sql.gz`
 - Prunes S3 objects older than 30 days
 
 Cron entry (ubuntu user):

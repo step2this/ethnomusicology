@@ -4,6 +4,8 @@
 > **Source**: 13 Cockburn use cases (UC-001, UC-013–UC-021, UC-023–UC-025)
 > **Status**: DJ-first pivot. UC-001 complete. Remaining UCs ready for implementation.
 
+> **Frontend**: Next.js 16 (migrated from Flutter in ST-011, Mar 2026)
+
 ---
 
 ## 1. Product Overview

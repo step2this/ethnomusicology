@@ -1,3 +1,5 @@
+> **HISTORICAL REFERENCE**: This is the original tech stack decision (Feb 2026). Actual implementation has evolved: Next.js frontend (not Flutter), Neon Postgres (not SQLite in prod), EC2+Caddy (not Fly.io).
+
 # Ethnomusicology Web App - Project Plan
 
 ## Context

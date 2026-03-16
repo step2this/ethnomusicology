@@ -11,15 +11,15 @@ paths:
 | Layer | Path | Tech |
 |-------|------|------|
 | Backend API | `backend/` | Rust, Axum 0.8, SQLx |
-| Frontend | `frontend/` | Flutter/Dart, Riverpod, GoRouter |
+| Frontend | `frontend-next/` | Next.js 16, React, TanStack Query, Zustand, shadcn/ui, Tailwind 4 |
 | Landing | `landing/` | Static HTML + Tailwind |
-| Database | SQLite (dev + prod) | via SQLx, `sqlx::migrate!()` for versioned migrations. S3 backup cron every 6 hours. |
+| Database | Neon Postgres (prod) | via SQLx PgPool, `sqlx::migrate!()` for versioned migrations. S3 backup cron every 6 hours. |
 | LLM | Claude Sonnet API | Setlist generation, music knowledge, track enrichment (BPM/key/energy estimation) |
 | Audio Analysis | essentia (async sidecar) | Post-MVP: audio-accurate BPM/key. 1-2 GB container, Starlette/FastAPI, async queue |
 | E2E Tests | `e2e/` | Playwright, GitHub Actions CI (ST-004). DEV_MODE=true enables `/api/dev/seed` for test data. |
 
 ## Key Patterns
-- Backend serves JSON; Flutter consumes it
+- Backend serves JSON; Next.js frontend consumes it
 - Backend owns ALL external API keys (Spotify, Beatport, SoundCloud, Anthropic)
 - Auth: `X-User-Id` header (temporary, replaced by JWT in UC-008)
 - API clients: custom `reqwest` wrappers with shared retry middleware
@@ -43,3 +43,5 @@ paths:
 | Beatport | DJ track source (deferred) | v4 API, OAuth2 w/ public client_id workaround. No official dev access. Rate limits unknown (SP-001) |
 | Anthropic/Claude | Setlist generation + enrichment + refinement + verification | Sonnet default, Opus for complex refinement. Enrichment: batch BPM/key/energy estimation (ST-005). Refinement: multi-turn converse() (ST-007). Verification: second-pass fact-checker via verify_setlist() (ST-010). |
 | essentia | Audio analysis (deferred post-MVP) | Python sidecar (1-2 GB), async queue. Key → Camelot via `from_notation()` (ready in ST-005) |
+
+> Flutter frontend (`frontend/`) archived post-ST-011 (Mar 2026).

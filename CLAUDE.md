@@ -22,7 +22,6 @@ Use the Forge (`.claude/` directory) for all development:
    - **7a. Security & Architecture Critic** — Spawn a fresh-context critic agent. Reads the diff cold. Checks: auth bypass, injection risks, data leaks, missing ownership checks, plan-vs-code compliance, missed edge cases, dead code, unused imports, test gaps. Critic sends feedback with file:line references. Lead assigns fixes before proceeding.
    - **7b. Code Quality Review** — Spawn a second fresh-context critic agent focused on language-specific quality:
      - **Rust**: ownership patterns, unwrap() in handlers, error propagation (? vs expect), clippy idioms, missing `?` on DB calls, transaction correctness, unused derives
-     - **Flutter**: ALL new screens registered in router (routing completeness is CRITICAL — Phase 8 retro: unregistered route would have shipped as dead feature), error handling on async actions, loading states on mutations, theme tokens vs hardcoded values, ConsumerWidget vs StatelessWidget appropriateness, provider access patterns
 8. `/verify-uc` — Validate implementation against postconditions
 9. `/grade-work` — Score completed work
 10. **Retrospective** — Write `docs/retrospectives/st-NNN-slug.md`, update action items, feed lessons into CLAUDE.md
@@ -52,7 +51,7 @@ Use the Forge (`.claude/` directory) for all development:
 > **No exceptions — including tech debt PRs, "small fixes", and hotfixes.**
 > Each critic agent runs in a FRESH context — it has NOT watched the code being written.
 > This breaks the "I wrote it so I think it's fine" blind spot.
-> A single critic cannot be expert in security AND Rust idioms AND Flutter patterns. Split the work.
+> A single critic cannot be expert in security AND Rust idioms AND Next.js patterns. Split the work.
 
 **Pass 7a: Security & Architecture Critic**
 
@@ -129,7 +128,7 @@ bun --bun next build        # Production build
 > **Session-specific state lives in `docs/session-handoff.md`.**
 
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`
-- **Deployed**: `tarab.studio` (Caddy + systemd + SQLite + Route53)
+- **Deployed**: `tarab.studio` (Caddy + systemd + Neon Postgres + Route53)
 
 ## Parallel Session Protocol
 
@@ -138,7 +137,7 @@ When multiple Claude Code sessions work simultaneously:
 2. Claim your files in the handoff doc before starting
 3. NEVER modify a file owned by another session
 4. Commit after every completed task (crash recovery)
-5. Shared files (main.rs, mod.rs, pubspec.yaml) → only one session touches them
+5. Shared files (main.rs, mod.rs, package.json) → only one session touches them
 6. See `.claude/rules/parallel-sessions.md` for full protocol
 
 ## Post-Milestone Checklist (MANDATORY)
