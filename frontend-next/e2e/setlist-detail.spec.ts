@@ -99,7 +99,7 @@ test.describe('Setlist detail page', () => {
     await page.goto('/setlists/set-detail-1');
 
     await expect(page.getByRole('heading', { name: 'Friday Night Set' })).toBeVisible();
-    await expect(page.getByText('Deep house vibes for the rooftop')).toBeVisible();
+    await expect(page.getByText('Deep house vibes for the rooftop').first()).toBeVisible();
     await expect(page.getByText('Strings of Life')).toBeVisible();
     await expect(page.getByText('Derrick May')).toBeVisible();
     await expect(page.getByText('Starry Night')).toBeVisible();
@@ -149,6 +149,8 @@ test.describe('Setlist detail page', () => {
     await mockDetailApis(page);
     await page.goto('/setlists/set-detail-1');
 
+    // Version history panel is collapsed by default — click to expand
+    await page.getByText('Version History').click();
     // Version history shows the initial version
     await expect(page.getByText('Initial generation')).toBeVisible();
   });

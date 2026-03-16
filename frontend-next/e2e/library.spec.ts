@@ -35,7 +35,7 @@ const mockCrates = [
 ];
 
 const mockTracks = {
-  tracks: [
+  data: [
     {
       id: 'track-1',
       title: 'Starry Night',
@@ -66,6 +66,7 @@ const mockTracks = {
     },
   ],
   page: 1,
+  per_page: 25,
   total_pages: 2,
   total: 30,
 };
@@ -211,7 +212,7 @@ test.describe('Track catalog', () => {
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ tracks: [], page: 1, total_pages: 1, total: 0 }),
+        body: JSON.stringify({ data: [], page: 1, per_page: 25, total_pages: 1, total: 0 }),
       });
     });
 

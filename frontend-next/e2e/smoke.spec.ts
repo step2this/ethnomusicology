@@ -8,11 +8,11 @@ test.describe('Smoke tests', () => {
 
   test('home page shows navigation cards', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Generate Setlist')).toBeVisible();
-    await expect(page.getByText('Setlist Library')).toBeVisible();
-    await expect(page.getByText('Crates')).toBeVisible();
-    await expect(page.getByText('Track Catalog')).toBeVisible();
-    await expect(page.getByText('Import from Spotify')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Generate Setlist' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Setlist Library' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Crates' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Track Catalog' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Import from Spotify' })).toBeVisible();
   });
 
   test('navbar is visible with brand and nav links', async ({ page }) => {
