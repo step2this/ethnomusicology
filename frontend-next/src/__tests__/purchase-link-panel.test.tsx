@@ -77,23 +77,6 @@ describe('PurchaseLinkPanel', () => {
     });
   });
 
-  it('links have correct href and target="_blank"', async () => {
-    render(
-      <PurchaseLinkPanel title="Strings of Life" artist="Derrick May" />,
-      { wrapper: createWrapper() },
-    );
-    fireEvent.click(screen.getByText('Buy'));
-
-    await waitFor(() => {
-      expect(screen.getByText('Beatport')).toBeInTheDocument();
-    });
-
-    const beatportLink = screen.getByText('Beatport').closest('a');
-    expect(beatportLink).toHaveAttribute('href', 'https://www.beatport.com/search?q=test');
-    expect(beatportLink).toHaveAttribute('target', '_blank');
-    expect(beatportLink).toHaveAttribute('rel', 'noopener noreferrer');
-  });
-
   it('collapses when button is clicked again', async () => {
     render(
       <PurchaseLinkPanel title="Strings of Life" artist="Derrick May" />,

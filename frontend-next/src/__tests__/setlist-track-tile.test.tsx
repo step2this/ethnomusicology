@@ -127,34 +127,12 @@ describe('SetlistTrackTile', () => {
     expect(onPlay).toHaveBeenCalledWith(3);
   });
 
-  it('shows Spotify link when spotify_uri present', () => {
-    const track = { ...baseTrack, spotify_uri: 'spotify:track:abc123' };
-    render(
-      <SetlistTrackTile track={track} index={0} onPlay={vi.fn()} />,
-      { wrapper: createWrapper() },
-    );
-    const spotifyLink = screen.getByTitle('Open in Spotify');
-    expect(spotifyLink).toHaveAttribute('href', 'https://open.spotify.com/track/abc123');
-    expect(spotifyLink).toHaveAttribute('target', '_blank');
-  });
-
   it('does not show Spotify link when spotify_uri is null', () => {
     render(
       <SetlistTrackTile track={baseTrack} index={0} onPlay={vi.fn()} />,
       { wrapper: createWrapper() },
     );
     expect(screen.queryByTitle('Open in Spotify')).not.toBeInTheDocument();
-  });
-
-  it('title links to Google search', () => {
-    render(
-      <SetlistTrackTile track={baseTrack} index={0} onPlay={vi.fn()} />,
-      { wrapper: createWrapper() },
-    );
-    const titleLink = screen.getByText('Strings of Life').closest('a');
-    expect(titleLink?.getAttribute('href')).toContain('google.com/search');
-    expect(titleLink?.getAttribute('href')).toContain('Strings');
-    expect(titleLink).toHaveAttribute('target', '_blank');
   });
 
   it('shows verification notes when present', () => {

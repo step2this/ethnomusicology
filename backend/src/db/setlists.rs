@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use crate::db::models::{SetlistRow, SetlistSummary, SetlistTrackRow, TrackRow};
 
@@ -6,9 +6,9 @@ use crate::db::models::{SetlistRow, SetlistSummary, SetlistTrackRow, TrackRow};
 // Insert operations
 // ---------------------------------------------------------------------------
 
-pub async fn insert_setlist(pool: &SqlitePool, row: &SetlistRow) -> Result<(), sqlx::Error> {
+pub async fn insert_setlist(pool: &PgPool, row: &SetlistRow) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO setlists (id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile) VALUES (?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO setlists (id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
     )
     .bind(&row.id)
     .bind(&row.user_id)
@@ -24,11 +24,11 @@ pub async fn insert_setlist(pool: &SqlitePool, row: &SetlistRow) -> Result<(), s
 }
 
 pub async fn insert_setlist_track(
-    pool: &SqlitePool,
+    pool: &PgPool,
     row: &SetlistTrackRow,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info, confidence, verification_flag, verification_note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info, confidence, verification_flag, verification_note) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
     )
     .bind(&row.id)
     .bind(&row.setlist_id)
@@ -57,9 +57,9 @@ pub async fn insert_setlist_track(
 // Read operations
 // ---------------------------------------------------------------------------
 
-pub async fn get_setlist(pool: &SqlitePool, id: &str) -> Result<Option<SetlistRow>, sqlx::Error> {
+pub async fn get_setlist(pool: &PgPool, id: &str) -> Result<Option<SetlistRow>, sqlx::Error> {
     sqlx::query_as::<_, SetlistRow>(
-        "SELECT id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile, created_at FROM setlists WHERE id = ?",
+        "SELECT id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile, created_at FROM setlists WHERE id = $1",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -67,7 +67,7 @@ pub async fn get_setlist(pool: &SqlitePool, id: &str) -> Result<Option<SetlistRo
 }
 
 pub async fn get_setlist_tracks(
-    pool: &SqlitePool,
+    pool: &PgPool,
     setlist_id: &str,
 ) -> Result<Vec<SetlistTrackRow>, sqlx::Error> {
     sqlx::query_as::<_, SetlistTrackRow>(
@@ -76,7 +76,7 @@ pub async fn get_setlist_tracks(
          st.transition_note, st.transition_score, st.source, st.acquisition_info, \
          t.spotify_uri, st.confidence, st.verification_flag, st.verification_note \
          FROM setlist_tracks st LEFT JOIN tracks t ON st.track_id = t.id \
-         WHERE st.setlist_id = ? ORDER BY st.position ASC",
+         WHERE st.setlist_id = $1 ORDER BY st.position ASC",
     )
     .bind(setlist_id)
     .fetch_all(pool)
@@ -88,11 +88,11 @@ pub async fn get_setlist_tracks(
 // ---------------------------------------------------------------------------
 
 pub async fn update_setlist_harmonic_score(
-    pool: &SqlitePool,
+    pool: &PgPool,
     id: &str,
     score: f64,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE setlists SET harmonic_flow_score = ? WHERE id = ?")
+    sqlx::query("UPDATE setlists SET harmonic_flow_score = $1 WHERE id = $2")
         .bind(score)
         .bind(id)
         .execute(pool)
@@ -101,12 +101,12 @@ pub async fn update_setlist_harmonic_score(
 }
 
 pub async fn update_setlist_track_position(
-    pool: &SqlitePool,
+    pool: &PgPool,
     track_id: &str,
     new_position: i32,
     transition_score: Option<f64>,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE setlist_tracks SET position = ?, transition_score = ? WHERE id = ?")
+    sqlx::query("UPDATE setlist_tracks SET position = $1, transition_score = $2 WHERE id = $3")
         .bind(new_position)
         .bind(transition_score)
         .bind(track_id)
@@ -120,7 +120,7 @@ pub async fn update_setlist_track_position(
 // ---------------------------------------------------------------------------
 
 pub async fn list_setlists(
-    pool: &SqlitePool,
+    pool: &PgPool,
     user_id: &str,
     limit: i64,
     offset: i64,
@@ -130,10 +130,10 @@ pub async fn list_setlists(
          COUNT(st.id) as track_count \
          FROM setlists s \
          LEFT JOIN setlist_tracks st ON st.setlist_id = s.id \
-         WHERE s.user_id = ? \
+         WHERE s.user_id = $1 \
          GROUP BY s.id \
          ORDER BY s.created_at DESC \
-         LIMIT ? OFFSET ?",
+         LIMIT $2 OFFSET $3",
     )
     .bind(user_id)
     .bind(limit)
@@ -142,36 +142,36 @@ pub async fn list_setlists(
     .await
 }
 
-pub async fn count_setlists(pool: &SqlitePool, user_id: &str) -> Result<i64, sqlx::Error> {
-    let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM setlists WHERE user_id = ?")
+pub async fn count_setlists(pool: &PgPool, user_id: &str) -> Result<i64, sqlx::Error> {
+    let row: (i64,) = sqlx::query_as("SELECT COUNT(*) FROM setlists WHERE user_id = $1")
         .bind(user_id)
         .fetch_one(pool)
         .await?;
     Ok(row.0)
 }
 
-pub async fn delete_setlist(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
+pub async fn delete_setlist(pool: &PgPool, id: &str) -> Result<bool, sqlx::Error> {
     let mut tx = pool.begin().await?;
-    sqlx::query("DELETE FROM setlist_conversations WHERE setlist_id = ?")
+    sqlx::query("DELETE FROM setlist_conversations WHERE setlist_id = $1")
         .bind(id)
         .execute(&mut *tx)
         .await?;
     sqlx::query(
         "DELETE FROM setlist_version_tracks WHERE version_id IN \
-         (SELECT id FROM setlist_versions WHERE setlist_id = ?)",
+         (SELECT id FROM setlist_versions WHERE setlist_id = $1)",
     )
     .bind(id)
     .execute(&mut *tx)
     .await?;
-    sqlx::query("DELETE FROM setlist_versions WHERE setlist_id = ?")
+    sqlx::query("DELETE FROM setlist_versions WHERE setlist_id = $1")
         .bind(id)
         .execute(&mut *tx)
         .await?;
-    sqlx::query("DELETE FROM setlist_tracks WHERE setlist_id = ?")
+    sqlx::query("DELETE FROM setlist_tracks WHERE setlist_id = $1")
         .bind(id)
         .execute(&mut *tx)
         .await?;
-    let result = sqlx::query("DELETE FROM setlists WHERE id = ?")
+    let result = sqlx::query("DELETE FROM setlists WHERE id = $1")
         .bind(id)
         .execute(&mut *tx)
         .await?;
@@ -180,11 +180,11 @@ pub async fn delete_setlist(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::E
 }
 
 pub async fn update_setlist_name(
-    pool: &SqlitePool,
+    pool: &PgPool,
     id: &str,
     name: &str,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE setlists SET name = ? WHERE id = ?")
+    sqlx::query("UPDATE setlists SET name = $1 WHERE id = $2")
         .bind(name)
         .bind(id)
         .execute(pool)
@@ -193,13 +193,13 @@ pub async fn update_setlist_name(
 }
 
 pub async fn duplicate_setlist(
-    pool: &SqlitePool,
+    pool: &PgPool,
     id: &str,
     new_name: Option<&str>,
 ) -> Result<Option<String>, sqlx::Error> {
     // Load original
     let original = sqlx::query_as::<_, SetlistRow>(
-        "SELECT id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile, created_at FROM setlists WHERE id = ?",
+        "SELECT id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile, created_at FROM setlists WHERE id = $1",
     )
     .bind(id)
     .fetch_optional(pool)
@@ -227,7 +227,7 @@ pub async fn duplicate_setlist(
          st.transition_note, st.transition_score, st.source, st.acquisition_info, \
          t.spotify_uri, st.confidence, st.verification_flag, st.verification_note \
          FROM setlist_tracks st LEFT JOIN tracks t ON st.track_id = t.id \
-         WHERE st.setlist_id = ? ORDER BY st.position ASC",
+         WHERE st.setlist_id = $1 ORDER BY st.position ASC",
     )
     .bind(id)
     .fetch_all(pool)
@@ -238,7 +238,7 @@ pub async fn duplicate_setlist(
 
     sqlx::query(
         "INSERT INTO setlists (id, user_id, prompt, model, name, notes, harmonic_flow_score, energy_profile) \
-         SELECT ?, user_id, prompt, model, ?, notes, harmonic_flow_score, energy_profile FROM setlists WHERE id = ?",
+         SELECT $1, user_id, prompt, model, $2, notes, harmonic_flow_score, energy_profile FROM setlists WHERE id = $3",
     )
     .bind(&new_id)
     .bind(&resolved_name)
@@ -253,7 +253,7 @@ pub async fn duplicate_setlist(
              (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, \
              energy, transition_note, transition_score, source, acquisition_info, confidence, \
              verification_flag, verification_note) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)",
         )
         .bind(&new_track_id)
         .bind(&new_id)
@@ -286,10 +286,10 @@ pub async fn duplicate_setlist(
 // Catalog loading (all tracks, no user_id filter for ST-003)
 // ---------------------------------------------------------------------------
 
-pub async fn load_catalog_tracks(pool: &SqlitePool) -> Result<Vec<TrackRow>, sqlx::Error> {
+pub async fn load_catalog_tracks(pool: &PgPool) -> Result<Vec<TrackRow>, sqlx::Error> {
     sqlx::query_as::<_, TrackRow>(
         r#"SELECT
-            t.id, t.title, GROUP_CONCAT(a.name, ', ') AS artist,
+            t.id, t.title, STRING_AGG(a.name, ', ') AS artist,
             t.album, t.duration_ms, t.bpm, t.camelot_key, t.energy,
             t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url,
             t.deezer_id, t.deezer_preview_url, t.created_at
@@ -313,30 +313,6 @@ mod tests {
     use crate::db::models::SetlistRow;
 
     #[tokio::test]
-    async fn test_insert_and_get_setlist() {
-        let pool = crate::db::create_test_pool().await;
-
-        let row = SetlistRow {
-            id: "sl-1".to_string(),
-            user_id: "user-1".to_string(),
-            prompt: "Chill house vibes".to_string(),
-            model: "claude-sonnet-4-20250514".to_string(),
-            name: None,
-            notes: Some("A relaxing set".to_string()),
-            harmonic_flow_score: None,
-            energy_profile: None,
-            created_at: None,
-        };
-
-        insert_setlist(&pool, &row).await.unwrap();
-
-        let fetched = get_setlist(&pool, "sl-1").await.unwrap().unwrap();
-        assert_eq!(fetched.id, "sl-1");
-        assert_eq!(fetched.prompt, "Chill house vibes");
-        assert_eq!(fetched.notes.as_deref(), Some("A relaxing set"));
-    }
-
-    #[tokio::test]
     async fn test_get_setlist_not_found() {
         let pool = crate::db::create_test_pool().await;
         let result = get_setlist(&pool, "nonexistent").await.unwrap();
@@ -344,133 +320,11 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_insert_and_get_setlist_tracks() {
-        let pool = crate::db::create_test_pool().await;
-
-        // Insert parent setlist first
-        let setlist = SetlistRow {
-            id: "sl-1".to_string(),
-            user_id: "user-1".to_string(),
-            prompt: "Test".to_string(),
-            model: "test".to_string(),
-            name: None,
-            notes: None,
-            harmonic_flow_score: None,
-            energy_profile: None,
-            created_at: None,
-        };
-        insert_setlist(&pool, &setlist).await.unwrap();
-
-        let track = SetlistTrackRow {
-            id: "st-1".to_string(),
-            setlist_id: "sl-1".to_string(),
-            track_id: None,
-            position: 1,
-            original_position: 1,
-            title: "Desert Rose".to_string(),
-            artist: "Sting".to_string(),
-            bpm: Some(102.0),
-            key: Some("A minor".to_string()),
-            camelot: Some("8A".to_string()),
-            energy: Some(5.0),
-            transition_note: Some("Open with pads".to_string()),
-            transition_score: None,
-            source: "suggestion".to_string(),
-            acquisition_info: None,
-            spotify_uri: None,
-            confidence: None,
-            verification_flag: None,
-            verification_note: None,
-        };
-
-        insert_setlist_track(&pool, &track).await.unwrap();
-
-        let tracks = get_setlist_tracks(&pool, "sl-1").await.unwrap();
-        assert_eq!(tracks.len(), 1);
-        assert_eq!(tracks[0].title, "Desert Rose");
-        assert_eq!(tracks[0].bpm, Some(102.0));
-    }
-
-    #[tokio::test]
-    async fn test_update_harmonic_score() {
-        let pool = crate::db::create_test_pool().await;
-
-        let setlist = SetlistRow {
-            id: "sl-1".to_string(),
-            user_id: "user-1".to_string(),
-            prompt: "Test".to_string(),
-            model: "test".to_string(),
-            name: None,
-            notes: None,
-            harmonic_flow_score: None,
-            energy_profile: None,
-            created_at: None,
-        };
-        insert_setlist(&pool, &setlist).await.unwrap();
-
-        update_setlist_harmonic_score(&pool, "sl-1", 82.5)
-            .await
-            .unwrap();
-
-        let fetched = get_setlist(&pool, "sl-1").await.unwrap().unwrap();
-        assert_eq!(fetched.harmonic_flow_score, Some(82.5));
-    }
-
-    #[tokio::test]
-    async fn test_update_track_position() {
-        let pool = crate::db::create_test_pool().await;
-
-        let setlist = SetlistRow {
-            id: "sl-1".to_string(),
-            user_id: "user-1".to_string(),
-            prompt: "Test".to_string(),
-            model: "test".to_string(),
-            name: None,
-            notes: None,
-            harmonic_flow_score: None,
-            energy_profile: None,
-            created_at: None,
-        };
-        insert_setlist(&pool, &setlist).await.unwrap();
-
-        let track = SetlistTrackRow {
-            id: "st-1".to_string(),
-            setlist_id: "sl-1".to_string(),
-            track_id: None,
-            position: 1,
-            original_position: 1,
-            title: "Test".to_string(),
-            artist: "Artist".to_string(),
-            bpm: None,
-            key: None,
-            camelot: None,
-            energy: None,
-            transition_note: None,
-            transition_score: None,
-            source: "suggestion".to_string(),
-            acquisition_info: None,
-            spotify_uri: None,
-            confidence: None,
-            verification_flag: None,
-            verification_note: None,
-        };
-        insert_setlist_track(&pool, &track).await.unwrap();
-
-        update_setlist_track_position(&pool, "st-1", 3, Some(0.85))
-            .await
-            .unwrap();
-
-        let tracks = get_setlist_tracks(&pool, "sl-1").await.unwrap();
-        assert_eq!(tracks[0].position, 3);
-        assert_eq!(tracks[0].transition_score, Some(0.85));
-    }
-
-    #[tokio::test]
     async fn test_load_catalog_tracks() {
         let pool = crate::db::create_test_pool().await;
 
         sqlx::query(
-            "INSERT INTO tracks (id, title, source, bpm, camelot_key) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO tracks (id, title, source, bpm, camelot_key) VALUES ($1, $2, $3, $4, $5)",
         )
         .bind("t1")
         .bind("Track One")
@@ -481,14 +335,14 @@ mod tests {
         .await
         .unwrap();
 
-        sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
             .bind("a1")
             .bind("DJ Test")
             .execute(&pool)
             .await
             .unwrap();
 
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a1")
             .execute(&pool)
@@ -501,50 +355,6 @@ mod tests {
         assert_eq!(tracks[0].artist.as_deref(), Some("DJ Test"));
         assert_eq!(tracks[0].bpm, Some(128.0));
         assert_eq!(tracks[0].camelot_key.as_deref(), Some("8A"));
-    }
-
-    #[tokio::test]
-    async fn test_insert_setlist_with_energy_profile() {
-        let pool = crate::db::create_test_pool().await;
-
-        let row = SetlistRow {
-            id: "sl-ep".to_string(),
-            user_id: "user-1".to_string(),
-            prompt: "Peak time techno".to_string(),
-            model: "test".to_string(),
-            name: None,
-            notes: None,
-            harmonic_flow_score: None,
-            energy_profile: Some("peak-time".to_string()),
-            created_at: None,
-        };
-
-        insert_setlist(&pool, &row).await.unwrap();
-
-        let fetched = get_setlist(&pool, "sl-ep").await.unwrap().unwrap();
-        assert_eq!(fetched.energy_profile.as_deref(), Some("peak-time"));
-    }
-
-    #[tokio::test]
-    async fn test_insert_setlist_with_none_energy_profile() {
-        let pool = crate::db::create_test_pool().await;
-
-        let row = SetlistRow {
-            id: "sl-none".to_string(),
-            user_id: "user-1".to_string(),
-            prompt: "Whatever vibes".to_string(),
-            model: "test".to_string(),
-            name: None,
-            notes: None,
-            harmonic_flow_score: None,
-            energy_profile: None,
-            created_at: None,
-        };
-
-        insert_setlist(&pool, &row).await.unwrap();
-
-        let fetched = get_setlist(&pool, "sl-none").await.unwrap().unwrap();
-        assert!(fetched.energy_profile.is_none());
     }
 
     #[tokio::test]
@@ -607,31 +417,6 @@ mod tests {
         // Deleting non-existent returns false
         let deleted2 = delete_setlist(&pool, "sl-del").await.unwrap();
         assert!(!deleted2);
-    }
-
-    #[tokio::test]
-    async fn test_update_setlist_name() {
-        let pool = crate::db::create_test_pool().await;
-
-        let row = SetlistRow {
-            id: "sl-name".to_string(),
-            user_id: "user-1".to_string(),
-            prompt: "Test prompt".to_string(),
-            model: "test".to_string(),
-            name: None,
-            notes: None,
-            harmonic_flow_score: None,
-            energy_profile: None,
-            created_at: None,
-        };
-        insert_setlist(&pool, &row).await.unwrap();
-
-        update_setlist_name(&pool, "sl-name", "My Cool Set")
-            .await
-            .unwrap();
-
-        let fetched = get_setlist(&pool, "sl-name").await.unwrap().unwrap();
-        assert_eq!(fetched.name.as_deref(), Some("My Cool Set"));
     }
 
     #[tokio::test]

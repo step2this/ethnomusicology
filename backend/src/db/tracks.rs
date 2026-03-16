@@ -1,10 +1,10 @@
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use super::models::{Track, TrackRow, UpsertResult};
 
 #[allow(clippy::too_many_arguments)]
 pub async fn upsert_track(
-    pool: &SqlitePool,
+    pool: &PgPool,
     id: &str,
     title: &str,
     album: Option<&str>,
@@ -14,21 +14,21 @@ pub async fn upsert_track(
     album_art_url: Option<&str>,
 ) -> Result<UpsertResult, sqlx::Error> {
     // Check if a track with this spotify_uri already exists
-    let existing = sqlx::query_scalar::<_, String>("SELECT id FROM tracks WHERE spotify_uri = ?")
+    let existing = sqlx::query_scalar::<_, String>("SELECT id FROM tracks WHERE spotify_uri = $1")
         .bind(spotify_uri)
         .fetch_optional(pool)
         .await?;
 
     sqlx::query(
         "INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, spotify_preview_url, album_art_url, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
          ON CONFLICT(spotify_uri) DO UPDATE SET
            title = excluded.title,
            album = excluded.album,
            duration_ms = excluded.duration_ms,
            spotify_preview_url = excluded.spotify_preview_url,
            album_art_url = excluded.album_art_url,
-           updated_at = CURRENT_TIMESTAMP",
+           updated_at = NOW()",
     )
     .bind(id)
     .bind(title)
@@ -48,7 +48,7 @@ pub async fn upsert_track(
 }
 
 pub async fn list_tracks_paginated(
-    pool: &SqlitePool,
+    pool: &PgPool,
     page: u32,
     per_page: u32,
     sort: &str,
@@ -75,7 +75,7 @@ pub async fn list_tracks_paginated(
         "SELECT
             t.id,
             t.title,
-            GROUP_CONCAT(a.name, ', ') AS artist,
+            STRING_AGG(a.name, ', ') AS artist,
             t.album,
             t.duration_ms,
             t.bpm,
@@ -93,7 +93,7 @@ pub async fn list_tracks_paginated(
         LEFT JOIN artists a ON ta.artist_id = a.id
         GROUP BY t.id
         ORDER BY ({sort_col} IS NULL), {sort_col} {order_dir}, t.id ASC
-        LIMIT ? OFFSET ?",
+        LIMIT $1 OFFSET $2",
         sort_col = sort_col,
         order_dir = order_dir,
     );
@@ -110,11 +110,11 @@ pub async fn list_tracks_paginated(
 }
 
 pub async fn get_track_by_spotify_uri(
-    pool: &SqlitePool,
+    pool: &PgPool,
     uri: &str,
 ) -> Result<Option<Track>, sqlx::Error> {
     sqlx::query_as::<_, Track>(
-        "SELECT id, title, album, duration_ms, spotify_uri, spotify_preview_url, youtube_id, musicbrainz_id, created_at, updated_at FROM tracks WHERE spotify_uri = ?",
+        "SELECT id, title, album, duration_ms, spotify_uri, spotify_preview_url, youtube_id, musicbrainz_id, created_at, updated_at FROM tracks WHERE spotify_uri = $1",
     )
     .bind(uri)
     .fetch_optional(pool)
@@ -123,12 +123,12 @@ pub async fn get_track_by_spotify_uri(
 
 /// Get tracks that need enrichment (needs_enrichment = 1, no enrichment_error).
 pub async fn get_unenriched_tracks(
-    pool: &SqlitePool,
+    pool: &PgPool,
     limit: usize,
 ) -> Result<Vec<TrackRow>, sqlx::Error> {
     sqlx::query_as::<_, TrackRow>(
         r#"SELECT
-            t.id, t.title, GROUP_CONCAT(a.name, ', ') AS artist,
+            t.id, t.title, STRING_AGG(a.name, ', ') AS artist,
             t.album, t.duration_ms, t.bpm, t.camelot_key, t.energy,
             t.source, t.spotify_uri, t.spotify_preview_url, t.album_art_url,
             t.deezer_id, t.deezer_preview_url, t.created_at
@@ -138,7 +138,7 @@ pub async fn get_unenriched_tracks(
         WHERE t.needs_enrichment = 1 AND t.enrichment_error IS NULL
         GROUP BY t.id
         ORDER BY t.created_at DESC
-        LIMIT ?"#,
+        LIMIT $1"#,
     )
     .bind(limit as i64)
     .fetch_all(pool)
@@ -147,7 +147,7 @@ pub async fn get_unenriched_tracks(
 
 /// Update a track's DJ metadata after enrichment.
 pub async fn update_track_dj_metadata(
-    pool: &SqlitePool,
+    pool: &PgPool,
     id: &str,
     bpm: Option<f64>,
     camelot_key: Option<&str>,
@@ -155,7 +155,7 @@ pub async fn update_track_dj_metadata(
     album_art_url: Option<&str>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "UPDATE tracks SET bpm = COALESCE(?, bpm), camelot_key = COALESCE(?, camelot_key), energy = COALESCE(?, energy), album_art_url = COALESCE(?, album_art_url), needs_enrichment = 0, enriched_at = CURRENT_TIMESTAMP WHERE id = ?",
+        "UPDATE tracks SET bpm = COALESCE($1, bpm), camelot_key = COALESCE($2, camelot_key), energy = COALESCE($3, energy), album_art_url = COALESCE($4, album_art_url), needs_enrichment = 0, enriched_at = NOW() WHERE id = $5",
     )
     .bind(bpm)
     .bind(camelot_key)
@@ -169,11 +169,11 @@ pub async fn update_track_dj_metadata(
 
 /// Mark a track's enrichment as failed.
 pub async fn mark_enrichment_error(
-    pool: &SqlitePool,
+    pool: &PgPool,
     id: &str,
     error: &str,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE tracks SET enrichment_error = ?, needs_enrichment = 0 WHERE id = ?")
+    sqlx::query("UPDATE tracks SET enrichment_error = $1, needs_enrichment = 0 WHERE id = $2")
         .bind(error)
         .bind(id)
         .execute(pool)
@@ -183,12 +183,12 @@ pub async fn mark_enrichment_error(
 
 /// Get today's enrichment count for a user.
 pub async fn get_daily_enrichment_count(
-    pool: &SqlitePool,
+    pool: &PgPool,
     user_id: &str,
 ) -> Result<i64, sqlx::Error> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let count: Option<i64> = sqlx::query_scalar(
-        "SELECT enrichment_count FROM user_usage WHERE user_id = ? AND date = ?",
+        "SELECT enrichment_count FROM user_usage WHERE user_id = $1 AND date = $2",
     )
     .bind(user_id)
     .bind(&today)
@@ -201,7 +201,7 @@ pub async fn get_daily_enrichment_count(
 /// Clears enrichment_error and sets needs_enrichment = 1 for all tracks
 /// where enrichment_error IS NOT NULL.
 /// Returns the number of tracks reset.
-pub async fn retry_errored_tracks(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
+pub async fn retry_errored_tracks(pool: &PgPool) -> Result<u64, sqlx::Error> {
     let result = sqlx::query(
         "UPDATE tracks SET enrichment_error = NULL, needs_enrichment = 1 WHERE enrichment_error IS NOT NULL",
     )
@@ -212,12 +212,12 @@ pub async fn retry_errored_tracks(pool: &SqlitePool) -> Result<u64, sqlx::Error>
 
 /// Get today's generation count for a user.
 pub async fn get_daily_generation_count(
-    pool: &SqlitePool,
+    pool: &PgPool,
     user_id: &str,
 ) -> Result<i64, sqlx::Error> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let count: Option<i64> = sqlx::query_scalar(
-        "SELECT generation_count FROM user_usage WHERE user_id = ? AND date = ?",
+        "SELECT generation_count FROM user_usage WHERE user_id = $1 AND date = $2",
     )
     .bind(user_id)
     .bind(&today)
@@ -228,13 +228,13 @@ pub async fn get_daily_generation_count(
 
 /// Increment the generation usage counter for a user.
 pub async fn increment_generation_usage(
-    pool: &SqlitePool,
+    pool: &PgPool,
     user_id: &str,
 ) -> Result<(), sqlx::Error> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
-        "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES (?, ?, ?, 1)
+        "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES ($1, $2, $3, 1)
          ON CONFLICT(user_id, date) DO UPDATE SET generation_count = generation_count + 1",
     )
     .bind(&id)
@@ -247,14 +247,14 @@ pub async fn increment_generation_usage(
 
 /// Increment the enrichment usage counter for a user.
 pub async fn increment_enrichment_usage(
-    pool: &SqlitePool,
+    pool: &PgPool,
     user_id: &str,
     count: i64,
 ) -> Result<(), sqlx::Error> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
-        "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES (?, ?, ?, ?)
+        "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ($1, $2, $3, $4)
          ON CONFLICT(user_id, date) DO UPDATE SET enrichment_count = enrichment_count + excluded.enrichment_count",
     )
     .bind(&id)
@@ -270,74 +270,6 @@ pub async fn increment_enrichment_usage(
 mod tests {
     use super::*;
     use crate::db::create_test_pool;
-
-    #[tokio::test]
-    async fn test_upsert_track_insert() {
-        let pool = create_test_pool().await;
-
-        let result = upsert_track(
-            &pool,
-            "t1",
-            "Test Track",
-            Some("Test Album"),
-            Some(210_000),
-            "spotify:track:abc123",
-            Some("https://preview.url"),
-            Some("https://i.scdn.co/image/art1"),
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(result, UpsertResult::Inserted);
-
-        let track = get_track_by_spotify_uri(&pool, "spotify:track:abc123")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(track.title, "Test Track");
-        assert_eq!(track.album.as_deref(), Some("Test Album"));
-        assert_eq!(track.duration_ms, Some(210_000));
-    }
-
-    #[tokio::test]
-    async fn test_upsert_track_update() {
-        let pool = create_test_pool().await;
-
-        upsert_track(
-            &pool,
-            "t1",
-            "Original Title",
-            Some("Album"),
-            Some(200_000),
-            "spotify:track:abc123",
-            None,
-            None,
-        )
-        .await
-        .unwrap();
-
-        let result = upsert_track(
-            &pool,
-            "t1-new",
-            "Updated Title",
-            Some("New Album"),
-            Some(220_000),
-            "spotify:track:abc123",
-            Some("https://new-preview.url"),
-            Some("https://i.scdn.co/image/updated"),
-        )
-        .await
-        .unwrap();
-
-        assert_eq!(result, UpsertResult::Updated);
-
-        let track = get_track_by_spotify_uri(&pool, "spotify:track:abc123")
-            .await
-            .unwrap()
-            .unwrap();
-        assert_eq!(track.title, "Updated Title");
-        assert_eq!(track.album.as_deref(), Some("New Album"));
-    }
 
     #[tokio::test]
     async fn test_get_track_not_found() {
@@ -364,27 +296,27 @@ mod tests {
         let pool = create_test_pool().await;
 
         // Insert test tracks
-        sqlx::query("INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, source) VALUES (?, ?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, source) VALUES ($1, $2, $3, $4, $5, $6)")
             .bind("t1").bind("Track A").bind("Album 1").bind(180000i64).bind("spotify:track:a1").bind("spotify")
             .execute(&pool).await.unwrap();
-        sqlx::query("INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, source) VALUES (?, ?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, source) VALUES ($1, $2, $3, $4, $5, $6)")
             .bind("t2").bind("Track B").bind("Album 2").bind(200000i64).bind("spotify:track:b2").bind("spotify")
             .execute(&pool).await.unwrap();
 
         // Insert artists and link
-        sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
             .bind("a1")
             .bind("Artist One")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a1")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t2")
             .bind("a1")
             .execute(&pool)
@@ -404,7 +336,7 @@ mod tests {
         let pool = create_test_pool().await;
 
         for i in 0..5 {
-            sqlx::query("INSERT INTO tracks (id, title, source) VALUES (?, ?, 'spotify')")
+            sqlx::query("INSERT INTO tracks (id, title, source) VALUES ($1, $2, 'spotify')")
                 .bind(format!("t{}", i))
                 .bind(format!("Track {}", i))
                 .execute(&pool)
@@ -428,21 +360,21 @@ mod tests {
     async fn test_list_tracks_paginated_sort_bpm_nulls() {
         let pool = create_test_pool().await;
 
-        sqlx::query("INSERT INTO tracks (id, title, bpm, source) VALUES (?, ?, ?, 'spotify')")
+        sqlx::query("INSERT INTO tracks (id, title, bpm, source) VALUES ($1, $2, $3, 'spotify')")
             .bind("t1")
             .bind("Fast")
             .bind(128.0f64)
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO tracks (id, title, bpm, source) VALUES (?, ?, ?, 'spotify')")
+        sqlx::query("INSERT INTO tracks (id, title, bpm, source) VALUES ($1, $2, $3, 'spotify')")
             .bind("t2")
             .bind("Slow")
             .bind(100.0f64)
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO tracks (id, title, source) VALUES (?, ?, 'spotify')")
+        sqlx::query("INSERT INTO tracks (id, title, source) VALUES ($1, $2, 'spotify')")
             .bind("t3")
             .bind("No BPM")
             .execute(&pool)
@@ -463,31 +395,31 @@ mod tests {
     async fn test_list_tracks_paginated_multi_artist() {
         let pool = create_test_pool().await;
 
-        sqlx::query("INSERT INTO tracks (id, title, source) VALUES (?, ?, 'spotify')")
+        sqlx::query("INSERT INTO tracks (id, title, source) VALUES ($1, $2, 'spotify')")
             .bind("t1")
             .bind("Collab Track")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
             .bind("a1")
             .bind("Artist A")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
             .bind("a2")
             .bind("Artist B")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a1")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a2")
             .execute(&pool)

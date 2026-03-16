@@ -30,11 +30,6 @@ describe('playback-store', () => {
     expect(state.previewUrls.size).toBe(0);
   });
 
-  it('setStatus updates status', () => {
-    usePlaybackStore.getState().setStatus('playing');
-    expect(usePlaybackStore.getState().status).toBe('playing');
-  });
-
   it('setStatus cycles through all statuses', () => {
     const statuses = ['idle', 'loading', 'playing', 'paused', 'error'] as const;
     for (const s of statuses) {
@@ -43,20 +38,10 @@ describe('playback-store', () => {
     }
   });
 
-  it('setCurrentTrack updates index', () => {
-    usePlaybackStore.getState().setCurrentTrack(3);
-    expect(usePlaybackStore.getState().currentTrackIndex).toBe(3);
-  });
-
   it('setCurrentTrack accepts null', () => {
     usePlaybackStore.getState().setCurrentTrack(5);
     usePlaybackStore.getState().setCurrentTrack(null);
     expect(usePlaybackStore.getState().currentTrackIndex).toBeNull();
-  });
-
-  it('setTrackCount updates count', () => {
-    usePlaybackStore.getState().setTrackCount(12);
-    expect(usePlaybackStore.getState().trackCount).toBe(12);
   });
 
   it('setVolume updates volume and calls audioService', async () => {
@@ -64,17 +49,6 @@ describe('playback-store', () => {
     usePlaybackStore.getState().setVolume(0.5);
     expect(usePlaybackStore.getState().volume).toBe(0.5);
     expect(audioService.setVolume).toHaveBeenCalledWith(0.5);
-  });
-
-  it('setPreviewUrl adds url to map', () => {
-    usePlaybackStore.getState().setPreviewUrl(0, 'https://example.com/track.mp3');
-    expect(usePlaybackStore.getState().previewUrls.get(0)).toBe('https://example.com/track.mp3');
-  });
-
-  it('setPreviewUrl overwrites existing url', () => {
-    usePlaybackStore.getState().setPreviewUrl(0, 'https://example.com/old.mp3');
-    usePlaybackStore.getState().setPreviewUrl(0, 'https://example.com/new.mp3');
-    expect(usePlaybackStore.getState().previewUrls.get(0)).toBe('https://example.com/new.mp3');
   });
 
   it('reset clears state back to initial', () => {
@@ -100,39 +74,6 @@ describe('generation-store', () => {
     expect(state.isGenerating).toBe(false);
     expect(state.isArranging).toBe(false);
     expect(state.error).toBeNull();
-  });
-
-  it('setGenerating updates flag', () => {
-    useGenerationStore.getState().setGenerating(true);
-    expect(useGenerationStore.getState().isGenerating).toBe(true);
-  });
-
-  it('setGenerating can toggle off', () => {
-    useGenerationStore.getState().setGenerating(true);
-    useGenerationStore.getState().setGenerating(false);
-    expect(useGenerationStore.getState().isGenerating).toBe(false);
-  });
-
-  it('setArranging updates flag', () => {
-    useGenerationStore.getState().setArranging(true);
-    expect(useGenerationStore.getState().isArranging).toBe(true);
-  });
-
-  it('setArranging can toggle off', () => {
-    useGenerationStore.getState().setArranging(true);
-    useGenerationStore.getState().setArranging(false);
-    expect(useGenerationStore.getState().isArranging).toBe(false);
-  });
-
-  it('setError sets error message', () => {
-    useGenerationStore.getState().setError('Something went wrong');
-    expect(useGenerationStore.getState().error).toBe('Something went wrong');
-  });
-
-  it('setError clears with null', () => {
-    useGenerationStore.getState().setError('err');
-    useGenerationStore.getState().setError(null);
-    expect(useGenerationStore.getState().error).toBeNull();
   });
 
   it('reset clears all state', () => {

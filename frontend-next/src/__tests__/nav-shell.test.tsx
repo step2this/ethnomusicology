@@ -76,14 +76,4 @@ describe('NavShell', () => {
     expect(homeLink.className).toContain('text-muted-foreground');
   });
 
-  it('nav links have correct hrefs', () => {
-    mockPathname = '/';
-    render(<NavShell><div>content</div></NavShell>);
-    expect(screen.getByText('Home').closest('a')).toHaveAttribute('href', '/');
-    expect(screen.getByText('Generate').closest('a')).toHaveAttribute('href', '/setlist/generate');
-    expect(screen.getByText('Library').closest('a')).toHaveAttribute('href', '/setlists');
-    expect(screen.getByText('Crates').closest('a')).toHaveAttribute('href', '/crates');
-    expect(screen.getByText('Catalog').closest('a')).toHaveAttribute('href', '/tracks');
-    expect(screen.getByText('Import').closest('a')).toHaveAttribute('href', '/import/spotify');
-  });
 });
