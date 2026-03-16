@@ -11,7 +11,7 @@ use axum::{Json, Router};
 use chrono::{NaiveDateTime, Utc};
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use tokio::sync::RwLock;
 
 use crate::db::tokens;
@@ -22,7 +22,7 @@ use crate::db::tokens;
 
 #[derive(Clone)]
 pub struct AuthState {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
     pub csrf_states: Arc<RwLock<HashMap<String, (String, NaiveDateTime)>>>,
     pub encryption_key: [u8; 32],
     pub spotify_client_id: String,

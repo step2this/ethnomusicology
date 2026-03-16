@@ -4,12 +4,12 @@
 -- Encrypted OAuth tokens per user
 CREATE TABLE IF NOT EXISTS user_spotify_tokens (
     user_id TEXT PRIMARY KEY REFERENCES users(id),
-    access_token_encrypted BLOB NOT NULL,
-    refresh_token_encrypted BLOB NOT NULL,
+    access_token_encrypted BYTEA NOT NULL,
+    refresh_token_encrypted BYTEA NOT NULL,
     expires_at TIMESTAMP NOT NULL,
     scopes TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
 );
 
 -- Import provenance tracking
@@ -24,7 +24,7 @@ CREATE TABLE IF NOT EXISTS spotify_imports (
     tracks_failed INTEGER NOT NULL DEFAULT 0,
     status TEXT NOT NULL DEFAULT 'in_progress',
     error_message TEXT,
-    started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    started_at TIMESTAMP DEFAULT NOW(),
     completed_at TIMESTAMP
 );
 

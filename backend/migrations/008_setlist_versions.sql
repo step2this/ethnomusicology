@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS setlist_versions (
     parent_version_id TEXT REFERENCES setlist_versions(id),
     action TEXT,
     action_summary TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(setlist_id, version_number)
 );
 CREATE INDEX IF NOT EXISTS idx_sv_setlist ON setlist_versions(setlist_id);
@@ -20,12 +20,12 @@ CREATE TABLE IF NOT EXISTS setlist_version_tracks (
     original_position INTEGER NOT NULL,
     title TEXT NOT NULL,
     artist TEXT NOT NULL,
-    bpm REAL,
+    bpm DOUBLE PRECISION,
     key TEXT,
     camelot TEXT,
-    energy REAL,
+    energy DOUBLE PRECISION,
     transition_note TEXT,
-    transition_score REAL,
+    transition_score DOUBLE PRECISION,
     source TEXT NOT NULL DEFAULT 'suggestion',
     acquisition_info TEXT
 );
@@ -37,6 +37,6 @@ CREATE TABLE IF NOT EXISTS setlist_conversations (
     version_id TEXT REFERENCES setlist_versions(id),
     role TEXT NOT NULL CHECK(role IN ('user', 'assistant')),
     content TEXT NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_sc_setlist ON setlist_conversations(setlist_id);

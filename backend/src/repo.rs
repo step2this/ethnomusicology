@@ -1,4 +1,4 @@
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use uuid::Uuid;
 
 use crate::db::{artists, imports, tracks};
@@ -6,13 +6,13 @@ use crate::services::import::{
     ArtistRecord, ImportError, ImportRepository, ImportSummary, TrackRecord, UpsertResult,
 };
 
-/// Production implementation of ImportRepository backed by SQLite.
+/// Production implementation of ImportRepository backed by Postgres.
 pub struct SqliteImportRepository {
-    pool: SqlitePool,
+    pool: PgPool,
 }
 
 impl SqliteImportRepository {
-    pub fn new(pool: SqlitePool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self { pool }
     }
 }

@@ -277,7 +277,7 @@ const DAILY_GENERATION_CAP: i64 = 50;
 
 /// Legacy generate_setlist function — delegates to the new request-based overload for backward compat.
 pub async fn generate_setlist(
-    pool: &sqlx::SqlitePool,
+    pool: &sqlx::PgPool,
     claude: &dyn ClaudeClientTrait,
     user_id: &str,
     prompt: &str,
@@ -299,7 +299,7 @@ pub async fn generate_setlist(
 }
 
 pub async fn generate_setlist_from_request(
-    pool: &sqlx::SqlitePool,
+    pool: &sqlx::PgPool,
     claude: &dyn ClaudeClientTrait,
     req: GenerateSetlistRequest,
 ) -> Result<SetlistResponse, SetlistError> {
@@ -737,10 +737,7 @@ fn count_enriched_tracks(tracks: &[TrackRow]) -> usize {
         .count()
 }
 
-pub async fn get_setlist(
-    pool: &sqlx::SqlitePool,
-    id: &str,
-) -> Result<SetlistResponse, SetlistError> {
+pub async fn get_setlist(pool: &sqlx::PgPool, id: &str) -> Result<SetlistResponse, SetlistError> {
     let setlist = db::get_setlist(pool, id)
         .await?
         .ok_or_else(|| SetlistError::NotFound(format!("Setlist {id} not found")))?;
@@ -779,7 +776,7 @@ pub async fn get_setlist(
 /// If `None`, falls back to the stored `energy_profile` on the setlist row.
 /// If neither exists (pre-ST-006 setlists), uses default energy arc scoring.
 pub async fn arrange_setlist(
-    pool: &sqlx::SqlitePool,
+    pool: &sqlx::PgPool,
     id: &str,
     energy_profile: Option<EnergyProfile>,
 ) -> Result<SetlistResponse, SetlistError> {
@@ -1360,11 +1357,11 @@ mod tests {
         }
     }
 
-    async fn setup_pool_with_tracks() -> sqlx::SqlitePool {
+    async fn setup_pool_with_tracks() -> sqlx::PgPool {
         let pool = crate::db::create_test_pool().await;
 
         sqlx::query(
-            "INSERT INTO tracks (id, title, source, bpm, camelot_key) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO tracks (id, title, source, bpm, camelot_key) VALUES ($1, $2, $3, $4, $5)",
         )
         .bind("t1")
         .bind("Desert Rose")
@@ -1375,14 +1372,14 @@ mod tests {
         .await
         .unwrap();
 
-        sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
             .bind("a1")
             .bind("Sting")
             .execute(&pool)
             .await
             .unwrap();
 
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a1")
             .execute(&pool)
@@ -1456,6 +1453,7 @@ mod tests {
         for track in &resp.tracks {
             assert_eq!(track.source, "suggestion");
         }
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1501,6 +1499,7 @@ mod tests {
         let pool = crate::db::create_test_pool().await;
         let result = get_setlist(&pool, "nonexistent").await;
         assert!(matches!(result, Err(SetlistError::NotFound(_))));
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1721,7 +1720,7 @@ mod tests {
 
     /// Helper: create a setlist with multiple tracks for arrangement tests.
     /// Returns (pool, setlist_id).
-    async fn setup_setlist_for_arrange(energy_profile: Option<&str>) -> (sqlx::SqlitePool, String) {
+    async fn setup_setlist_for_arrange(energy_profile: Option<&str>) -> (sqlx::PgPool, String) {
         let pool = setup_pool_with_tracks().await;
         let setlist_id = uuid::Uuid::new_v4().to_string();
 
@@ -2001,7 +2000,7 @@ mod tests {
         let user_id = crate::db::create_test_user(&pool).await;
 
         // Create a track with no BPM/key/energy (unenriched)
-        sqlx::query("INSERT INTO tracks (id, title, source) VALUES (?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, source) VALUES ($1, $2, $3)")
             .bind("t-unenriched")
             .bind("Unenriched Track")
             .bind("spotify")
@@ -2059,7 +2058,7 @@ mod tests {
         let user_id = crate::db::create_test_user(&pool).await;
 
         // t1 is already enriched (has BPM, key). Add an unenriched track.
-        sqlx::query("INSERT INTO tracks (id, title, source) VALUES (?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, source) VALUES ($1, $2, $3)")
             .bind("t-partial")
             .bind("Partial Track")
             .bind("spotify")
@@ -2793,7 +2792,7 @@ mod tests {
         // Pre-fill to the cap
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
         sqlx::query(
-            "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES ('u1', 'user1', ?, 50)",
+            "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES ('u1', 'user1', $1, 50)",
         )
         .bind(&today)
         .execute(&pool)

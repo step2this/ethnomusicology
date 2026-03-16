@@ -190,6 +190,7 @@ mod tests {
             .await
             .unwrap();
         assert!(versions.is_empty());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -210,6 +211,6 @@ mod tests {
         let mut tx2 = pool.begin().await.unwrap();
         let result = insert_version(&mut tx2, &v1_dup).await;
         assert!(result.is_err());
+        pool.close().await;
     }
-
 }

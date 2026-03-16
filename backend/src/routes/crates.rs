@@ -3,7 +3,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{delete, get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -17,7 +17,7 @@ use crate::error::AppError;
 // ---------------------------------------------------------------------------
 
 pub struct CrateRouteState {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
 }
 
 // ---------------------------------------------------------------------------
@@ -225,7 +225,7 @@ mod tests {
     use axum::http::Request;
     use tower::ServiceExt;
 
-    async fn setup() -> (Router, SqlitePool) {
+    async fn setup() -> (Router, PgPool) {
         let pool = crate::db::create_test_pool().await;
         let state = Arc::new(CrateRouteState { pool: pool.clone() });
         (crate_routes(state), pool)
@@ -337,14 +337,16 @@ mod tests {
         crates::create_crate(&pool, "c1", "user-1", "Alpha", None)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES (?, ?, ?, ?)")
-            .bind("ct1")
-            .bind("c1")
-            .bind("Track A")
-            .bind("Artist A")
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)",
+        )
+        .bind("ct1")
+        .bind("c1")
+        .bind("Track A")
+        .bind("Artist A")
+        .execute(&pool)
+        .await
+        .unwrap();
 
         let app = crate_routes(Arc::new(CrateRouteState { pool }));
         let (status, json) = get_json(app, "/crates/c1").await;
@@ -382,7 +384,7 @@ mod tests {
             .unwrap();
 
         // Insert setlist + tracks
-        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES ($1, $2, $3, $4)")
             .bind("sl-1")
             .bind("user-1")
             .bind("test")
@@ -393,7 +395,7 @@ mod tests {
         for i in 1..=3i32 {
             sqlx::query(
                 "INSERT INTO setlist_tracks (id, setlist_id, position, original_position, title, artist, source) \
-                 VALUES (?, ?, ?, ?, ?, ?, ?)",
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)",
             )
             .bind(format!("st{i}"))
             .bind("sl-1")
@@ -433,14 +435,16 @@ mod tests {
         crates::create_crate(&pool, "c1", "user-1", "Alpha", None)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES (?, ?, ?, ?)")
-            .bind("ct1")
-            .bind("c1")
-            .bind("Track A")
-            .bind("Artist A")
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)",
+        )
+        .bind("ct1")
+        .bind("c1")
+        .bind("Track A")
+        .bind("Artist A")
+        .execute(&pool)
+        .await
+        .unwrap();
 
         let app = crate_routes(Arc::new(CrateRouteState { pool }));
         let status = delete_req(app, "/crates/c1/tracks/ct1").await;

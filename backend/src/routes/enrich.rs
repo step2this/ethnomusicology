@@ -3,7 +3,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::Serialize;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
@@ -15,7 +15,7 @@ use crate::services::enrichment::{self, EnrichmentError};
 // ---------------------------------------------------------------------------
 
 pub struct EnrichRouteState {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
     pub claude: Arc<dyn ClaudeClientTrait>,
     /// Guards against concurrent enrichment calls. Set to true while a run is in progress.
     pub in_flight: AtomicBool,
@@ -148,7 +148,7 @@ mod tests {
         format!(r#"{{"tracks": [{}]}}"#, entries.join(","))
     }
 
-    async fn setup_app(claude_response: &str) -> (Router, SqlitePool) {
+    async fn setup_app(claude_response: &str) -> (Router, PgPool) {
         let pool = crate::db::create_test_pool().await;
         let state = Arc::new(EnrichRouteState {
             pool: pool.clone(),
@@ -160,23 +160,23 @@ mod tests {
         (enrich_router(state), pool)
     }
 
-    async fn seed_unenriched_tracks(pool: &SqlitePool, count: usize) {
+    async fn seed_unenriched_tracks(pool: &PgPool, count: usize) {
         for i in 0..count {
             sqlx::query(
-                "INSERT INTO tracks (id, title, source, needs_enrichment) VALUES (?, ?, 'spotify', 1)",
+                "INSERT INTO tracks (id, title, source, needs_enrichment) VALUES ($1, $2, 'spotify', TRUE)",
             )
             .bind(format!("t{i}"))
             .bind(format!("Track {i}"))
             .execute(pool)
             .await
             .unwrap();
-            sqlx::query("INSERT OR IGNORE INTO artists (id, name) VALUES (?, ?)")
+            sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING")
                 .bind(format!("a{i}"))
                 .bind(format!("Artist {i}"))
                 .execute(pool)
                 .await
                 .unwrap();
-            sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+            sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
                 .bind(format!("t{i}"))
                 .bind(format!("a{i}"))
                 .execute(pool)
@@ -245,7 +245,7 @@ mod tests {
         // Pre-fill usage to the cap (250)
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
         sqlx::query(
-            "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ('u1', 'dev-user', ?, 250)",
+            "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ('u1', 'dev-user', $1, 250)",
         )
         .bind(&today)
         .execute(&pool)
@@ -283,5 +283,6 @@ mod tests {
 
         assert_eq!(status, 409);
         assert_eq!(json["error"]["code"], "CONFLICT");
+        pool.close().await;
     }
 }

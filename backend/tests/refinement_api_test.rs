@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::body::Body;
 use axum::http::Request;
 use axum::Router;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use tower::ServiceExt;
 
 use ethnomusicology_backend::api::claude::{
@@ -95,13 +95,13 @@ impl ClaudeClientTrait for PanickingClaude {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async fn create_test_pool() -> SqlitePool {
+async fn create_test_pool() -> PgPool {
     ethnomusicology_backend::db::create_test_pool().await
 }
 
-async fn insert_setlist(pool: &SqlitePool) -> String {
+async fn insert_setlist(pool: &PgPool) -> String {
     let id = uuid::Uuid::new_v4().to_string();
-    sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+    sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES ($1, $2, $3, $4)")
         .bind(&id)
         .bind("anonymous")
         .bind("test prompt")
@@ -112,13 +112,13 @@ async fn insert_setlist(pool: &SqlitePool) -> String {
     id
 }
 
-async fn insert_setlist_tracks(pool: &SqlitePool, setlist_id: &str, count: usize) {
+async fn insert_setlist_tracks(pool: &PgPool, setlist_id: &str, count: usize) {
     for i in 1..=count {
         let track_id = uuid::Uuid::new_v4().to_string();
         sqlx::query(
             "INSERT INTO setlist_tracks \
              (id, setlist_id, position, original_position, title, artist, bpm, key, camelot, source) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
         )
         .bind(&track_id)
         .bind(setlist_id)
@@ -136,7 +136,7 @@ async fn insert_setlist_tracks(pool: &SqlitePool, setlist_id: &str, count: usize
     }
 }
 
-fn build_app(pool: SqlitePool, claude: impl ClaudeClientTrait + 'static) -> Router {
+fn build_app(pool: PgPool, claude: impl ClaudeClientTrait + 'static) -> Router {
     let state = Arc::new(RefinementRouteState {
         pool,
         claude: Arc::new(claude),

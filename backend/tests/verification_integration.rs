@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::http::Request;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use tower::ServiceExt;
 
 use ethnomusicology_backend::api::claude::{
@@ -107,11 +107,11 @@ impl ClaudeClientTrait for SimpleMockClaude {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async fn create_test_pool() -> SqlitePool {
+async fn create_test_pool() -> PgPool {
     ethnomusicology_backend::db::create_test_pool().await
 }
 
-fn build_app(pool: SqlitePool, claude: Arc<dyn ClaudeClientTrait>) -> axum::Router {
+fn build_app(pool: PgPool, claude: Arc<dyn ClaudeClientTrait>) -> axum::Router {
     let state = Arc::new(SetlistRouteState { pool, claude });
     setlist_router(state)
 }

@@ -4,7 +4,7 @@ use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
 use rand::seq::SliceRandom;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use crate::api::claude::{
     strip_markdown_fences, ClaudeClientTrait, ClaudeError, ConversationMessage,
@@ -148,7 +148,7 @@ pub struct HistoryResponse {
 // ---------------------------------------------------------------------------
 
 pub async fn refine_setlist(
-    pool: &SqlitePool,
+    pool: &PgPool,
     claude: &dyn ClaudeClientTrait,
     setlist_id: &str,
     _user_id: &str,
@@ -289,7 +289,7 @@ pub async fn refine_setlist(
 }
 
 pub async fn revert_setlist(
-    pool: &SqlitePool,
+    pool: &PgPool,
     setlist_id: &str,
     target_version_number: i32,
 ) -> Result<RefinementResponse, RefinementError> {
@@ -340,7 +340,7 @@ pub async fn revert_setlist(
 }
 
 pub async fn get_history(
-    pool: &SqlitePool,
+    pool: &PgPool,
     setlist_id: &str,
 ) -> Result<HistoryResponse, RefinementError> {
     let versions = db::get_versions_by_setlist(pool, setlist_id).await?;
@@ -356,7 +356,7 @@ pub async fn get_history(
 // ---------------------------------------------------------------------------
 
 async fn handle_quick_command(
-    pool: &SqlitePool,
+    pool: &PgPool,
     setlist_id: &str,
     message: &str,
     cmd: QuickCommand,
@@ -453,7 +453,7 @@ async fn handle_quick_command(
 // ---------------------------------------------------------------------------
 
 async fn bootstrap_version(
-    pool: &SqlitePool,
+    pool: &PgPool,
     setlist_id: &str,
 ) -> Result<Vec<VersionTrackRow>, RefinementError> {
     let setlist_tracks = db_setlists::get_setlist_tracks(pool, setlist_id).await?;
@@ -498,7 +498,7 @@ async fn bootstrap_version(
 }
 
 async fn insert_conversation_pair(
-    pool: &SqlitePool,
+    pool: &PgPool,
     setlist_id: &str,
     version_id: &str,
     user_message: &str,
@@ -795,7 +795,7 @@ mod tests {
     use super::*;
     use crate::api::claude::{CacheMetrics, ClaudeError, RequestContentBlock};
     use crate::db::create_test_pool;
-    use sqlx::SqlitePool;
+    use sqlx::PgPool;
 
     // -----------------------------------------------------------------------
     // Mock Claude
@@ -859,9 +859,9 @@ mod tests {
     // Test helpers
     // -----------------------------------------------------------------------
 
-    async fn insert_setlist(pool: &SqlitePool) -> String {
+    async fn insert_setlist(pool: &PgPool) -> String {
         let id = uuid::Uuid::new_v4().to_string();
-        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES ($1, $2, $3, $4)")
             .bind(&id)
             .bind("user-1")
             .bind("test prompt")
@@ -872,13 +872,13 @@ mod tests {
         id
     }
 
-    async fn insert_setlist_tracks(pool: &SqlitePool, setlist_id: &str, count: usize) {
+    async fn insert_setlist_tracks(pool: &PgPool, setlist_id: &str, count: usize) {
         for i in 1..=count {
             let track_id = uuid::Uuid::new_v4().to_string();
             sqlx::query(
                 "INSERT INTO setlist_tracks \
                  (id, setlist_id, position, original_position, title, artist, bpm, key, camelot, source) \
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
             )
             .bind(&track_id)
             .bind(setlist_id)
@@ -1194,6 +1194,7 @@ mod tests {
 
         assert_eq!(resp.version_number, 1);
         assert_eq!(resp.tracks[1].title, "New Track");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1209,6 +1210,7 @@ mod tests {
 
         assert_eq!(resp.tracks.len(), 3);
         assert_eq!(resp.tracks[1].title, "Inserted");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1225,6 +1227,7 @@ mod tests {
         assert_eq!(resp.tracks.len(), 2);
         assert_eq!(resp.tracks[0].title, "Track 1");
         assert_eq!(resp.tracks[1].title, "Track 3");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1239,6 +1242,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.tracks[0].title, "Track 3");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1263,6 +1267,7 @@ mod tests {
         assert!(versions.len() >= 2);
         assert_eq!(versions[0].version_number, 0);
         assert_eq!(versions[0].action.as_deref(), Some("bootstrap"));
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1283,6 +1288,7 @@ mod tests {
         // Tracks should be reversed: 3, 2, 1
         assert_eq!(resp.tracks[0].title, "Track 3");
         assert_eq!(resp.tracks[2].title, "Track 1");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1301,6 +1307,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(resp.tracks[0].title, "Retry Track");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1325,6 +1332,7 @@ mod tests {
             .unwrap();
 
         assert!(resp.change_warning.is_some());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1344,6 +1352,7 @@ mod tests {
         assert_eq!(resp.version_number, 2);
         // Tracks should match v0 (original bootstrap)
         assert_eq!(resp.tracks[0].title, "Track 1");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1366,6 +1375,7 @@ mod tests {
             .filter(|c| c.role == "user")
             .collect();
         assert!(!user_convos.is_empty());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1392,6 +1402,7 @@ mod tests {
             result,
             Err(RefinementError::TurnLimitExceeded { .. })
         ));
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1402,6 +1413,7 @@ mod tests {
         let claude = MockClaude::single("{}");
         let result = refine_setlist(&pool, &claude, &setlist_id, "user-1", "   ").await;
         assert!(matches!(result, Err(RefinementError::InvalidRequest(_))));
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -1410,5 +1422,6 @@ mod tests {
         let claude = MockClaude::single("{}");
         let result = refine_setlist(&pool, &claude, "nonexistent-id", "user-1", "refine").await;
         assert!(matches!(result, Err(RefinementError::NotFound(_))));
+        pool.close().await;
     }
 }

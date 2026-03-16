@@ -6,7 +6,7 @@ pub struct Track {
     pub id: String,
     pub title: String,
     pub album: Option<String>,
-    pub duration_ms: Option<i64>,
+    pub duration_ms: Option<i32>,
     pub spotify_uri: Option<String>,
     pub spotify_preview_url: Option<String>,
     pub youtube_id: Option<String>,
@@ -51,7 +51,7 @@ pub struct TrackRow {
     pub title: String,
     pub artist: Option<String>,
     pub album: Option<String>,
-    pub duration_ms: Option<i64>,
+    pub duration_ms: Option<i32>,
     pub bpm: Option<f64>,
     pub camelot_key: Option<String>,
     pub energy: Option<f64>,
@@ -59,7 +59,7 @@ pub struct TrackRow {
     pub spotify_uri: Option<String>,
     pub spotify_preview_url: Option<String>,
     pub album_art_url: Option<String>,
-    pub deezer_id: Option<i64>,
+    pub deezer_id: Option<i32>,
     pub deezer_preview_url: Option<String>,
     pub created_at: Option<NaiveDateTime>,
 }
@@ -116,7 +116,7 @@ pub struct SetlistSummary {
     pub id: String,
     pub name: Option<String>,
     pub prompt: String,
-    pub track_count: i32,
+    pub track_count: i64,
     pub created_at: Option<chrono::NaiveDateTime>,
 }
 

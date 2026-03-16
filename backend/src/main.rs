@@ -4,7 +4,7 @@ use std::sync::Arc;
 use axum::{response::IntoResponse, routing::get, Json, Router};
 use base64::Engine;
 use serde::Serialize;
-use sqlx::sqlite::SqlitePoolOptions;
+use sqlx::postgres::PgPoolOptions;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 use tower_http::services::{ServeDir, ServeFile};
@@ -90,7 +90,7 @@ async fn api_info() -> Json<ApiInfo> {
 }
 
 async fn health_ready(
-    axum::extract::State(pool): axum::extract::State<sqlx::SqlitePool>,
+    axum::extract::State(pool): axum::extract::State<sqlx::PgPool>,
 ) -> axum::response::Response {
     match sqlx::query("SELECT 1").execute(&pool).await {
         Ok(_) => axum::Json(serde_json::json!({
@@ -152,7 +152,7 @@ async fn main() -> anyhow::Result<()> {
     }
 
     // --- Database ---
-    let pool = SqlitePoolOptions::new()
+    let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect(&cfg.database_url)
         .await?;
@@ -163,7 +163,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Ensure dev-user exists (temporary until UC-008 adds real auth)
     sqlx::query(
-        "INSERT OR IGNORE INTO users (id, email, display_name) VALUES ('dev-user', 'dev@local', 'Dev User')",
+        "INSERT INTO users (id, email, display_name) VALUES ('dev-user', 'dev@local', 'Dev User') ON CONFLICT DO NOTHING",
     )
     .execute(&pool)
     .await?;
@@ -297,8 +297,7 @@ async fn main() -> anyhow::Result<()> {
                     let origin = origin.as_bytes();
                     origin == b"https://tarab.studio"
                         || origin == b"http://localhost:3000"
-                        || origin.ends_with(b".vercel.app")
-                            && origin.starts_with(b"https://")
+                        || origin.ends_with(b".vercel.app") && origin.starts_with(b"https://")
                 })
             };
             CorsLayer::new()

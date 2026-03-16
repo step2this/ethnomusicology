@@ -4,7 +4,7 @@ use axum::extract::{Path, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::sync::Arc;
 
 use crate::api::claude::ClaudeClientTrait;
@@ -15,7 +15,7 @@ use crate::services::refinement::{self, HistoryResponse, RefinementError, Refine
 // ---------------------------------------------------------------------------
 
 pub struct RefinementRouteState {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
     pub claude: Arc<dyn ClaudeClientTrait>,
 }
 

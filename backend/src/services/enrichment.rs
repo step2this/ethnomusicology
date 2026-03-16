@@ -2,7 +2,7 @@ use crate::api::claude::{strip_markdown_fences, ClaudeClientTrait, ClaudeError};
 use crate::db::models::TrackRow;
 use crate::services::camelot;
 use serde::Deserialize;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 // ---------------------------------------------------------------------------
 // Error
@@ -88,7 +88,7 @@ Respond with ONLY valid JSON (no markdown fences):
 // ---------------------------------------------------------------------------
 
 pub async fn enrich_tracks(
-    pool: &SqlitePool,
+    pool: &PgPool,
     claude: &dyn ClaudeClientTrait,
     user_id: &str,
 ) -> Result<EnrichmentResult, EnrichmentError> {
@@ -261,24 +261,24 @@ mod tests {
     use super::*;
     use crate::services::setlist::test_utils::MockClaude;
 
-    async fn setup_pool_with_unenriched_tracks(count: usize) -> SqlitePool {
+    async fn setup_pool_with_unenriched_tracks(count: usize) -> PgPool {
         let pool = crate::db::create_test_pool().await;
         for i in 0..count {
             sqlx::query(
-                "INSERT INTO tracks (id, title, source, needs_enrichment) VALUES (?, ?, 'spotify', 1)",
+                "INSERT INTO tracks (id, title, source, needs_enrichment) VALUES ($1, $2, 'spotify', TRUE)",
             )
             .bind(format!("t{i}"))
             .bind(format!("Track {i}"))
             .execute(&pool)
             .await
             .unwrap();
-            sqlx::query("INSERT OR IGNORE INTO artists (id, name) VALUES (?, ?)")
+            sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING")
                 .bind(format!("a{i}"))
                 .bind(format!("Artist {i}"))
                 .execute(&pool)
                 .await
                 .unwrap();
-            sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+            sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
                 .bind(format!("t{i}"))
                 .bind(format!("a{i}"))
                 .execute(&pool)
@@ -316,27 +316,30 @@ mod tests {
         assert_eq!(result.errors, 0);
         assert_eq!(result.skipped, 0);
 
-        // Verify DB was updated for track t0
-        let row: (Option<f64>, Option<String>, Option<f64>) =
-            sqlx::query_as("SELECT bpm, camelot_key, energy FROM tracks WHERE id = 't0'")
-                .fetch_one(&pool)
+        // Verify all 3 tracks were enriched (have non-null BPM/key/energy).
+        // Note: exact per-track values depend on ordering, which is non-deterministic
+        // in Postgres when created_at timestamps are identical.
+        let bpms: Vec<(String, Option<f64>, Option<String>, Option<f64>)> =
+            sqlx::query_as("SELECT id, bpm, camelot_key, energy FROM tracks ORDER BY id")
+                .fetch_all(&pool)
                 .await
                 .unwrap();
 
-        assert_eq!(row.0, Some(120.0));
-        assert_eq!(row.1.as_deref(), Some("8B"));
-        assert_eq!(row.2, Some(1.0));
+        assert_eq!(bpms.len(), 3);
+        for (id, bpm, key, energy) in &bpms {
+            assert!(bpm.is_some(), "Track {id} should have BPM set");
+            assert_eq!(
+                key.as_deref(),
+                Some("8B"),
+                "Track {id} should have camelot key"
+            );
+            assert!(energy.is_some(), "Track {id} should have energy set");
+        }
 
-        // Verify DB was updated for track t2
-        let row2: (Option<f64>, Option<String>, Option<f64>) =
-            sqlx::query_as("SELECT bpm, camelot_key, energy FROM tracks WHERE id = 't2'")
-                .fetch_one(&pool)
-                .await
-                .unwrap();
-
-        assert_eq!(row2.0, Some(122.0));
-        assert_eq!(row2.1.as_deref(), Some("8B"));
-        assert_eq!(row2.2, Some(3.0));
+        // Verify the set of BPM values matches (order-independent)
+        let mut bpm_values: Vec<f64> = bpms.iter().map(|(_, b, _, _)| b.unwrap()).collect();
+        bpm_values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        assert_eq!(bpm_values, vec![120.0, 121.0, 122.0]);
     }
 
     // Test 2: Empty unenriched tracks — returns zeros immediately
@@ -352,6 +355,7 @@ mod tests {
         assert_eq!(result.enriched, 0);
         assert_eq!(result.errors, 0);
         assert_eq!(result.skipped, 0);
+        pool.close().await;
     }
 
     // Test 3: Cost cap exceeded — returns EnrichmentError::CostCapExceeded
@@ -362,7 +366,7 @@ mod tests {
         // Pre-fill usage to the cap (250)
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
         sqlx::query(
-            "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ('u1', 'user1', ?, 250)",
+            "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ('u1', 'user1', $1, 250)",
         )
         .bind(&today)
         .execute(&pool)
@@ -429,15 +433,15 @@ mod tests {
 
         enrich_tracks(&pool, &claude, "user1").await.unwrap();
 
-        // Check needs_enrichment is now 0
-        let needs: i32 = sqlx::query_scalar("SELECT needs_enrichment FROM tracks WHERE id = 't0'")
+        // Check needs_enrichment is now FALSE
+        let needs: bool = sqlx::query_scalar("SELECT needs_enrichment FROM tracks WHERE id = 't0'")
             .fetch_one(&pool)
             .await
             .unwrap();
-        assert_eq!(needs, 0);
+        assert!(!needs);
 
         // Check enriched_at is set
-        let enriched_at: Option<String> =
+        let enriched_at: Option<chrono::NaiveDateTime> =
             sqlx::query_scalar("SELECT enriched_at FROM tracks WHERE id = 't0'")
                 .fetch_one(&pool)
                 .await
@@ -454,7 +458,7 @@ mod tests {
         // Pre-fill usage so only 2 tracks remain in today's cap (cap is 250)
         let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
         sqlx::query(
-            "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ('u1', 'user1', ?, 248)",
+            "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ('u1', 'user1', $1, 248)",
         )
         .bind(&today)
         .execute(&pool)

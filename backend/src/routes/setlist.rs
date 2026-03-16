@@ -3,7 +3,7 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::sync::Arc;
 
 use crate::api::claude::ClaudeClientTrait;
@@ -19,7 +19,7 @@ use crate::services::setlist::{
 // ---------------------------------------------------------------------------
 
 pub struct SetlistRouteState {
-    pub pool: SqlitePool,
+    pub pool: PgPool,
     pub claude: Arc<dyn ClaudeClientTrait>,
 }
 
@@ -327,11 +327,11 @@ mod tests {
         .to_string()
     }
 
-    async fn setup_app(claude_response: &str) -> (Router, sqlx::SqlitePool) {
+    async fn setup_app(claude_response: &str) -> (Router, sqlx::PgPool) {
         let pool = crate::db::create_test_pool().await;
 
         // Seed a track so catalog is not empty
-        sqlx::query("INSERT INTO tracks (id, title, source, bpm, camelot_key, energy) VALUES (?, ?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, source, bpm, camelot_key, energy) VALUES ($1, $2, $3, $4, $5, $6)")
             .bind("t1")
             .bind("Seed Track")
             .bind("spotify")
@@ -469,6 +469,7 @@ mod tests {
         for track in tracks {
             assert_eq!(track["source"], "suggestion");
         }
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -529,7 +530,7 @@ mod tests {
         let pool = crate::db::create_test_pool().await;
 
         // Insert a setlist with no tracks
-        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES ($1, $2, $3, $4)")
             .bind("empty-setlist")
             .bind("user1")
             .bind("test")
@@ -554,6 +555,7 @@ mod tests {
 
         assert_eq!(status, 400);
         assert_eq!(json["error"]["code"], "INVALID_REQUEST");
+        pool.close().await;
     }
 
     // M5: Test arrange with 1 track returns setlist unchanged

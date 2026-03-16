@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS setlists (
     prompt TEXT NOT NULL,
     model TEXT NOT NULL,
     notes TEXT,
-    harmonic_flow_score REAL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    harmonic_flow_score DOUBLE PRECISION,
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS setlist_tracks (
@@ -18,12 +18,12 @@ CREATE TABLE IF NOT EXISTS setlist_tracks (
     original_position INTEGER NOT NULL,
     title TEXT NOT NULL,
     artist TEXT NOT NULL,
-    bpm REAL,
+    bpm DOUBLE PRECISION,
     key TEXT,
     camelot TEXT,
-    energy REAL,  -- H5: matches tracks.energy type (REAL/f64); LLM returns integer 1-10 but REAL avoids precision loss
+    energy DOUBLE PRECISION,  -- H5: matches tracks.energy type (DOUBLE PRECISION/f64); LLM returns integer 1-10 but DOUBLE PRECISION avoids precision loss
     transition_note TEXT,
-    transition_score REAL,
+    transition_score DOUBLE PRECISION,
     source TEXT NOT NULL DEFAULT 'suggestion',
     acquisition_info TEXT  -- L2: reserved for future use (Beatport/SoundCloud purchase links, affiliate URLs)
 );

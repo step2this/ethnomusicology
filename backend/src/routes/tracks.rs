@@ -2,7 +2,7 @@ use axum::extract::{Query, State};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 use crate::db::models::TrackRow;
 use crate::error::AppError;
@@ -47,7 +47,7 @@ impl From<TrackRow> for TrackResponse {
             title: row.title,
             artist: row.artist.unwrap_or_default(),
             album: row.album,
-            duration_ms: row.duration_ms,
+            duration_ms: row.duration_ms.map(|d| d as i64),
             bpm: row.bpm,
             key: row.camelot_key,
             energy: row.energy,
@@ -103,7 +103,7 @@ const VALID_ORDERS: &[&str] = &["asc", "desc"];
 // ---------------------------------------------------------------------------
 
 async fn list_tracks(
-    State(pool): State<SqlitePool>,
+    State(pool): State<PgPool>,
     Query(params): Query<ListTracksParams>,
 ) -> Result<Json<TrackListResponse>, AppError> {
     // Validate params
@@ -165,7 +165,7 @@ struct RetryErroredResponse {
 }
 
 async fn retry_errored_tracks(
-    State(pool): State<SqlitePool>,
+    State(pool): State<PgPool>,
 ) -> Result<Json<RetryErroredResponse>, AppError> {
     let reset = crate::db::tracks::retry_errored_tracks(&pool)
         .await
@@ -177,7 +177,7 @@ async fn retry_errored_tracks(
 // Router
 // ---------------------------------------------------------------------------
 
-pub fn tracks_router(pool: SqlitePool) -> Router {
+pub fn tracks_router(pool: PgPool) -> Router {
     Router::new()
         .route("/tracks", get(list_tracks))
         .route("/tracks/retry-errored", post(retry_errored_tracks))
@@ -204,10 +204,10 @@ mod tests {
         let pool = crate::db::create_test_pool().await;
 
         // Insert test tracks
-        sqlx::query("INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, source) VALUES (?, ?, ?, ?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, album, duration_ms, spotify_uri, source) VALUES ($1, $2, $3, $4, $5, $6)")
             .bind("t1").bind("Alpha Song").bind("Album A").bind(180000i64).bind("spotify:track:a1").bind("spotify")
             .execute(&pool).await.unwrap();
-        sqlx::query("INSERT INTO tracks (id, title, source) VALUES (?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, source) VALUES ($1, $2, $3)")
             .bind("t2")
             .bind("Beta Song")
             .bind("spotify")
@@ -216,13 +216,13 @@ mod tests {
             .unwrap();
 
         // Insert artist and link
-        sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
             .bind("a1")
             .bind("Test Artist")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a1")
             .execute(&pool)
@@ -381,7 +381,7 @@ mod tests {
 
         // Insert two tracks with enrichment errors
         sqlx::query(
-            "INSERT INTO tracks (id, title, source, needs_enrichment, enrichment_error) VALUES (?, ?, 'spotify', 0, 'Parse error')",
+            "INSERT INTO tracks (id, title, source, needs_enrichment, enrichment_error) VALUES ($1, $2, 'spotify', FALSE, 'Parse error')",
         )
         .bind("t-err-1")
         .bind("Error Track 1")
@@ -390,7 +390,7 @@ mod tests {
         .unwrap();
 
         sqlx::query(
-            "INSERT INTO tracks (id, title, source, needs_enrichment, enrichment_error) VALUES (?, ?, 'spotify', 0, 'Claude API error')",
+            "INSERT INTO tracks (id, title, source, needs_enrichment, enrichment_error) VALUES ($1, $2, 'spotify', FALSE, 'Claude API error')",
         )
         .bind("t-err-2")
         .bind("Error Track 2")
@@ -419,13 +419,13 @@ mod tests {
         assert_eq!(json["reset"], 2);
 
         // Verify tracks now have needs_enrichment = 1 and error cleared
-        let (needs, error): (i32, Option<String>) = sqlx::query_as(
+        let (needs, error): (bool, Option<String>) = sqlx::query_as(
             "SELECT needs_enrichment, enrichment_error FROM tracks WHERE id = 't-err-1'",
         )
         .fetch_one(&pool)
         .await
         .unwrap();
-        assert_eq!(needs, 1);
+        assert!(needs);
         assert!(error.is_none());
     }
 }

@@ -94,5 +94,6 @@ mod tests {
 
         // Upserting again should not fail (ON CONFLICT DO NOTHING)
         upsert_track_artist(&pool, "t1", "a1").await.unwrap();
+        pool.close().await;
     }
 }

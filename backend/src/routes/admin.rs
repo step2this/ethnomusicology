@@ -6,7 +6,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 
 // ---------------------------------------------------------------------------
 // Request / Response types
@@ -48,7 +48,7 @@ fn internal_error(msg: String) -> Response {
 // ---------------------------------------------------------------------------
 
 async fn wipe_catalog(
-    State(pool): State<SqlitePool>,
+    State(pool): State<PgPool>,
     headers: HeaderMap,
     Json(body): Json<WipeCatalogRequest>,
 ) -> Result<Json<WipeResponse>, Response> {
@@ -178,7 +178,7 @@ async fn wipe_catalog(
 // Router
 // ---------------------------------------------------------------------------
 
-pub fn admin_router(pool: SqlitePool) -> Router {
+pub fn admin_router(pool: PgPool) -> Router {
     Router::new()
         .route("/admin/wipe-catalog", post(wipe_catalog))
         .with_state(pool)
@@ -270,7 +270,7 @@ mod tests {
         let pool = crate::db::create_test_pool().await;
 
         // 1. Insert a spotify track + artist + association
-        sqlx::query("INSERT INTO tracks (id, title, source, spotify_uri) VALUES (?, ?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, source, spotify_uri) VALUES ($1, $2, $3, $4)")
             .bind("t1")
             .bind("Your Love")
             .bind("spotify")
@@ -279,14 +279,14 @@ mod tests {
             .await
             .unwrap();
 
-        sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
             .bind("a1")
             .bind("Frankie Knuckles")
             .execute(&pool)
             .await
             .unwrap();
 
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a1")
             .execute(&pool)
@@ -294,7 +294,7 @@ mod tests {
             .unwrap();
 
         // 2. Insert a spotify import + import_tracks link
-        sqlx::query("INSERT INTO users (id, display_name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO users (id, display_name) VALUES ($1, $2)")
             .bind("u1")
             .bind("Test User")
             .execute(&pool)
@@ -302,7 +302,7 @@ mod tests {
             .unwrap();
 
         sqlx::query(
-            "INSERT INTO spotify_imports (id, user_id, spotify_playlist_id, status) VALUES (?, ?, ?, ?)",
+            "INSERT INTO spotify_imports (id, user_id, spotify_playlist_id, status) VALUES ($1, $2, $3, $4)",
         )
         .bind("imp1")
         .bind("u1")
@@ -312,7 +312,7 @@ mod tests {
         .await
         .unwrap();
 
-        sqlx::query("INSERT INTO import_tracks (import_id, track_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO import_tracks (import_id, track_id) VALUES ($1, $2)")
             .bind("imp1")
             .bind("t1")
             .execute(&pool)
@@ -320,7 +320,7 @@ mod tests {
             .unwrap();
 
         // 3. Insert a setlist with a track referencing the spotify track
-        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+        sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES ($1, $2, $3, $4)")
             .bind("s1")
             .bind("u1")
             .bind("deep house")
@@ -331,7 +331,7 @@ mod tests {
 
         sqlx::query(
             "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, source) \
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)",
         )
         .bind("st1")
         .bind("s1")

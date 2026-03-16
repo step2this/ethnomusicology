@@ -65,5 +65,6 @@ mod tests {
 
         let result = get_tokens(&pool, "nonexistent-user").await.unwrap();
         assert!(result.is_none());
+        pool.close().await;
     }
 }

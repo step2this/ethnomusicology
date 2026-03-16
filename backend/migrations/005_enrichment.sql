@@ -1,7 +1,7 @@
 -- Migration 005: Enrichment tracking + user usage limits
 -- Supports ST-005 (track enrichment) and ST-006 (energy profiles)
 
-ALTER TABLE tracks ADD COLUMN needs_enrichment BOOLEAN NOT NULL DEFAULT 1;
+ALTER TABLE tracks ADD COLUMN needs_enrichment BOOLEAN NOT NULL DEFAULT TRUE;
 ALTER TABLE tracks ADD COLUMN enriched_at TIMESTAMP;
 ALTER TABLE tracks ADD COLUMN enrichment_error TEXT;
 

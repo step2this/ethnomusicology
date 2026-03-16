@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS crates (
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE IF NOT EXISTS crate_tracks (
@@ -13,18 +13,17 @@ CREATE TABLE IF NOT EXISTS crate_tracks (
     crate_id TEXT NOT NULL,
     title TEXT NOT NULL,
     artist TEXT NOT NULL,
-    bpm REAL,
+    bpm DOUBLE PRECISION,
     key TEXT,
     camelot TEXT,
-    energy REAL,
+    energy DOUBLE PRECISION,
     spotify_uri TEXT,
     source_setlist_id TEXT,
-    added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    added_at TIMESTAMP DEFAULT NOW(),
     UNIQUE(crate_id, title, artist)
 );
 
--- NOTE: No REFERENCES/FK constraints — SQLite FK enforcement is OFF by default.
--- Cascading deletes are handled manually in the application layer.
+-- NOTE: No REFERENCES/FK constraints — cascading deletes are handled manually in the application layer.
 
 CREATE INDEX IF NOT EXISTS idx_crates_user_id ON crates(user_id);
 CREATE INDEX IF NOT EXISTS idx_crate_tracks_crate_id ON crate_tracks(crate_id);

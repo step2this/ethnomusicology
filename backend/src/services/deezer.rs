@@ -1,6 +1,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::time::Duration;
 use tokio::time::sleep;
 
@@ -61,18 +61,18 @@ struct DeezerSearchResponse {
 
 /// Search Deezer for tracks that don't have deezer_id set and populate
 /// deezer_id and deezer_preview_url if a match is found.
-pub async fn enrich_tracks_with_deezer(pool: &SqlitePool) -> Result<usize, anyhow::Error> {
+pub async fn enrich_tracks_with_deezer(pool: &PgPool) -> Result<usize, anyhow::Error> {
     // 1. Get tracks that need Deezer enrichment (deezer_id IS NULL)
     let tracks_to_enrich: Vec<(String, String, Option<String>)> = sqlx::query_as(
         "SELECT id, title, artist FROM (
             SELECT t.id, t.title,
-                   GROUP_CONCAT(a.name, ', ') AS artist
+                   STRING_AGG(a.name, ', ') AS artist
             FROM tracks t
             LEFT JOIN track_artists ta ON t.id = ta.track_id
             LEFT JOIN artists a ON ta.artist_id = a.id
             WHERE t.deezer_id IS NULL
             GROUP BY t.id
-        ) LIMIT 100",
+        ) sub LIMIT 100",
     )
     .fetch_all(pool)
     .await?;
@@ -102,7 +102,7 @@ pub async fn enrich_tracks_with_deezer(pool: &SqlitePool) -> Result<usize, anyho
                     Some(&deezer_track.preview)
                 };
                 match sqlx::query(
-                    "UPDATE tracks SET deezer_id = ?, deezer_preview_url = ? WHERE id = ?",
+                    "UPDATE tracks SET deezer_id = $1, deezer_preview_url = $2 WHERE id = $3",
                 )
                 .bind(deezer_track.id)
                 .bind(preview)
@@ -123,7 +123,7 @@ pub async fn enrich_tracks_with_deezer(pool: &SqlitePool) -> Result<usize, anyho
             Ok(None) => {
                 // No match found — mark with sentinel deezer_id = -1 so we don't retry
                 tracing::debug!("No Deezer match found for: {}", &search_query);
-                let _ = sqlx::query("UPDATE tracks SET deezer_id = -1 WHERE id = ?")
+                let _ = sqlx::query("UPDATE tracks SET deezer_id = -1 WHERE id = $1")
                     .bind(&track_id)
                     .execute(pool)
                     .await;
@@ -179,6 +179,7 @@ mod tests {
         let result = enrich_tracks_with_deezer(&pool).await.unwrap();
 
         assert_eq!(result, 0);
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -188,7 +189,7 @@ mod tests {
         // Insert a track that already has deezer_id
         sqlx::query(
             "INSERT INTO tracks (id, title, source, deezer_id, deezer_preview_url)
-             VALUES (?, ?, ?, ?, ?)",
+             VALUES ($1, $2, $3, $4, $5)",
         )
         .bind("t1")
         .bind("Test Track")
@@ -203,6 +204,7 @@ mod tests {
 
         // Should return 0 because the track is already enriched
         assert_eq!(result, 0);
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -210,7 +212,7 @@ mod tests {
         let pool = crate::db::create_test_pool().await;
 
         // Insert an unenriched track (deezer_id IS NULL)
-        sqlx::query("INSERT INTO tracks (id, title, source) VALUES (?, ?, ?)")
+        sqlx::query("INSERT INTO tracks (id, title, source) VALUES ($1, $2, $3)")
             .bind("t1")
             .bind("Test Track")
             .bind("spotify")
@@ -219,13 +221,13 @@ mod tests {
             .unwrap();
 
         // Insert an artist and link
-        sqlx::query("INSERT OR IGNORE INTO artists (id, name) VALUES (?, ?)")
+        sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2) ON CONFLICT DO NOTHING")
             .bind("a1")
             .bind("Test Artist")
             .execute(&pool)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+        sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
             .bind("t1")
             .bind("a1")
             .execute(&pool)
@@ -237,13 +239,13 @@ mod tests {
         let tracks_to_enrich: Vec<(String, String, Option<String>)> = sqlx::query_as(
             "SELECT id, title, artist FROM (
                 SELECT t.id, t.title,
-                       GROUP_CONCAT(a.name, ', ') AS artist
+                       STRING_AGG(a.name, ', ') AS artist
                 FROM tracks t
                 LEFT JOIN track_artists ta ON t.id = ta.track_id
                 LEFT JOIN artists a ON ta.artist_id = a.id
                 WHERE t.deezer_id IS NULL
                 GROUP BY t.id
-            )",
+            ) sub",
         )
         .fetch_all(&pool)
         .await
@@ -253,5 +255,6 @@ mod tests {
         assert_eq!(tracks_to_enrich[0].0, "t1");
         assert_eq!(tracks_to_enrich[0].1, "Test Track");
         assert_eq!(tracks_to_enrich[0].2, Some("Test Artist".to_string()));
+        pool.close().await;
     }
 }

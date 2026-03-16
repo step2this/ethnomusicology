@@ -7,7 +7,7 @@ use axum::{
     Json, Router,
 };
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::sync::OnceLock;
 use std::time::{Duration, Instant};
 use tokio::sync::{Mutex, RwLock, Semaphore};
@@ -631,7 +631,7 @@ struct EnrichDeezerResponse {
 }
 
 async fn enrich_deezer_handler(
-    State(pool): State<SqlitePool>,
+    State(pool): State<PgPool>,
 ) -> Result<Json<EnrichDeezerResponse>, DeezerEnrichError> {
     let enriched = crate::services::deezer::enrich_tracks_with_deezer(&pool).await?;
 
@@ -661,7 +661,7 @@ impl axum::response::IntoResponse for DeezerEnrichError {
     }
 }
 
-pub fn audio_router(pool: SqlitePool) -> Router {
+pub fn audio_router(pool: PgPool) -> Router {
     Router::new()
         .route("/audio/search", get(audio_search))
         .route("/audio/deezer-search", get(deezer_search))

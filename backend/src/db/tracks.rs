@@ -135,7 +135,7 @@ pub async fn get_unenriched_tracks(
         FROM tracks t
         LEFT JOIN track_artists ta ON t.id = ta.track_id
         LEFT JOIN artists a ON ta.artist_id = a.id
-        WHERE t.needs_enrichment = 1 AND t.enrichment_error IS NULL
+        WHERE t.needs_enrichment = TRUE AND t.enrichment_error IS NULL
         GROUP BY t.id
         ORDER BY t.created_at DESC
         LIMIT $1"#,
@@ -155,7 +155,7 @@ pub async fn update_track_dj_metadata(
     album_art_url: Option<&str>,
 ) -> Result<(), sqlx::Error> {
     sqlx::query(
-        "UPDATE tracks SET bpm = COALESCE($1, bpm), camelot_key = COALESCE($2, camelot_key), energy = COALESCE($3, energy), album_art_url = COALESCE($4, album_art_url), needs_enrichment = 0, enriched_at = NOW() WHERE id = $5",
+        "UPDATE tracks SET bpm = COALESCE($1, bpm), camelot_key = COALESCE($2, camelot_key), energy = COALESCE($3, energy), album_art_url = COALESCE($4, album_art_url), needs_enrichment = FALSE, enriched_at = NOW() WHERE id = $5",
     )
     .bind(bpm)
     .bind(camelot_key)
@@ -173,7 +173,7 @@ pub async fn mark_enrichment_error(
     id: &str,
     error: &str,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("UPDATE tracks SET enrichment_error = $1, needs_enrichment = 0 WHERE id = $2")
+    sqlx::query("UPDATE tracks SET enrichment_error = $1, needs_enrichment = FALSE WHERE id = $2")
         .bind(error)
         .bind(id)
         .execute(pool)
@@ -182,19 +182,16 @@ pub async fn mark_enrichment_error(
 }
 
 /// Get today's enrichment count for a user.
-pub async fn get_daily_enrichment_count(
-    pool: &PgPool,
-    user_id: &str,
-) -> Result<i64, sqlx::Error> {
+pub async fn get_daily_enrichment_count(pool: &PgPool, user_id: &str) -> Result<i64, sqlx::Error> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-    let count: Option<i64> = sqlx::query_scalar(
+    let count: Option<i32> = sqlx::query_scalar(
         "SELECT enrichment_count FROM user_usage WHERE user_id = $1 AND date = $2",
     )
     .bind(user_id)
     .bind(&today)
     .fetch_optional(pool)
     .await?;
-    Ok(count.unwrap_or(0))
+    Ok(count.unwrap_or(0) as i64)
 }
 
 /// Reset errored tracks so they can be re-enriched.
@@ -203,7 +200,7 @@ pub async fn get_daily_enrichment_count(
 /// Returns the number of tracks reset.
 pub async fn retry_errored_tracks(pool: &PgPool) -> Result<u64, sqlx::Error> {
     let result = sqlx::query(
-        "UPDATE tracks SET enrichment_error = NULL, needs_enrichment = 1 WHERE enrichment_error IS NOT NULL",
+        "UPDATE tracks SET enrichment_error = NULL, needs_enrichment = TRUE WHERE enrichment_error IS NOT NULL",
     )
     .execute(pool)
     .await?;
@@ -211,31 +208,25 @@ pub async fn retry_errored_tracks(pool: &PgPool) -> Result<u64, sqlx::Error> {
 }
 
 /// Get today's generation count for a user.
-pub async fn get_daily_generation_count(
-    pool: &PgPool,
-    user_id: &str,
-) -> Result<i64, sqlx::Error> {
+pub async fn get_daily_generation_count(pool: &PgPool, user_id: &str) -> Result<i64, sqlx::Error> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
-    let count: Option<i64> = sqlx::query_scalar(
+    let count: Option<i32> = sqlx::query_scalar(
         "SELECT generation_count FROM user_usage WHERE user_id = $1 AND date = $2",
     )
     .bind(user_id)
     .bind(&today)
     .fetch_optional(pool)
     .await?;
-    Ok(count.unwrap_or(0))
+    Ok(count.unwrap_or(0) as i64)
 }
 
 /// Increment the generation usage counter for a user.
-pub async fn increment_generation_usage(
-    pool: &PgPool,
-    user_id: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn increment_generation_usage(pool: &PgPool, user_id: &str) -> Result<(), sqlx::Error> {
     let today = chrono::Utc::now().format("%Y-%m-%d").to_string();
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO user_usage (id, user_id, date, generation_count) VALUES ($1, $2, $3, 1)
-         ON CONFLICT(user_id, date) DO UPDATE SET generation_count = generation_count + 1",
+         ON CONFLICT(user_id, date) DO UPDATE SET generation_count = user_usage.generation_count + 1",
     )
     .bind(&id)
     .bind(user_id)
@@ -255,7 +246,7 @@ pub async fn increment_enrichment_usage(
     let id = uuid::Uuid::new_v4().to_string();
     sqlx::query(
         "INSERT INTO user_usage (id, user_id, date, enrichment_count) VALUES ($1, $2, $3, $4)
-         ON CONFLICT(user_id, date) DO UPDATE SET enrichment_count = enrichment_count + excluded.enrichment_count",
+         ON CONFLICT(user_id, date) DO UPDATE SET enrichment_count = user_usage.enrichment_count + excluded.enrichment_count",
     )
     .bind(&id)
     .bind(user_id)
@@ -279,6 +270,7 @@ mod tests {
             .await
             .unwrap();
         assert!(result.is_none());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -289,6 +281,7 @@ mod tests {
             .unwrap();
         assert!(tracks.is_empty());
         assert_eq!(total, 0);
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -329,6 +322,7 @@ mod tests {
         assert_eq!(total, 2);
         assert_eq!(tracks.len(), 2);
         assert_eq!(tracks[0].artist.as_deref(), Some("Artist One"));
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -354,6 +348,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(page3.len(), 1);
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -389,6 +384,7 @@ mod tests {
         assert_eq!(tracks[0].bpm, Some(100.0));
         assert_eq!(tracks[1].bpm, Some(128.0));
         assert!(tracks[2].bpm.is_none());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -433,5 +429,6 @@ mod tests {
         let artist = tracks[0].artist.as_deref().unwrap();
         assert!(artist.contains("Artist A"));
         assert!(artist.contains("Artist B"));
+        pool.close().await;
     }
 }

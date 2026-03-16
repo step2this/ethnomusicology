@@ -23,10 +23,7 @@ pub async fn insert_setlist(pool: &PgPool, row: &SetlistRow) -> Result<(), sqlx:
     Ok(())
 }
 
-pub async fn insert_setlist_track(
-    pool: &PgPool,
-    row: &SetlistTrackRow,
-) -> Result<(), sqlx::Error> {
+pub async fn insert_setlist_track(pool: &PgPool, row: &SetlistTrackRow) -> Result<(), sqlx::Error> {
     sqlx::query(
         "INSERT INTO setlist_tracks (id, setlist_id, track_id, position, original_position, title, artist, bpm, key, camelot, energy, transition_note, transition_score, source, acquisition_info, confidence, verification_flag, verification_note) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18)"
     )
@@ -179,11 +176,7 @@ pub async fn delete_setlist(pool: &PgPool, id: &str) -> Result<bool, sqlx::Error
     Ok(result.rows_affected() > 0)
 }
 
-pub async fn update_setlist_name(
-    pool: &PgPool,
-    id: &str,
-    name: &str,
-) -> Result<(), sqlx::Error> {
+pub async fn update_setlist_name(pool: &PgPool, id: &str, name: &str) -> Result<(), sqlx::Error> {
     sqlx::query("UPDATE setlists SET name = $1 WHERE id = $2")
         .bind(name)
         .bind(id)
@@ -317,6 +310,7 @@ mod tests {
         let pool = crate::db::create_test_pool().await;
         let result = get_setlist(&pool, "nonexistent").await.unwrap();
         assert!(result.is_none());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -355,6 +349,7 @@ mod tests {
         assert_eq!(tracks[0].artist.as_deref(), Some("DJ Test"));
         assert_eq!(tracks[0].bpm, Some(128.0));
         assert_eq!(tracks[0].camelot_key.as_deref(), Some("8A"));
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -389,6 +384,7 @@ mod tests {
         // user-2 should see nothing
         let count2 = count_setlists(&pool, "user-2").await.unwrap();
         assert_eq!(count2, 0);
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -417,6 +413,7 @@ mod tests {
         // Deleting non-existent returns false
         let deleted2 = delete_setlist(&pool, "sl-del").await.unwrap();
         assert!(!deleted2);
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -476,5 +473,6 @@ mod tests {
         assert_eq!(dup_tracks[0].title, "Track A");
         // IDs must differ
         assert_ne!(dup_tracks[0].id, "st-orig-1");
+        pool.close().await;
     }
 }

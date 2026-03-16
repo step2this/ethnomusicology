@@ -29,6 +29,6 @@ pub struct CrateSummary {
     pub id: String,
     pub name: String,
     pub description: Option<String>,
-    pub track_count: i32,
+    pub track_count: i64,
     pub created_at: Option<chrono::NaiveDateTime>,
 }

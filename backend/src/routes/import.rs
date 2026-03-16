@@ -4,7 +4,7 @@ use axum::response::{IntoResponse, Response};
 use axum::routing::post;
 use axum::{Json, Router};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use std::sync::Arc;
 
 use crate::api::claude::ClaudeClientTrait;
@@ -85,7 +85,7 @@ impl IntoResponse for ImportError {
 pub struct ImportState {
     pub spotify: SpotifyClient,
     pub repo: Arc<dyn ImportRepository>,
-    pub pool: SqlitePool,
+    pub pool: PgPool,
     pub encryption_key: [u8; 32],
     pub claude: Arc<dyn ClaudeClientTrait>,
 }

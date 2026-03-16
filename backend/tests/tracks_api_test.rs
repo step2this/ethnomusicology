@@ -1,14 +1,14 @@
 use axum::body::Body;
 use axum::http::Request;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use tower::ServiceExt;
 
-async fn create_test_pool() -> SqlitePool {
+async fn create_test_pool() -> PgPool {
     // Use the shared migration runner — single source of truth in db/mod.rs
     ethnomusicology_backend::db::create_test_pool().await
 }
 
-fn build_app(pool: SqlitePool) -> axum::Router {
+fn build_app(pool: PgPool) -> axum::Router {
     ethnomusicology_backend::routes::tracks::tracks_router(pool)
 }
 
@@ -25,14 +25,14 @@ async fn get_json(app: axum::Router, uri: &str) -> (u16, serde_json::Value) {
     (status, json)
 }
 
-async fn seed_track(pool: &SqlitePool, id: &str, title: &str, bpm: Option<f64>) {
+async fn seed_track(pool: &PgPool, id: &str, title: &str, bpm: Option<f64>) {
     let mut q = "INSERT INTO tracks (id, title, source".to_string();
     if bpm.is_some() {
         q.push_str(", bpm");
     }
-    q.push_str(") VALUES (?, ?, ?");
+    q.push_str(") VALUES ($1, $2, $3");
     if bpm.is_some() {
-        q.push_str(", ?");
+        q.push_str(", $4");
     }
     q.push(')');
 
@@ -43,8 +43,8 @@ async fn seed_track(pool: &SqlitePool, id: &str, title: &str, bpm: Option<f64>) 
     query.execute(pool).await.unwrap();
 }
 
-async fn seed_artist(pool: &SqlitePool, id: &str, name: &str) {
-    sqlx::query("INSERT INTO artists (id, name) VALUES (?, ?)")
+async fn seed_artist(pool: &PgPool, id: &str, name: &str) {
+    sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
         .bind(id)
         .bind(name)
         .execute(pool)
@@ -52,8 +52,8 @@ async fn seed_artist(pool: &SqlitePool, id: &str, name: &str) {
         .unwrap();
 }
 
-async fn link_track_artist(pool: &SqlitePool, track_id: &str, artist_id: &str) {
-    sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES (?, ?)")
+async fn link_track_artist(pool: &PgPool, track_id: &str, artist_id: &str) {
+    sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
         .bind(track_id)
         .bind(artist_id)
         .execute(pool)

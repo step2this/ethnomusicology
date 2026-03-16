@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use axum::body::Body;
 use axum::http::Request;
-use sqlx::SqlitePool;
+use sqlx::PgPool;
 use tower::ServiceExt;
 
 use ethnomusicology_backend::api::claude::{
@@ -124,12 +124,12 @@ impl ClaudeClientTrait for TimeoutClaude {
 // Helpers
 // ---------------------------------------------------------------------------
 
-async fn create_test_pool() -> SqlitePool {
+async fn create_test_pool() -> PgPool {
     // Use the shared migration runner — single source of truth in db/mod.rs
     ethnomusicology_backend::db::create_test_pool().await
 }
 
-async fn seed_tracks(pool: &SqlitePool) {
+async fn seed_tracks(pool: &PgPool) {
     // Insert 3 tracks with DJ metadata
     for (id, title, bpm, key, energy) in [
         ("t1", "Desert Rose", 102.0, "8A", 4),
@@ -137,7 +137,7 @@ async fn seed_tracks(pool: &SqlitePool) {
         ("t3", "Sufi Trance", 132.0, "10A", 8),
     ] {
         sqlx::query(
-            "INSERT INTO tracks (id, title, source, bpm, camelot_key, energy) VALUES (?, ?, ?, ?, ?, ?)",
+            "INSERT INTO tracks (id, title, source, bpm, camelot_key, energy) VALUES ($1, $2, $3, $4, $5, $6)",
         )
         .bind(id)
         .bind(title)
@@ -151,21 +151,29 @@ async fn seed_tracks(pool: &SqlitePool) {
     }
 
     // Artists
-    sqlx::query("INSERT INTO artists (id, name) VALUES ('a1', 'Sting')")
+    sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
+        .bind("a1")
+        .bind("Sting")
         .execute(pool)
         .await
         .unwrap();
-    sqlx::query("INSERT INTO artists (id, name) VALUES ('a2', 'Amr Diab')")
+    sqlx::query("INSERT INTO artists (id, name) VALUES ($1, $2)")
+        .bind("a2")
+        .bind("Amr Diab")
         .execute(pool)
         .await
         .unwrap();
 
     // Link
-    sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ('t1', 'a1')")
+    sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
+        .bind("t1")
+        .bind("a1")
         .execute(pool)
         .await
         .unwrap();
-    sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ('t2', 'a2')")
+    sqlx::query("INSERT INTO track_artists (track_id, artist_id) VALUES ($1, $2)")
+        .bind("t2")
+        .bind("a2")
         .execute(pool)
         .await
         .unwrap();
@@ -216,7 +224,7 @@ fn multi_track_llm_json() -> String {
     .to_string()
 }
 
-fn build_app(pool: SqlitePool, claude: Arc<dyn ClaudeClientTrait>) -> axum::Router {
+fn build_app(pool: PgPool, claude: Arc<dyn ClaudeClientTrait>) -> axum::Router {
     let state = Arc::new(SetlistRouteState { pool, claude });
     setlist_router(state)
 }
@@ -520,7 +528,7 @@ async fn test_arrange_empty_setlist_returns_400() {
     let pool = create_test_pool().await;
 
     // Insert a setlist with no tracks
-    sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES (?, ?, ?, ?)")
+    sqlx::query("INSERT INTO setlists (id, user_id, prompt, model) VALUES ($1, $2, $3, $4)")
         .bind("empty-sl")
         .bind("user1")
         .bind("test")

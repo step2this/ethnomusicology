@@ -98,11 +98,13 @@ pub async fn insert_import_track(
     import_id: &str,
     track_id: &str,
 ) -> Result<(), sqlx::Error> {
-    sqlx::query("INSERT INTO import_tracks (import_id, track_id) VALUES ($1, $2) ON CONFLICT DO NOTHING")
-        .bind(import_id)
-        .bind(track_id)
-        .execute(pool)
-        .await?;
+    sqlx::query(
+        "INSERT INTO import_tracks (import_id, track_id) VALUES ($1, $2) ON CONFLICT DO NOTHING",
+    )
+    .bind(import_id)
+    .bind(track_id)
+    .execute(pool)
+    .await?;
     Ok(())
 }
 
@@ -140,6 +142,7 @@ mod tests {
 
         let result = get_import(&pool, "nonexistent").await.unwrap();
         assert!(result.is_none());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -165,6 +168,6 @@ mod tests {
 
         let tracks = get_tracks_by_import_id(&pool, "imp-dup").await.unwrap();
         assert_eq!(tracks.len(), 1);
+        pool.close().await;
     }
-
 }

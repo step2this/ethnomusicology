@@ -28,13 +28,10 @@ pub async fn create_crate(
 // Read
 // ---------------------------------------------------------------------------
 
-pub async fn list_crates(
-    pool: &PgPool,
-    user_id: &str,
-) -> Result<Vec<CrateSummary>, sqlx::Error> {
+pub async fn list_crates(pool: &PgPool, user_id: &str) -> Result<Vec<CrateSummary>, sqlx::Error> {
     sqlx::query_as::<_, CrateSummary>(
         r#"SELECT c.id, c.name, c.description, c.created_at,
-              CAST(COUNT(ct.id) AS INTEGER) AS track_count
+              COUNT(ct.id) AS track_count
            FROM crates c
            LEFT JOIN crate_tracks ct ON c.id = ct.crate_id
            WHERE c.user_id = $1
@@ -171,6 +168,7 @@ mod tests {
         let pool = crate::db::create_test_pool().await;
         let result = get_crate(&pool, "nonexistent").await.unwrap();
         assert!(result.is_none());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -184,22 +182,26 @@ mod tests {
             .unwrap();
 
         // Add two tracks to c1
-        sqlx::query("INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)")
-            .bind("ct1")
-            .bind("c1")
-            .bind("Track A")
-            .bind("Artist A")
-            .execute(&pool)
-            .await
-            .unwrap();
-        sqlx::query("INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)")
-            .bind("ct2")
-            .bind("c1")
-            .bind("Track B")
-            .bind("Artist B")
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)",
+        )
+        .bind("ct1")
+        .bind("c1")
+        .bind("Track A")
+        .bind("Artist A")
+        .execute(&pool)
+        .await
+        .unwrap();
+        sqlx::query(
+            "INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)",
+        )
+        .bind("ct2")
+        .bind("c1")
+        .bind("Track B")
+        .bind("Artist B")
+        .execute(&pool)
+        .await
+        .unwrap();
 
         let crates = list_crates(&pool, "user-1").await.unwrap();
         assert_eq!(crates.len(), 2);
@@ -208,6 +210,7 @@ mod tests {
         let beta = crates.iter().find(|c| c.id == "c2").unwrap();
         assert_eq!(alpha.track_count, 2);
         assert_eq!(beta.track_count, 0);
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -223,6 +226,7 @@ mod tests {
         let crates = list_crates(&pool, "user-1").await.unwrap();
         assert_eq!(crates.len(), 1);
         assert_eq!(crates[0].id, "c1");
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -231,20 +235,23 @@ mod tests {
         create_crate(&pool, "c1", "user-1", "Temp", None)
             .await
             .unwrap();
-        sqlx::query("INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)")
-            .bind("ct1")
-            .bind("c1")
-            .bind("Track A")
-            .bind("Artist A")
-            .execute(&pool)
-            .await
-            .unwrap();
+        sqlx::query(
+            "INSERT INTO crate_tracks (id, crate_id, title, artist) VALUES ($1, $2, $3, $4)",
+        )
+        .bind("ct1")
+        .bind("c1")
+        .bind("Track A")
+        .bind("Artist A")
+        .execute(&pool)
+        .await
+        .unwrap();
 
         delete_crate(&pool, "c1").await.unwrap();
 
         assert!(get_crate(&pool, "c1").await.unwrap().is_none());
         let tracks = get_crate_tracks(&pool, "c1").await.unwrap();
         assert!(tracks.is_empty());
+        pool.close().await;
     }
 
     #[tokio::test]
@@ -285,5 +292,6 @@ mod tests {
 
         let tracks = get_crate_tracks(&pool, "c1").await.unwrap();
         assert_eq!(tracks.len(), 2);
+        pool.close().await;
     }
 }
