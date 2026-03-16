@@ -81,10 +81,15 @@ After 7a findings are resolved:
 
 ## Quality Gates
 
-Both must pass before any commit (enforced by `.claude/settings.json` pre-commit hook):
+Pre-commit hook (`.claude/settings.json`) enforces:
 ```
-Backend:  cargo fmt --check && cargo clippy -- -D warnings && cargo test
+Backend:  cargo fmt --check && cargo clippy -- -D warnings
 Frontend: cd frontend-next && bunx vitest run
+```
+
+**Note:** `cargo test` requires `DATABASE_URL` pointing to Neon Postgres. Run manually when DB changes are made:
+```
+DATABASE_URL=<neon-url> RUST_TEST_THREADS=1 cargo test
 ```
 
 ## Commit Discipline
