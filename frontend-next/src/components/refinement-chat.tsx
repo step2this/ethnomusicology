@@ -66,14 +66,14 @@ export function RefinementChat({ setlistId }: { setlistId: string }) {
         )}
 
         {refineMutation.isError && (
-          <div className="flex items-center gap-2 rounded-lg bg-[var(--status-error)]/20 border border-[var(--status-error)]/30 px-3 py-2 text-xs text-[var(--status-error)]">
+          <div className="flex items-center gap-2 rounded-lg bg-status-error/20 border border-status-error/30 px-3 py-2 text-xs text-status-error">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             <span>{refineMutation.error instanceof Error ? refineMutation.error.message : 'Refinement failed'}</span>
           </div>
         )}
 
         {refineMutation.data?.change_warning && (
-          <div className="flex items-center gap-2 rounded-lg bg-[var(--status-warning)]/20 border border-[var(--status-warning)]/30 px-3 py-2 text-xs text-[var(--status-warning)]">
+          <div className="flex items-center gap-2 rounded-lg bg-status-warning/20 border border-status-warning/30 px-3 py-2 text-xs text-status-warning">
             <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
             <span>{refineMutation.data.change_warning}</span>
           </div>

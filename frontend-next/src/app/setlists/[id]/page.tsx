@@ -84,7 +84,7 @@ export default function SetlistDetailPage() {
   if (error || !setlist) {
     return (
       <div className="flex flex-col items-center justify-center px-4 py-20 gap-4">
-        <AlertCircle className="h-12 w-12 text-[var(--status-error)]" />
+        <AlertCircle className="h-12 w-12 text-status-error" />
         <p className="text-muted-foreground">
           {error instanceof Error ? error.message : 'Setlist not found'}
         </p>

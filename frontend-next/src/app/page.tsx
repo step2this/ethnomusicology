@@ -11,7 +11,7 @@ function HomeContent() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8">
       {spotifyConnected && (
-        <div className="bg-[var(--status-success)]/20 border border-[var(--status-success)]/30 rounded-lg p-4 text-[var(--status-success)]">
+        <div className="bg-status-success/20 border border-status-success/30 rounded-lg p-4 text-status-success">
           Spotify connected successfully!
         </div>
       )}

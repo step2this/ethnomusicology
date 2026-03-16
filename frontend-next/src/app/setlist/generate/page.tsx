@@ -221,7 +221,7 @@ export default function GenerateSetlistPage() {
 
         {/* Error */}
         {error && (
-          <div className="flex items-center gap-2 rounded-lg border border-[var(--status-error)]/30 bg-[var(--status-error)]/20 px-4 py-3 text-sm text-[var(--status-error)]">
+          <div className="flex items-center gap-2 rounded-lg border border-status-error/30 bg-status-error/20 px-4 py-3 text-sm text-status-error">
             <AlertCircle className="h-4 w-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -313,7 +313,7 @@ export default function GenerateSetlistPage() {
       )}
 
       {error && (
-        <div className="flex items-center gap-2 rounded-lg border border-[var(--status-error)]/30 bg-[var(--status-error)]/20 px-4 py-3 text-sm text-[var(--status-error)]">
+        <div className="flex items-center gap-2 rounded-lg border border-status-error/30 bg-status-error/20 px-4 py-3 text-sm text-status-error">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
         </div>

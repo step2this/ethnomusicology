@@ -2,17 +2,17 @@
 
 const config: Record<string, { bg: string; text: string; tooltip: string }> = {
   high: {
-    bg: 'bg-[var(--status-success)]/15 text-[var(--status-success)] border-[var(--status-success)]/30',
+    bg: 'bg-status-success/15 text-status-success border-status-success/30',
     text: 'High',
     tooltip: 'High confidence: likely a real track',
   },
   medium: {
-    bg: 'bg-[var(--status-warning)]/15 text-[var(--status-warning)] border-[var(--status-warning)]/30',
+    bg: 'bg-status-warning/15 text-status-warning border-status-warning/30',
     text: 'Medium',
     tooltip: 'Medium confidence: track may need verification',
   },
   low: {
-    bg: 'bg-[var(--status-error)]/15 text-[var(--status-error)] border-[var(--status-error)]/30',
+    bg: 'bg-status-error/15 text-status-error border-status-error/30',
     text: 'Low',
     tooltip: 'Low confidence: track may not exist or details may be inaccurate',
   },
