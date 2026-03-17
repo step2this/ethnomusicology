@@ -104,7 +104,7 @@ async fn import_spotify(
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user");
+        .unwrap_or("default-user");
 
     // Fetch stored access token from DB
     let token_row = tokens::get_tokens(&state.pool, user_id)

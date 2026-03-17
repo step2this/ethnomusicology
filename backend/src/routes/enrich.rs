@@ -40,7 +40,7 @@ async fn enrich_handler(
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user");
+        .unwrap_or("default-user");
 
     let result = enrichment::enrich_tracks(&state.pool, state.claude.as_ref(), user_id).await;
 

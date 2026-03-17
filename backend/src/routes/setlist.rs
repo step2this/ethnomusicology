@@ -106,7 +106,7 @@ async fn generate_setlist_handler(
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user");
+        .unwrap_or("default-user");
 
     // Parse energy_profile string into enum
     let energy_profile = match req.energy_profile {
@@ -179,7 +179,7 @@ async fn list_setlists_handler(
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user");
+        .unwrap_or("default-user");
 
     let page = query.page.unwrap_or(1).max(1);
     let per_page = query.per_page.unwrap_or(20).clamp(1, 100);
@@ -207,7 +207,7 @@ async fn delete_setlist_handler(
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user");
+        .unwrap_or("default-user");
     let row = db::get_setlist(&state.pool, &id)
         .await
         .map_err(|e| SetlistError::Database(e.to_string()))?
@@ -234,7 +234,7 @@ async fn rename_setlist_handler(
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user");
+        .unwrap_or("default-user");
     let row = db::get_setlist(&state.pool, &id)
         .await
         .map_err(|e| SetlistError::Database(e.to_string()))?
@@ -258,7 +258,7 @@ async fn duplicate_setlist_handler(
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user");
+        .unwrap_or("default-user");
     let row = db::get_setlist(&state.pool, &id)
         .await
         .map_err(|e| SetlistError::Database(e.to_string()))?

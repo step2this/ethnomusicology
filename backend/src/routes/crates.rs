@@ -59,7 +59,7 @@ fn extract_user_id(headers: &HeaderMap) -> &str {
     headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
-        .unwrap_or("dev-user")
+        .unwrap_or("default-user")
 }
 
 async fn list_crates_handler(
