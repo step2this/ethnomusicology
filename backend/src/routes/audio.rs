@@ -6,10 +6,11 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use std::sync::OnceLock;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 use tokio::sync::{Mutex, RwLock, Semaphore};
 use tokio::time::timeout;
 
@@ -19,10 +20,13 @@ use crate::services::soundcloud::SoundCloudClient;
 // Static resources
 // ---------------------------------------------------------------------------
 
+/// Cached Spotify Client Credentials token: (access_token, expiry).
+type SpotifyCcCache = RwLock<Option<(String, DateTime<Utc>)>>;
+
 static ITUNES_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
 static SOUNDCLOUD_CLIENT: OnceLock<Mutex<Option<SoundCloudClient>>> = OnceLock::new();
 static SPOTIFY_SEMAPHORE: OnceLock<Semaphore> = OnceLock::new();
-static SPOTIFY_CC_TOKEN: OnceLock<RwLock<Option<(String, Instant)>>> = OnceLock::new();
+static SPOTIFY_CC_TOKEN: OnceLock<SpotifyCcCache> = OnceLock::new();
 
 fn soundcloud_client() -> &'static Mutex<Option<SoundCloudClient>> {
     SOUNDCLOUD_CLIENT.get_or_init(|| Mutex::new(SoundCloudClient::new_from_env()))
@@ -36,7 +40,7 @@ fn spotify_semaphore() -> &'static Semaphore {
     SPOTIFY_SEMAPHORE.get_or_init(|| Semaphore::new(5))
 }
 
-fn spotify_cc_token() -> &'static RwLock<Option<(String, Instant)>> {
+fn spotify_cc_token() -> &'static SpotifyCcCache {
     SPOTIFY_CC_TOKEN.get_or_init(|| RwLock::new(None))
 }
 
@@ -298,7 +302,7 @@ async fn spotify_cc_token_get(http: &reqwest::Client) -> Option<String> {
     {
         let guard = spotify_cc_token().read().await;
         if let Some((ref token, expiry)) = *guard {
-            if Instant::now() + Duration::from_secs(60) < expiry {
+            if Utc::now() + chrono::Duration::seconds(60) < expiry {
                 return Some(token.clone());
             }
         }
@@ -307,7 +311,7 @@ async fn spotify_cc_token_get(http: &reqwest::Client) -> Option<String> {
     // Slow path: write lock, double-check, then fetch.
     let mut guard = spotify_cc_token().write().await;
     if let Some((ref token, expiry)) = *guard {
-        if Instant::now() + Duration::from_secs(60) < expiry {
+        if Utc::now() + chrono::Duration::seconds(60) < expiry {
             return Some(token.clone());
         }
     }
@@ -328,7 +332,7 @@ async fn spotify_cc_token_get(http: &reqwest::Client) -> Option<String> {
     }
 
     let tr: SpotifyCCTokenResponse = resp.json().await.ok()?;
-    let expiry = Instant::now() + Duration::from_secs(tr.expires_in);
+    let expiry = Utc::now() + chrono::Duration::seconds(tr.expires_in as i64);
     *guard = Some((tr.access_token.clone(), expiry));
     Some(tr.access_token)
 }

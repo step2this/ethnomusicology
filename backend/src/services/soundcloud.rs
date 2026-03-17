@@ -1,7 +1,7 @@
-use std::time::{Duration, Instant};
-
 use anyhow::Result;
+use chrono::{DateTime, Utc};
 use serde::Deserialize;
+use std::time::Duration;
 
 use crate::services::match_scoring::is_acceptable_match;
 
@@ -13,9 +13,9 @@ pub struct SoundCloudClient {
     client_id: String,
     client_secret: String,
     token: Option<String>,
-    token_expiry: Instant,
+    token_expiry: DateTime<Utc>,
     consecutive_failures: u8,
-    disabled_until: Option<Instant>,
+    disabled_until: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug)]
@@ -69,7 +69,7 @@ impl SoundCloudClient {
             client_secret,
             token: None,
             // Initialise to now — the token is None so it will be fetched on first use.
-            token_expiry: Instant::now(),
+            token_expiry: Utc::now(),
             consecutive_failures: 0,
             disabled_until: None,
         })
@@ -82,7 +82,7 @@ impl SoundCloudClient {
     pub async fn ensure_token(&mut self, http: &reqwest::Client) -> Result<String> {
         // --- Circuit breaker ---
         if let Some(disabled_until) = self.disabled_until {
-            if Instant::now() < disabled_until {
+            if Utc::now() < disabled_until {
                 anyhow::bail!("SoundCloud client disabled by circuit breaker");
             }
             // Window has elapsed — reset and retry
@@ -92,7 +92,7 @@ impl SoundCloudClient {
 
         // --- Return cached token (with 60 s buffer) ---
         if let Some(ref token) = self.token {
-            if Instant::now() + Duration::from_secs(60) < self.token_expiry {
+            if Utc::now() + chrono::Duration::seconds(60) < self.token_expiry {
                 return Ok(token.clone());
             }
         }
@@ -111,7 +111,8 @@ impl SoundCloudClient {
         match result {
             Ok(resp) if resp.status().is_success() => match resp.json::<TokenResponse>().await {
                 Ok(tr) => {
-                    self.token_expiry = Instant::now() + Duration::from_secs(tr.expires_in);
+                    self.token_expiry =
+                        Utc::now() + chrono::Duration::seconds(tr.expires_in as i64);
                     self.token = Some(tr.access_token.clone());
                     self.consecutive_failures = 0;
                     Ok(tr.access_token)
@@ -138,7 +139,7 @@ impl SoundCloudClient {
     fn record_failure(&mut self) {
         self.consecutive_failures += 1;
         if self.consecutive_failures >= 3 {
-            self.disabled_until = Some(Instant::now() + Duration::from_secs(300));
+            self.disabled_until = Some(Utc::now() + chrono::Duration::seconds(300));
         }
     }
 
@@ -310,10 +311,10 @@ mod tests {
         std::env::remove_var("SOUNDCLOUD_CLIENT_SECRET");
 
         // Trigger circuit breaker
-        client.disabled_until = Some(Instant::now() + Duration::from_secs(300));
+        client.disabled_until = Some(Utc::now() + chrono::Duration::seconds(300));
         assert!(client.disabled_until.is_some());
-        // Instant check: still within window
-        assert!(Instant::now() < client.disabled_until.unwrap());
+        // Check: still within window
+        assert!(Utc::now() < client.disabled_until.unwrap());
     }
 
     #[test]
