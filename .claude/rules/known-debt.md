@@ -10,7 +10,7 @@ paths:
 |------|--------|----------|-------|
 | ~~Auto-enrich trigger after import~~ | ~~ST-005 retro #6~~ | ~~High~~ | ~~Resolved in ST-006 T5~~ |
 | Retry path for errored tracks | ST-005 retro #7 | Medium | Errored tracks permanently stuck (needs_enrichment=0, enrichment_error set). Need "retry errored" endpoint. |
-| Concurrency guard on enrich endpoint | ST-005 critic HIGH-3 | Medium | Two simultaneous POST /api/tracks/enrich calls double-process same tracks. Add AtomicBool or mutex. |
+| ~~Concurrency guard on enrich endpoint~~ | ~~ST-005 critic HIGH-3~~ | ~~Resolved~~ | ~~AtomicBool removed in ST-012 (useless on Lambda). Advisory lock deferred — hobby app, single user.~~ |
 | Claude API error path untested | ST-005 grade | Medium | MockClaude always returns Ok. No test exercises the error variant. |
 | Cost cap allows overshoot | ST-005 critic HIGH-2 | Low | Cap checked once before processing; doesn't subtract already-used from fetch limit. |
 | ~~API info endpoint has pre-pivot description~~ | ~~Audit~~ | ~~Resolved~~ | ~~Already updated to DJ-first description.~~ |
@@ -24,8 +24,8 @@ paths:
 | Daily generation limits not enforced | ST-006 steel thread | Low | user_usage.generation_count column exists but not checked during generation. Explicitly deferred from ST-006. |
 | ~~`CorsLayer::permissive()` in main.rs~~ | ~~AWS deploy plan T1~~ | ~~Resolved~~ | ~~Domain-scoped CORS in production, permissive only in dev mode.~~ |
 | ~~No graceful shutdown on SIGTERM~~ | ~~AWS deploy plan review~~ | ~~Resolved~~ | ~~`with_graceful_shutdown(shutdown_signal())` wired in main.rs.~~ |
-| Migration versioning needed before ALTER TABLE | AWS deploy plan H4 | Medium | Current migrations use `CREATE TABLE IF NOT EXISTS` (re-runs safe). First `ALTER TABLE` migration will require version tracking or it will fail on re-run. |
-| `sst-deployer` IAM has AdministratorAccess | AWS deploy plan C1 | High | Must scope down to S3-only before storing any credentials in GitHub Actions secrets. |
+| ~~Migration versioning needed before ALTER TABLE~~ | ~~AWS deploy plan H4~~ | ~~Resolved~~ | ~~Migrations now run from CI/CD via `cargo sqlx migrate run`, not on app startup. sqlx tracks applied migrations in `_sqlx_migrations` table.~~ |
+| `sst-deployer` IAM has AdministratorAccess | AWS deploy plan C1 | High | Must scope down. Currently used for Lambda deploy + CloudWatch logs. Needs policy limiting to lambda:*, logs:*, s3:* only. |
 | Dead `apply_*` functions in quick_commands.rs | ST-007 critic L1 | Low | `apply_shuffle`, `apply_sort_by_bpm`, `apply_reverse` operate on `SetlistTrackRow` but service uses `VersionTrackRow`. Only called from their own tests. Remove or unify with generic trait. |
 | `SortByBpm` always ascending | ST-007 critic L2 | Low | Plan specified `SortByBpm { ascending: bool }` but implemented as always ascending. Add descending option post-MVP. |
 | `Timeout`/`ServiceBusy` error variants missing from `RefinementError` | ST-007 critic L3 | Low | Plan listed these variants. Currently `ClaudeError::Timeout` maps to `LlmError`. Clients can't distinguish timeout from other LLM errors. |
@@ -67,3 +67,12 @@ paths:
 | ~~AddSetlistDialog needs Radix Dialog~~ | ~~ST-011 critic 7b M5~~ | ~~Resolved~~ | ~~Added Escape key, aria-modal, aria-labelledby, focus management~~ |
 | ~~Duplicate preview prefetch logic~~ | ~~ST-011 critic 7b L2~~ | ~~Resolved~~ | ~~Extracted usePrefetchPreviews hook~~ |
 | ~~audio resume() doesn't await play()~~ | ~~ST-011 critic 7b L4~~ | ~~Resolved~~ | ~~Added .catch() handler~~ |
+| JWT signing key reuses AES-GCM encryption key | ST-012 critic 7a H1 | Low | Same 32-byte key for AES-256-GCM token encryption AND HMAC-SHA256 JWT signing. No known practical attack but violates key separation principle. Derive separate key via HKDF or add `JWT_SIGNING_KEY` env var. |
+| `build_router()` not extracted | ST-012 critic 7a H3 | Low | Plan specified extracting router into reusable fn. Router still inline in main(). Not needed for Lambda to work — extract when needed for integration tests or multiple entry points. |
+| `EnrichmentError::Concurrent` variant unreachable | ST-012 critic 7a M3 | Low | AtomicBool guard removed but enum variant + match arm remain in `services/enrichment.rs` and `routes/enrich.rs`. Dead code. |
+| `ImportState.claude` field unused | ST-012 critic 7a M1 | Low | `claude: Arc<dyn ClaudeClientTrait>` on ImportState was only used for removed `tokio::spawn` enrichment. Now dead state. Removing it touches test construction everywhere. |
+| `chrono::Duration::seconds()` deprecated | ST-012 critic 7b M1 | Low | Deprecated in chrono 0.4.35+ in favor of `chrono::TimeDelta::seconds()`. Used in audio.rs, soundcloud.rs, auth.rs. Compiles fine today. |
+| No Spotify token auto-refresh | ST-013 smoke test | Medium | Spotify access tokens expire after 1 hour. No refresh flow — user must re-authorize. Pre-existing issue exposed during Lambda smoke testing. |
+| `default-user` / `dev-user` inconsistency | ST-013 hotfix | Low | Frontend hardcodes `default-user`, backend seeded both. All handler defaults changed to `default-user`. Clerk auth will eliminate this. |
+| EC2 instance still running | ST-013 | High | DNS points to Vercel but EC2 t3.large (~$70/mo) is still active. Terminate after confirming serverless is stable. |
+| `*.vercel.app` CORS wildcard | ST-012 critic 7a C1 | Low | Any Vercel subdomain is allowed in CORS. An attacker could deploy to `evil.vercel.app`. Low risk — no credentials sent cross-origin currently. Restrict to project-specific prefix when Clerk is added. |

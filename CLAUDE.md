@@ -107,15 +107,22 @@ When you encounter a technology or integration you haven't used before, **STOP a
 ## Key Commands
 
 ```bash
+# Backend (local dev)
 cd backend
-cargo run                    # Start API server (port 3001)
-cargo test                   # Run tests
-cargo clippy -- -D warnings  # Lint
+DATABASE_URL=<neon-url> cargo run    # Start API server (port 3001, requires DATABASE_URL)
+cargo clippy -- -D warnings          # Lint
+DATABASE_URL=<neon-url> RUST_TEST_THREADS=1 cargo test  # Run tests
 
+# Backend (Lambda deploy)
+cargo lambda build --release
+cargo lambda deploy ethnomusicology-api --binary-name ethnomusicology-backend --region us-east-1
+
+# Frontend
 cd frontend-next
 bun --bun next dev          # Start dev server (port 3000)
 bunx vitest run             # Run tests
 bun --bun next build        # Production build
+npx vercel --prod --yes --token $VERCEL_TOKEN  # Deploy to Vercel
 ```
 
 ## Project Context
@@ -133,7 +140,7 @@ bun --bun next build        # Production build
 > **Session-specific state lives in `docs/session-handoff.md`.**
 
 - **GitHub**: `git@github.com:step2this/ethnomusicology.git`
-- **Deployed**: `tarab.studio` (Caddy + systemd + Neon Postgres + Route53)
+- **Deployed**: `tarab.studio` (Vercel + Lambda + Neon Postgres)
 
 ## Parallel Session Protocol
 

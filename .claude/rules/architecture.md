@@ -10,13 +10,21 @@ paths:
 
 | Layer | Path | Tech |
 |-------|------|------|
-| Backend API | `backend/` | Rust, Axum 0.8, SQLx |
-| Frontend | `frontend-next/` | Next.js 16, React, TanStack Query, Zustand, shadcn/ui, Tailwind 4 |
+| Backend API | `backend/` | Rust, Axum 0.8, SQLx, **AWS Lambda** (Function URL, 300s timeout, 256MB) |
+| Frontend | `frontend-next/` | Next.js 16, React, TanStack Query, Zustand, shadcn/ui, Tailwind 4, **Vercel** |
 | Landing | `landing/` | Static HTML + Tailwind |
-| Database | Neon Postgres (prod) | via SQLx PgPool, `sqlx::migrate!()` for versioned migrations. S3 backup cron every 6 hours. |
+| Database | Neon Postgres (prod) | via SQLx PgPool (pooler endpoint for Lambda). Migrations run from CI/CD, not app startup. |
 | LLM | Claude Sonnet API | Setlist generation, music knowledge, track enrichment (BPM/key/energy estimation) |
 | Audio Analysis | essentia (async sidecar) | Post-MVP: audio-accurate BPM/key. 1-2 GB container, Starlette/FastAPI, async queue |
 | E2E Tests | `e2e/` | Playwright, GitHub Actions CI (ST-004). DEV_MODE=true enables `/api/dev/seed` for test data. |
+
+## Deployment (Serverless — as of Mar 17, 2026)
+- **Backend**: AWS Lambda `ethnomusicology-api` via `cargo-lambda build + deploy`
+- **Frontend**: Vercel (auto-deploys or `npx vercel --prod`)
+- **DNS**: Route53 A record `tarab.studio` → 76.76.21.21 (Vercel)
+- **Vercel rewrites**: `/api/*` → Lambda Function URL (120s proxy timeout)
+- **CI/CD**: GitHub Actions `deploy.yml` → cargo-lambda deploy; Vercel auto-deploy on push
+- **Lambda dual-mode**: `AWS_LAMBDA_RUNTIME_API` env var detection; `cargo run` still works locally
 
 ## Key Patterns
 - Backend serves JSON; Next.js frontend consumes it
