@@ -164,12 +164,16 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Database migrations applied");
     }
 
-    // Ensure dev-user exists (temporary until Clerk auth replaces X-User-Id pattern)
-    sqlx::query(
-        "INSERT INTO users (id, email, display_name) VALUES ('dev-user', 'dev@local', 'Dev User') ON CONFLICT DO NOTHING",
-    )
-    .execute(&pool)
-    .await?;
+    // Ensure default users exist (temporary until Clerk auth replaces X-User-Id pattern)
+    for (id, email, name) in [
+        ("dev-user", "dev@local", "Dev User"),
+        ("default-user", "default@local", "Default User"),
+    ] {
+        sqlx::query("INSERT INTO users (id, email, display_name) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING")
+            .bind(id).bind(email).bind(name)
+            .execute(&pool)
+            .await?;
+    }
 
     // --- Spotify client ---
     let spotify_client = SpotifyClient::new(&cfg.spotify_client_id, &cfg.spotify_client_secret);
