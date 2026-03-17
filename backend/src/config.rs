@@ -26,8 +26,7 @@ impl AppConfig {
         }
 
         Self {
-            database_url: std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "sqlite:ethnomusicology.db?mode=rwc".to_string()),
+            database_url: std::env::var("DATABASE_URL").expect("DATABASE_URL must be set"),
             spotify_client_id: std::env::var("SPOTIFY_CLIENT_ID").unwrap_or_default(),
             spotify_client_secret: std::env::var("SPOTIFY_CLIENT_SECRET").unwrap_or_default(),
             spotify_redirect_uri: std::env::var("SPOTIFY_REDIRECT_URI")

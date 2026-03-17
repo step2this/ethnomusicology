@@ -179,7 +179,7 @@ async fn main() -> anyhow::Result<()> {
     // --- Encryption key ---
     let encryption_key: [u8; 32] = if cfg.token_encryption_key.is_empty() {
         if is_lambda {
-            panic!("TOKEN_ENCRYPTION_KEY is required in Lambda — ephemeral keys don't persist across invocations");
+            anyhow::bail!("TOKEN_ENCRYPTION_KEY is required in Lambda — ephemeral keys don't persist across invocations");
         }
         tracing::warn!(
             "TOKEN_ENCRYPTION_KEY not set, generating ephemeral key (tokens won't survive restart)"
@@ -190,7 +190,12 @@ async fn main() -> anyhow::Result<()> {
     } else {
         let decoded = base64::engine::general_purpose::STANDARD
             .decode(&cfg.token_encryption_key)
-            .expect("TOKEN_ENCRYPTION_KEY must be valid base64");
+            .map_err(|e| anyhow::anyhow!("TOKEN_ENCRYPTION_KEY must be valid base64: {e}"))?;
+        anyhow::ensure!(
+            decoded.len() == 32,
+            "TOKEN_ENCRYPTION_KEY must decode to exactly 32 bytes, got {}",
+            decoded.len()
+        );
         let mut key = [0u8; 32];
         key.copy_from_slice(&decoded);
         key
@@ -291,7 +296,7 @@ async fn main() -> anyhow::Result<()> {
                     let origin = origin.as_bytes();
                     origin == b"https://tarab.studio"
                         || origin == b"http://localhost:3000"
-                        || origin.ends_with(b".vercel.app") && origin.starts_with(b"https://")
+                        || (origin.ends_with(b".vercel.app") && origin.starts_with(b"https://"))
                 })
             };
             CorsLayer::new()

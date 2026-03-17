@@ -70,7 +70,7 @@ impl TokenExchanger for NoOpExchanger {
 // JWT claims for OAuth state parameter
 // ---------------------------------------------------------------------------
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct OAuthStateClaims {
     sub: String,   // user_id
     iat: i64,      // issued at (unix timestamp)
@@ -260,7 +260,7 @@ async fn spotify_callback(
     })?;
 
     let elapsed = Utc::now().timestamp() - token_data.claims.iat;
-    if elapsed > CSRF_TTL_SECS {
+    if !(0..=CSRF_TTL_SECS).contains(&elapsed) {
         return Err((
             StatusCode::BAD_REQUEST,
             Json(ErrorResponse {
