@@ -5,15 +5,12 @@ on:
     branches: [main]
 
 jobs:
-  deploy:
+  deploy-backend:
     runs-on: ubuntu-latest
-    # Only deploy if the E2E workflow is not required to pass first;
-    # the E2E check runs as a separate status check on PRs.
     steps:
       - uses: actions/checkout@v5
 
       - uses: dtolnay/rust-toolchain@stable
-      - uses: oven-sh/setup-bun@v2
 
       # Rust cache for faster builds
       - uses: actions/cache@v4
@@ -22,43 +19,44 @@ jobs:
             backend/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: deploy-rust-${{ hashFiles('backend/Cargo.lock') }}
+            ~/.cargo/bin
+          key: deploy-rust-${{ hashFiles('backend/Cargo.lock') }}-v2
           restore-keys: deploy-rust-
 
-      - name: Build backend (release)
+      - name: Install cargo-lambda
+        run: pip3 install cargo-lambda
+
+      - name: Install sqlx-cli
+        run: cargo sqlx --version || cargo install sqlx-cli --no-default-features --features postgres,rustls
+
+      - name: Build Lambda binary
         working-directory: backend
-        run: cargo build --release
+        run: cargo lambda build --release
 
-      - name: Build frontend (Next.js)
-        working-directory: frontend-next
-        run: |
-          bun install --frozen-lockfile
-          bun --bun next build
-
-      - name: Deploy to EC2
+      - name: Run database migrations
+        working-directory: backend
         env:
-          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
-          EC2_HOST: ${{ secrets.EC2_HOST }}
-        run: |
-          mkdir -p ~/.ssh
-          echo "$EC2_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
-          ssh-keyscan "$EC2_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: cargo sqlx migrate run --source migrations
 
-          TIMESTAMP=$(date +%s)
-          SSH="ssh -i ~/.ssh/deploy_key ubuntu@$EC2_HOST"
-          SCP="scp -i ~/.ssh/deploy_key"
+      - name: Deploy to Lambda
+        working-directory: backend
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: us-east-1
+        run: cargo lambda deploy ethnomusicology-api --binary-name ethnomusicology-backend
 
-          # Upload binary
-          $SCP \
-            backend/target/release/ethnomusicology-backend \
-            ubuntu@$EC2_HOST:/opt/ethnomusicology/ethnomusicology-backend-$TIMESTAMP
-
-          # Package and upload Next.js frontend build (exclude build cache)
-          cd frontend-next
-          tar czf ../frontend-build.tar.gz --exclude='.next/cache' .next package.json next.config.ts node_modules/
-          cd ..
-          $SCP frontend-build.tar.gz ubuntu@$EC2_HOST:/tmp/
-          $SSH "mkdir -p /opt/ethnomusicology/frontend-$TIMESTAMP && tar xzf /tmp/frontend-build.tar.gz -C /opt/ethnomusicology/frontend-$TIMESTAMP/ && rm /tmp/frontend-build.tar.gz"
-
-          # Run deploy script (handles symlink swap, restart, health check, rollback)
-          $SSH "TIMESTAMP=$TIMESTAMP /opt/ethnomusicology/scripts/deploy.sh"
+  # Vercel deploys automatically via GitHub integration — no action needed.
+  # If not using Vercel GitHub integration, uncomment below:
+  #
+  # deploy-frontend:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v5
+  #     - uses: oven-sh/setup-bun@v2
+  #     - name: Deploy to Vercel
+  #       working-directory: frontend-next
+  #       env:
+  #         VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+  #       run: npx vercel --prod --yes --token $VERCEL_TOKEN

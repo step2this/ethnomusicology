@@ -41,9 +41,16 @@ jobs:
         run: cargo build
 
       # --- Backend quality gates ---
-      - name: Backend quality gates
+      - name: Backend fmt + clippy
         working-directory: backend
-        run: cargo fmt --check && cargo clippy -- -D warnings && cargo test
+        run: cargo fmt --check && cargo clippy -- -D warnings
+
+      - name: Backend tests
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          RUST_TEST_THREADS: 1
+        run: cargo test
 
       # --- Frontend quality gates ---
       - name: Frontend quality gates
