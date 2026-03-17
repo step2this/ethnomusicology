@@ -7,7 +7,6 @@ use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
 use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
-use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -168,11 +167,17 @@ async fn main() -> anyhow::Result<()> {
     .execute(&pool)
     .await?;
 
+    // --- Lambda detection (needed for encryption key validation below) ---
+    let is_lambda = std::env::var("AWS_LAMBDA_RUNTIME_API").is_ok();
+
     // --- Spotify client ---
     let spotify_client = SpotifyClient::new(&cfg.spotify_client_id, &cfg.spotify_client_secret);
 
     // --- Encryption key ---
     let encryption_key: [u8; 32] = if cfg.token_encryption_key.is_empty() {
+        if is_lambda {
+            panic!("TOKEN_ENCRYPTION_KEY is required in Lambda — ephemeral keys don't persist across invocations");
+        }
         tracing::warn!(
             "TOKEN_ENCRYPTION_KEY not set, generating ephemeral key (tokens won't survive restart)"
         );
@@ -273,19 +278,6 @@ async fn main() -> anyhow::Result<()> {
         app = app.nest("/api", routes::dev::dev_router(pool.clone()));
     }
 
-    let static_dir = std::path::Path::new("../frontend/build/web");
-    if static_dir.exists() {
-        tracing::info!("Serving Flutter web build from {:?}", static_dir);
-        let serve_dir =
-            ServeDir::new(static_dir).fallback(ServeFile::new(static_dir.join("index.html")));
-        app = app.fallback_service(serve_dir);
-    } else {
-        tracing::warn!(
-            "Flutter web build not found at {:?} — static file serving disabled",
-            static_dir
-        );
-    }
-
     let app = app
         .layer({
             use tower_http::cors::{AllowHeaders, AllowMethods, AllowOrigin};
@@ -308,8 +300,6 @@ async fn main() -> anyhow::Result<()> {
         .layer(TraceLayer::new_for_http());
 
     // --- Lambda vs local server ---
-    let is_lambda = std::env::var("AWS_LAMBDA_RUNTIME_API").is_ok();
-
     if is_lambda {
         tracing::info!("Running in AWS Lambda mode");
         lambda_http::run(app)
