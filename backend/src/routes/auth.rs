@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use aes_gcm::aead::Aead;
@@ -8,11 +7,11 @@ use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Redirect};
 use axum::routing::get;
 use axum::{Json, Router};
-use chrono::{NaiveDateTime, Utc};
+use base64::Engine;
+use chrono::Utc;
 use rand::RngCore;
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
-use tokio::sync::RwLock;
 
 use crate::db::tokens;
 
@@ -23,7 +22,6 @@ use crate::db::tokens;
 #[derive(Clone)]
 pub struct AuthState {
     pub pool: PgPool,
-    pub csrf_states: Arc<RwLock<HashMap<String, (String, NaiveDateTime)>>>,
     pub encryption_key: [u8; 32],
     pub spotify_client_id: String,
     pub spotify_redirect_uri: String,
@@ -65,6 +63,17 @@ impl TokenExchanger for NoOpExchanger {
             "Token exchange not configured — wire in SpotifyClient"
         ))
     }
+}
+
+// ---------------------------------------------------------------------------
+// JWT claims for OAuth state parameter
+// ---------------------------------------------------------------------------
+
+#[derive(serde::Serialize, serde::Deserialize)]
+struct OAuthStateClaims {
+    sub: String,   // user_id
+    iat: i64,      // issued at (unix timestamp)
+    nonce: String, // random value for uniqueness
 }
 
 // ---------------------------------------------------------------------------
@@ -179,19 +188,30 @@ async fn spotify_authorize(
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
     let user_id = extract_user_id(&headers)?;
 
-    // Generate 32-byte random state, base64url-encode it
-    let mut state_bytes = [0u8; 32];
-    rand::thread_rng().fill_bytes(&mut state_bytes);
-    let state_token = base64::Engine::encode(
-        &base64::engine::general_purpose::URL_SAFE_NO_PAD,
-        state_bytes,
-    );
+    // Generate 16-byte random nonce for JWT uniqueness
+    let mut nonce_bytes = [0u8; 16];
+    rand::thread_rng().fill_bytes(&mut nonce_bytes);
+    let nonce = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(nonce_bytes);
 
-    // Store in CSRF map with timestamp
-    {
-        let mut csrf = state.csrf_states.write().await;
-        csrf.insert(state_token.clone(), (user_id, Utc::now().naive_utc()));
-    }
+    let claims = OAuthStateClaims {
+        sub: user_id,
+        iat: Utc::now().timestamp(),
+        nonce,
+    };
+
+    let state_token = jsonwebtoken::encode(
+        &jsonwebtoken::Header::default(),
+        &claims,
+        &jsonwebtoken::EncodingKey::from_secret(&state.encryption_key),
+    )
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to create state token: {e}"),
+            }),
+        )
+    })?;
 
     let scopes = "playlist-read-private playlist-read-collaborative user-library-read";
     let mut auth_url =
@@ -219,32 +239,36 @@ async fn spotify_callback(
     State(state): State<AuthState>,
     Query(params): Query<CallbackParams>,
 ) -> Result<impl IntoResponse, (StatusCode, Json<ErrorResponse>)> {
-    // Validate and consume CSRF state
-    let user_id = {
-        let mut csrf = state.csrf_states.write().await;
-        match csrf.remove(&params.state) {
-            None => {
-                return Err((
-                    StatusCode::BAD_REQUEST,
-                    Json(ErrorResponse {
-                        error: "Invalid state parameter".to_string(),
-                    }),
-                ));
-            }
-            Some((uid, created_at)) => {
-                let elapsed = (Utc::now().naive_utc() - created_at).num_seconds();
-                if elapsed > CSRF_TTL_SECS {
-                    return Err((
-                        StatusCode::BAD_REQUEST,
-                        Json(ErrorResponse {
-                            error: "State parameter expired".to_string(),
-                        }),
-                    ));
-                }
-                uid
-            }
-        }
-    };
+    // Validate JWT state parameter
+    let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+    validation.required_spec_claims.clear(); // Don't require exp
+    validation.validate_exp = false;
+
+    let token_data = jsonwebtoken::decode::<OAuthStateClaims>(
+        &params.state,
+        &jsonwebtoken::DecodingKey::from_secret(&state.encryption_key),
+        &validation,
+    )
+    .map_err(|_| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "Invalid state parameter".to_string(),
+            }),
+        )
+    })?;
+
+    let elapsed = Utc::now().timestamp() - token_data.claims.iat;
+    if elapsed > CSRF_TTL_SECS {
+        return Err((
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: "State parameter expired".to_string(),
+            }),
+        ));
+    }
+
+    let user_id = token_data.claims.sub;
 
     // Exchange code for tokens via injected exchanger
     let exchange_result = state
@@ -361,7 +385,6 @@ mod tests {
         let pool = create_test_pool().await;
         let state = AuthState {
             pool,
-            csrf_states: Arc::new(RwLock::new(HashMap::new())),
             encryption_key: test_encryption_key(),
             spotify_client_id: "test_client_id".to_string(),
             spotify_redirect_uri: "http://localhost:3001/api/auth/spotify/callback".to_string(),
@@ -492,12 +515,12 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
-    // GET /api/auth/spotify — returns redirect URL with state
+    // GET /api/auth/spotify — returns redirect URL with valid JWT state
     // -----------------------------------------------------------------------
 
     #[tokio::test]
     async fn test_authorize_returns_redirect_url() {
-        let (app, state) = build_test_app().await;
+        let (app, _state) = build_test_app().await;
 
         let response = app
             .oneshot(
@@ -519,9 +542,24 @@ mod tests {
         assert!(url.contains("state="));
         assert!(url.contains("response_type=code"));
 
-        // Verify state was stored in CSRF map
-        let csrf = state.csrf_states.read().await;
-        assert_eq!(csrf.len(), 1);
+        // Verify state param is a valid signed JWT by decoding it
+        let parsed = url::Url::parse(url).unwrap();
+        let state_param = parsed
+            .query_pairs()
+            .find(|(k, _)| k == "state")
+            .map(|(_, v)| v.into_owned())
+            .expect("state query param present");
+
+        let mut validation = jsonwebtoken::Validation::new(jsonwebtoken::Algorithm::HS256);
+        validation.required_spec_claims.clear();
+        validation.validate_exp = false;
+        let decoded = jsonwebtoken::decode::<OAuthStateClaims>(
+            &state_param,
+            &jsonwebtoken::DecodingKey::from_secret(&test_encryption_key()),
+            &validation,
+        );
+        assert!(decoded.is_ok(), "state param should be a valid JWT");
+        assert_eq!(decoded.unwrap().claims.sub, "user1");
     }
 
     // -----------------------------------------------------------------------
@@ -533,22 +571,25 @@ mod tests {
         let (app, state) = build_test_app().await;
         let user_id = create_test_user(&state.pool).await;
 
-        // Pre-populate CSRF state
-        let state_token = "valid_state_token";
-        {
-            let mut csrf = state.csrf_states.write().await;
-            csrf.insert(
-                state_token.to_string(),
-                (user_id.clone(), Utc::now().naive_utc()),
-            );
-        }
+        // Generate a real JWT using the test encryption key
+        let claims = OAuthStateClaims {
+            sub: user_id.clone(),
+            iat: Utc::now().timestamp(),
+            nonce: "test-nonce".to_string(),
+        };
+        let state_token = jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret(&test_encryption_key()),
+        )
+        .unwrap();
 
         let response = app
             .oneshot(
                 Request::builder()
                     .uri(&format!(
                         "/api/auth/spotify/callback?code=test_code&state={}",
-                        state_token
+                        urlencoding::encode(&state_token)
                     ))
                     .body(Body::empty())
                     .unwrap(),
@@ -567,10 +608,6 @@ mod tests {
                 .unwrap(),
             "/?spotify=connected"
         );
-
-        // Verify CSRF state was consumed (one-time use)
-        let csrf = state.csrf_states.read().await;
-        assert!(csrf.is_empty());
 
         // Verify tokens were stored
         let stored = tokens::get_tokens(&state.pool, &user_id).await.unwrap();
@@ -606,22 +643,27 @@ mod tests {
 
     #[tokio::test]
     async fn test_callback_expired_state() {
-        let (app, state) = build_test_app().await;
+        let (app, _state) = build_test_app().await;
 
-        let state_token = "expired_state_token";
-        {
-            let mut csrf = state.csrf_states.write().await;
-            // Insert with a timestamp 10 minutes ago
-            let expired = Utc::now().naive_utc() - chrono::Duration::minutes(10);
-            csrf.insert(state_token.to_string(), ("user1".to_string(), expired));
-        }
+        // Generate a JWT with iat set 10 minutes ago
+        let claims = OAuthStateClaims {
+            sub: "user1".to_string(),
+            iat: (Utc::now() - chrono::Duration::minutes(10)).timestamp(),
+            nonce: "expired-nonce".to_string(),
+        };
+        let state_token = jsonwebtoken::encode(
+            &jsonwebtoken::Header::default(),
+            &claims,
+            &jsonwebtoken::EncodingKey::from_secret(&test_encryption_key()),
+        )
+        .unwrap();
 
         let response = app
             .oneshot(
                 Request::builder()
                     .uri(&format!(
                         "/api/auth/spotify/callback?code=test_code&state={}",
-                        state_token
+                        urlencoding::encode(&state_token)
                     ))
                     .body(Body::empty())
                     .unwrap(),

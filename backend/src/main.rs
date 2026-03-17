@@ -1,11 +1,9 @@
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::{response::IntoResponse, routing::get, Json, Router};
 use base64::Engine;
 use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
-use tokio::sync::RwLock;
 use tower_http::cors::CorsLayer;
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
@@ -196,7 +194,6 @@ async fn main() -> anyhow::Result<()> {
     // --- Auth routes state ---
     let auth_state = AuthState {
         pool: pool.clone(),
-        csrf_states: Arc::new(RwLock::new(HashMap::new())),
         encryption_key,
         spotify_client_id: cfg.spotify_client_id.clone(),
         spotify_redirect_uri: cfg.spotify_redirect_uri.clone(),
@@ -228,7 +225,6 @@ async fn main() -> anyhow::Result<()> {
     let enrich_state = Arc::new(EnrichRouteState {
         pool: pool.clone(),
         claude: claude_client.clone(),
-        in_flight: std::sync::atomic::AtomicBool::new(false),
     });
 
     // --- Refinement routes state ---
