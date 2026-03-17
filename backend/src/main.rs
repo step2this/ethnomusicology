@@ -148,25 +148,30 @@ async fn main() -> anyhow::Result<()> {
         tracing::warn!("DEV_MODE enabled — dev-only endpoints are active");
     }
 
+    // --- Lambda detection (needed throughout setup) ---
+    let is_lambda = std::env::var("AWS_LAMBDA_RUNTIME_API").is_ok();
+
     // --- Database ---
+    let max_conns = if is_lambda { 2 } else { 5 };
     let pool = PgPoolOptions::new()
-        .max_connections(5)
+        .max_connections(max_conns)
         .connect(&cfg.database_url)
         .await?;
 
-    // Run migrations (shared with test pool — single source of truth in db/mod.rs)
-    ethnomusicology_backend::db::run_migrations(&pool).await?;
-    tracing::info!("Database migrations applied");
+    // Run migrations (skip in Lambda — run from CI/CD instead to avoid race conditions)
+    if !is_lambda {
+        ethnomusicology_backend::db::run_migrations(&pool).await?;
+        tracing::info!("Database migrations applied");
+    }
 
-    // Ensure dev-user exists (temporary until UC-008 adds real auth)
-    sqlx::query(
-        "INSERT INTO users (id, email, display_name) VALUES ('dev-user', 'dev@local', 'Dev User') ON CONFLICT DO NOTHING",
-    )
-    .execute(&pool)
-    .await?;
-
-    // --- Lambda detection (needed for encryption key validation below) ---
-    let is_lambda = std::env::var("AWS_LAMBDA_RUNTIME_API").is_ok();
+    // Ensure dev-user exists (skip in Lambda — real auth will replace this)
+    if !is_lambda {
+        sqlx::query(
+            "INSERT INTO users (id, email, display_name) VALUES ('dev-user', 'dev@local', 'Dev User') ON CONFLICT DO NOTHING",
+        )
+        .execute(&pool)
+        .await?;
+    }
 
     // --- Spotify client ---
     let spotify_client = SpotifyClient::new(&cfg.spotify_client_id, &cfg.spotify_client_secret);
@@ -197,6 +202,7 @@ async fn main() -> anyhow::Result<()> {
         encryption_key,
         spotify_client_id: cfg.spotify_client_id.clone(),
         spotify_redirect_uri: cfg.spotify_redirect_uri.clone(),
+        frontend_url: cfg.frontend_url.clone(),
         token_exchanger: Arc::new(RealTokenExchanger {
             client: SpotifyClient::new(&cfg.spotify_client_id, &cfg.spotify_client_secret),
         }),

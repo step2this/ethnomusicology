@@ -25,8 +25,9 @@ pub struct AuthState {
     pub encryption_key: [u8; 32],
     pub spotify_client_id: String,
     pub spotify_redirect_uri: String,
+    /// Base URL of the frontend (e.g. "https://tarab.studio"). Empty for same-origin.
+    pub frontend_url: String,
     /// Injectable token exchange function for testability.
-    /// Takes (code, redirect_uri, client_id) and returns (access_token, refresh_token, expires_in_secs).
     pub token_exchanger: Arc<dyn TokenExchanger>,
 }
 
@@ -330,7 +331,8 @@ async fn spotify_callback(
         )
     })?;
 
-    Ok(Redirect::to("/?spotify=connected"))
+    let redirect_url = format!("{}/?spotify=connected", state.frontend_url);
+    Ok(Redirect::to(&redirect_url))
 }
 
 // ---------------------------------------------------------------------------
@@ -388,6 +390,7 @@ mod tests {
             encryption_key: test_encryption_key(),
             spotify_client_id: "test_client_id".to_string(),
             spotify_redirect_uri: "http://localhost:3001/api/auth/spotify/callback".to_string(),
+            frontend_url: String::new(),
             token_exchanger: Arc::new(MockExchanger),
         };
         let app = Router::new().nest("/api", auth_routes(state.clone()));
