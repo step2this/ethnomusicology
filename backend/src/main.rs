@@ -164,14 +164,12 @@ async fn main() -> anyhow::Result<()> {
         tracing::info!("Database migrations applied");
     }
 
-    // Ensure dev-user exists (skip in Lambda — real auth will replace this)
-    if !is_lambda {
-        sqlx::query(
-            "INSERT INTO users (id, email, display_name) VALUES ('dev-user', 'dev@local', 'Dev User') ON CONFLICT DO NOTHING",
-        )
-        .execute(&pool)
-        .await?;
-    }
+    // Ensure dev-user exists (temporary until Clerk auth replaces X-User-Id pattern)
+    sqlx::query(
+        "INSERT INTO users (id, email, display_name) VALUES ('dev-user', 'dev@local', 'Dev User') ON CONFLICT DO NOTHING",
+    )
+    .execute(&pool)
+    .await?;
 
     // --- Spotify client ---
     let spotify_client = SpotifyClient::new(&cfg.spotify_client_id, &cfg.spotify_client_secret);
