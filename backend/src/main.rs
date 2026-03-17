@@ -307,13 +307,23 @@ async fn main() -> anyhow::Result<()> {
         })
         .layer(TraceLayer::new_for_http());
 
-    let addr = format!("{}:{}", cfg.bind_address, cfg.server_port);
-    tracing::info!("Backend listening on {}", addr);
+    // --- Lambda vs local server ---
+    let is_lambda = std::env::var("AWS_LAMBDA_RUNTIME_API").is_ok();
 
-    let listener = tokio::net::TcpListener::bind(&addr).await?;
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    if is_lambda {
+        tracing::info!("Running in AWS Lambda mode");
+        lambda_http::run(app)
+            .await
+            .map_err(|e| anyhow::anyhow!("Lambda runtime error: {e}"))?;
+    } else {
+        let addr = format!("{}:{}", cfg.bind_address, cfg.server_port);
+        tracing::info!("Backend listening on {}", addr);
+
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
+        axum::serve(listener, app)
+            .with_graceful_shutdown(shutdown_signal())
+            .await?;
+    }
 
     Ok(())
 }
