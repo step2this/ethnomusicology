@@ -4,7 +4,6 @@ use axum::routing::post;
 use axum::{Json, Router};
 use serde::Serialize;
 use sqlx::PgPool;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crate::api::claude::ClaudeClientTrait;
@@ -17,8 +16,6 @@ use crate::services::enrichment::{self, EnrichmentError};
 pub struct EnrichRouteState {
     pub pool: PgPool,
     pub claude: Arc<dyn ClaudeClientTrait>,
-    /// Guards against concurrent enrichment calls. Set to true while a run is in progress.
-    pub in_flight: AtomicBool,
 }
 
 // ---------------------------------------------------------------------------
@@ -40,26 +37,12 @@ async fn enrich_handler(
     State(state): State<Arc<EnrichRouteState>>,
     headers: HeaderMap,
 ) -> Result<Json<EnrichResponse>, EnrichApiError> {
-    // Reject concurrent enrichment runs with 409 Conflict
-    if state
-        .in_flight
-        .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-        .is_err()
-    {
-        return Err(EnrichApiError(EnrichmentError::Concurrent(
-            "Enrichment is already running. Try again after the current run completes.".to_string(),
-        )));
-    }
-
     let user_id = headers
         .get("X-User-Id")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("dev-user");
 
     let result = enrichment::enrich_tracks(&state.pool, state.claude.as_ref(), user_id).await;
-
-    // Always release the lock, even on error
-    state.in_flight.store(false, Ordering::Release);
 
     let result = result?;
 
@@ -155,7 +138,6 @@ mod tests {
             claude: Arc::new(MockClaude {
                 response: claude_response.to_string(),
             }),
-            in_flight: AtomicBool::new(false),
         });
         (enrich_router(state), pool)
     }
@@ -214,7 +196,6 @@ mod tests {
             claude: Arc::new(MockClaude {
                 response: mock_enrichment_response(3),
             }),
-            in_flight: AtomicBool::new(false),
         }));
 
         let (status, json) = post_enrich(app).await;
@@ -257,32 +238,11 @@ mod tests {
             claude: Arc::new(MockClaude {
                 response: mock_enrichment_response(1),
             }),
-            in_flight: AtomicBool::new(false),
         }));
 
         let (status, json) = post_enrich(app).await;
 
         assert_eq!(status, 429);
         assert_eq!(json["error"]["code"], "RATE_LIMITED");
-    }
-
-    #[tokio::test]
-    async fn test_enrich_concurrent_returns_409() {
-        let pool = crate::db::create_test_pool().await;
-        // Pre-set in_flight to true to simulate a concurrent run
-        let state = Arc::new(EnrichRouteState {
-            pool: pool.clone(),
-            claude: Arc::new(MockClaude {
-                response: mock_enrichment_response(1),
-            }),
-            in_flight: AtomicBool::new(true),
-        });
-
-        let app = enrich_router(state);
-        let (status, json) = post_enrich(app).await;
-
-        assert_eq!(status, 409);
-        assert_eq!(json["error"]["code"], "CONFLICT");
-        pool.close().await;
     }
 }

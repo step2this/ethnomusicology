@@ -9,13 +9,16 @@ pub struct AppConfig {
     pub server_port: u16,
     pub dev_mode: bool,
     pub bind_address: String,
+    pub frontend_url: String,
 }
 
 impl AppConfig {
     /// Load configuration from environment variables.
     /// Falls back to defaults for development.
     pub fn from_env() -> Self {
-        dotenvy::dotenv().ok();
+        if std::env::var("AWS_LAMBDA_RUNTIME_API").is_err() {
+            dotenvy::dotenv().ok();
+        }
 
         let anthropic_api_key = std::env::var("ANTHROPIC_API_KEY").unwrap_or_default();
         if anthropic_api_key.is_empty() {
@@ -39,6 +42,7 @@ impl AppConfig {
                 .map(|v| v == "true")
                 .unwrap_or(false),
             bind_address: std::env::var("BIND_ADDRESS").unwrap_or_else(|_| "0.0.0.0".to_string()),
+            frontend_url: std::env::var("FRONTEND_URL").unwrap_or_default(),
         }
     }
 }
