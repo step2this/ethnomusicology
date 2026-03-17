@@ -11,7 +11,6 @@ use crate::api::claude::ClaudeClientTrait;
 use crate::api::spotify::SpotifyClient;
 use crate::db::tokens;
 use crate::routes::auth::decrypt_token;
-use crate::services::enrichment::enrich_tracks;
 use crate::services::import::{self, ImportError, ImportRepository, ImportSummary};
 
 // ---------------------------------------------------------------------------
@@ -126,16 +125,6 @@ async fn import_spotify(
         &playlist_id,
     )
     .await?;
-
-    // Fire background enrichment (fire-and-forget)
-    let pool = state.pool.clone();
-    let claude = state.claude.clone();
-    let user_id_owned = user_id.to_string();
-    tokio::spawn(async move {
-        if let Err(e) = enrich_tracks(&pool, claude.as_ref(), &user_id_owned).await {
-            tracing::warn!("Auto-enrich after import failed: {e}");
-        }
-    });
 
     Ok(Json(ImportResponse::from(summary)))
 }
@@ -371,133 +360,5 @@ mod tests {
         let _ = &state.claude;
         let _ = &state.repo;
         let _ = &state.pool;
-    }
-
-    #[tokio::test]
-    async fn test_auto_enrich_failure_does_not_affect_import_response() {
-        use wiremock::matchers::{method, path_regex};
-        use wiremock::{Mock, MockServer, ResponseTemplate};
-
-        // Use a MockClaude that returns an error-inducing response
-        // The enrichment will fail but import should still return success
-        struct FailingClaude;
-
-        #[async_trait::async_trait]
-        impl crate::api::claude::ClaudeClientTrait for FailingClaude {
-            async fn generate_setlist(
-                &self,
-                _system_prompt: &str,
-                _user_prompt: &str,
-                _model: &str,
-                _max_tokens: u32,
-            ) -> Result<String, crate::api::claude::ClaudeError> {
-                Err(crate::api::claude::ClaudeError::Api(
-                    "deliberate test failure".to_string(),
-                ))
-            }
-
-            async fn generate_with_blocks(
-                &self,
-                _system_blocks: Vec<crate::api::claude::RequestContentBlock>,
-                _user_blocks: Vec<crate::api::claude::RequestContentBlock>,
-                _model: &str,
-                _max_tokens: u32,
-            ) -> Result<(String, crate::api::claude::CacheMetrics), crate::api::claude::ClaudeError>
-            {
-                Err(crate::api::claude::ClaudeError::Api(
-                    "deliberate test failure".to_string(),
-                ))
-            }
-        }
-
-        let mock_server = MockServer::start().await;
-
-        let body = serde_json::json!({
-            "items": [
-                {
-                    "track": {
-                        "name": "Track 1",
-                        "uri": "spotify:track:t1",
-                        "album": { "name": "Album 1" },
-                        "duration_ms": 200000,
-                        "preview_url": null,
-                        "artists": [{ "name": "Artist 1", "uri": "spotify:artist:a1" }]
-                    }
-                }
-            ],
-            "total": 1,
-            "next": null,
-            "offset": 0,
-            "limit": 100
-        });
-
-        Mock::given(method("GET"))
-            .and(path_regex(r"/v1/playlists/.*/tracks.*"))
-            .respond_with(ResponseTemplate::new(200).set_body_json(&body))
-            .mount(&mock_server)
-            .await;
-
-        let pool = crate::db::create_test_pool().await;
-        let encryption_key = [0u8; 32];
-
-        let user_id = crate::db::create_test_user(&pool).await;
-        let access_encrypted =
-            crate::routes::auth::encrypt_token(&encryption_key, "fake-access-token").unwrap();
-        let refresh_encrypted =
-            crate::routes::auth::encrypt_token(&encryption_key, "fake-refresh-token").unwrap();
-        let expires_at = chrono::NaiveDate::from_ymd_opt(2099, 1, 1)
-            .unwrap()
-            .and_hms_opt(0, 0, 0)
-            .unwrap();
-        crate::db::tokens::store_tokens(
-            &pool,
-            &user_id,
-            &access_encrypted,
-            &refresh_encrypted,
-            expires_at,
-            "playlist-read-private",
-        )
-        .await
-        .unwrap();
-
-        let state = Arc::new(ImportState {
-            spotify: SpotifyClient::new("id", "secret")
-                .with_base_url(mock_server.uri(), mock_server.uri()),
-            repo: Arc::new(TestRepo::new()),
-            pool,
-            encryption_key,
-            claude: Arc::new(FailingClaude),
-        });
-
-        let app = import_router(state);
-
-        let req_body = serde_json::json!({
-            "playlist_url": "https://open.spotify.com/playlist/37i9dQZF1DX0BcQWzuB7ZO"
-        });
-
-        let response = app
-            .oneshot(
-                Request::builder()
-                    .method("POST")
-                    .uri("/import/spotify")
-                    .header("content-type", "application/json")
-                    .header("X-User-Id", &user_id)
-                    .body(Body::from(serde_json::to_vec(&req_body).unwrap()))
-                    .unwrap(),
-            )
-            .await
-            .unwrap();
-
-        // Import should succeed even though enrichment will fail in background
-        assert_eq!(response.status(), StatusCode::OK);
-
-        let body_bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
-            .await
-            .unwrap();
-        let resp: ImportResponse = serde_json::from_slice(&body_bytes).unwrap();
-
-        assert_eq!(resp.total, 1);
-        assert_eq!(resp.inserted, 1);
-        assert_eq!(resp.status, "completed");
     }
 }
