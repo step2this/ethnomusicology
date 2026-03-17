@@ -55,11 +55,14 @@ impl IntoResponse for ImportError {
             ImportError::InvalidUrl(m) => (StatusCode::BAD_REQUEST, "INVALID_REQUEST", m.clone()),
             ImportError::NotFound(m) => (StatusCode::NOT_FOUND, "NOT_FOUND", m.clone()),
             ImportError::AccessDenied(m) => (StatusCode::FORBIDDEN, "ACCESS_DENIED", m.clone()),
-            ImportError::SpotifyError(_) => (
-                StatusCode::BAD_GATEWAY,
-                "UPSTREAM_ERROR",
-                "Spotify API error".to_string(),
-            ),
+            ImportError::SpotifyError(e) => {
+                tracing::error!("Spotify API error during import: {e:?}");
+                (
+                    StatusCode::BAD_GATEWAY,
+                    "UPSTREAM_ERROR",
+                    format!("Spotify API error: {e}"),
+                )
+            }
             ImportError::Database(m) => (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR",
